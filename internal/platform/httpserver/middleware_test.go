@@ -102,10 +102,10 @@ func TestRouterAndLogging(t *testing.T) {
 		t.Fatal("incorrect route/status/byte accounting")
 	}
 	for _, entry := range logs {
-		if entry["event"] != "http.request_completed" || entry["duration_ms"].(float64) < 0 {
+		if entry["event"] != "http.request_completed" || entry["outcome"] != "completed" || entry["duration_ms"].(float64) < 0 {
 			t.Fatal("invalid completion")
 		}
-		if len(entry) != 12 {
+		if len(entry) != 13 {
 			t.Fatalf("unexpected request log fields: %v", entry)
 		}
 	}
@@ -418,5 +418,114 @@ func await(t *testing.T, ch <-chan struct{}) {
 	case <-ch:
 	case <-time.After(5 * time.Second):
 		t.Fatal("synchronization timed out")
+	}
+}
+
+func TestCompletionOutcomesOverTCP(t *testing.T) {
+	for _, tt := range []struct {
+		name, outcome string
+		status        int
+	}{
+		{"no write", "completed", 200}, {"abort before", "aborted", 0},
+		{"abort after", "aborted", 202}, {"recovered panic", "completed", 500},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			var out bytes.Buffer
+			router := testRouter(t, map[string]string{"HTTP_MAX_CONCURRENT_REQUESTS": "1"}, &out, func(api chi.Router) {
+				api.Get("/test", func(w http.ResponseWriter, r *http.Request) {
+					switch tt.name {
+					case "abort before":
+						panic(http.ErrAbortHandler)
+					case "abort after":
+						w.WriteHeader(http.StatusAccepted)
+						if _, err := io.WriteString(w, "partial"); err != nil {
+							t.Error(err)
+						}
+						w.(http.Flusher).Flush()
+						panic(http.ErrAbortHandler)
+					case "recovered panic":
+						panic("PRIVATE_SENTINEL")
+					}
+				})
+				api.Get("/ok", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusNoContent) })
+			})
+			// Synchronize log reads with handler exit, including panic unwinding.
+			finished := make(chan struct{}, 2)
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				defer func() { finished <- struct{}{} }()
+				router.ServeHTTP(w, r)
+			}))
+			defer server.Close()
+			transport := &http.Transport{DisableKeepAlives: true}
+			defer transport.CloseIdleConnections()
+			client := &http.Client{Transport: transport, Timeout: 5 * time.Second}
+			resp, requestErr := client.Get(server.URL + "/api/v1/test")
+			var body []byte
+			if tt.name == "abort before" {
+				if resp != nil || !errors.Is(requestErr, io.EOF) {
+					t.Fatalf("pre-commit abort: response=%v err=%v", resp, requestErr)
+				}
+			} else {
+				if requestErr != nil {
+					t.Fatal(requestErr)
+				}
+				var readErr error
+				body, readErr = io.ReadAll(resp.Body)
+				if err := resp.Body.Close(); err != nil {
+					t.Fatal(err)
+				}
+				if resp.StatusCode != tt.status {
+					t.Fatalf("wire status=%d; want %d", resp.StatusCode, tt.status)
+				}
+				switch tt.name {
+				case "abort after":
+					if string(body) != "partial" || !errors.Is(readErr, io.ErrUnexpectedEOF) {
+						t.Fatalf("partial abort: %q, %v", body, readErr)
+					}
+				case "no write":
+					if readErr != nil || len(body) != 0 {
+						t.Fatalf("implicit 200: %q, %v", body, readErr)
+					}
+				case "recovered panic":
+					if readErr != nil || !bytes.Contains(body, []byte(`"code":"INTERNAL_ERROR"`)) {
+						t.Fatalf("recovery: %q, %v", body, readErr)
+					}
+				}
+			}
+			await(t, finished)
+			logs := records(t, out.String())
+			completions := 0
+			for _, entry := range logs {
+				if entry["event"] != "http.request_completed" {
+					continue
+				}
+				completions++
+				if entry["outcome"] != tt.outcome || entry["status"] != float64(tt.status) || entry["response_bytes"] != float64(len(body)) || entry["request_id"] == "" {
+					t.Fatalf("incorrect completion: %v", entry)
+				}
+			}
+			expectedEvents := 1
+			if tt.name == "recovered panic" {
+				expectedEvents = 3
+			}
+			if completions != 1 || len(logs) != expectedEvents || strings.Contains(out.String()+string(body), "PRIVATE_SENTINEL") {
+				t.Fatal("duplicate/missing event or sensitive details")
+			}
+
+			// A second request must be admitted after either return or abort.
+			resp, err := client.Get(server.URL + "/api/v1/ok")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := resp.Body.Close(); err != nil {
+				t.Fatal(err)
+			}
+			await(t, finished)
+			logs = records(t, out.String())
+			last := logs[len(logs)-1]
+			if resp.StatusCode != 204 || len(logs) != expectedEvents+1 || last["event"] != "http.request_completed" || last["outcome"] != "completed" || last["status"] != float64(204) {
+				t.Fatal("admission release or completion count")
+			}
+		})
 	}
 }

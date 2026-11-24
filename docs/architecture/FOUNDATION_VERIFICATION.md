@@ -253,3 +253,22 @@ All requested applicable checks passed. FND-005 remains implemented pending owne
 Output staging bounds do not cap encoding/json/custom-marshaler peak memory; DTOs must be independently bounded. Use typed List fields for collections; arbitrary nil slices are not rewritten. Static message/field selection remains a privacy obligation. Unknown fields are rejected for ordinary struct DTOs, but custom nested unmarshaling and map/interface fields need later operation-specific review. Go byte limits can be stricter than JSON Schema character limits. Parser-level failures occur before middleware. Non-cooperative handlers, synchronous log sinks, upgraded streams and unmeasured capacity retain the previously documented limitations.
 
 No commit, push, deploy or production connection occurred. Stop after Step 4 for review. Step 5 health endpoints are the recommended next capability only after separate explicit authorization.
+
+## Step 4 review follow-up — completion logging on abort
+
+Review baseline and inspected HEAD: `5598a2b4ec2e8f89af2f2dd35c7c2fbeddfdef35`; initial working tree clean. Scope: only the reported completion logging defect. FND-005 remains implemented pending architectural review; no approval or later-phase authorization is inferred.
+
+Previously the deferred logger converted every zero tracked status into 200, even during pre-commit abort unwinding. It now records whether the inner handler chain returned normally, without recovering or changing the panic. One completion event contains outcome=completed for normal return (including a safely recovered 500), or outcome=aborted for unwinding. Normal no-write completion retains implicit 200. Pre-commit abort uses status=0 to represent no final HTTP status committed; post-commit abort retains committed status and successful byte counts. Logging writes no replacement response and includes no panic/error details. Existing recovery, ErrAbortHandler propagation and admission behavior remain unchanged.
+
+Regression evidence includes real loopback requests: normal no-write completion returns empty HTTP 200; pre-commit ErrAbortHandler returns EOF with no response; a flushed partial 202 returns exactly partial bytes followed by unexpected EOF; a recovered panic returns the sanitized 500 envelope. Tests assert matching outcome/status/bytes, exactly one completion event per request, no sensitive sentinel output or extra events, and successful admission of the next request with a one-slot limit. Existing direct Flush/204/abort tests still assert sentinel propagation and no appended response, now also checking aborted completion fields. The exact completion-field regression expectation includes the new outcome field.
+
+Actual checks, all exit 0:
+
+- `gofmt -w internal/platform/httpserver/middleware.go internal/platform/httpserver/middleware_test.go internal/platform/httpserver/response_test.go`; final formatting inspection reports no paths.
+- `go test -count=1 ./internal/platform/httpserver -run 'Test(CompletionOutcomesOverTCP|RouterAndLogging|FlushAndAbortNeverAppend|PanicsAndCapacityRelease|ResponseControllerAndPartialPanicOverTCP)$'`: PASS.
+- `go test -count=1 ./...`: PASS, all eight packages.
+- `go test -race -count=1 ./...`: PASS, all eight packages, no race reports.
+- `go vet ./...`: PASS, no findings.
+- `git diff --check`: PASS.
+
+Changed only the completion logger, two existing test files, middleware documentation, this review evidence and the roadmap/feature traceability notes. No dependency, API response contract, business behavior or production performance claim changes. No Step 5 implementation, commit, push or deployment. Stop for review of this finding fix.

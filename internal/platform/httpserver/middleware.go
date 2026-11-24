@@ -54,11 +54,18 @@ func requestLog(logger *slog.Logger) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			tracked := chimiddleware.NewWrapResponseWriter(w, r.ProtoMajor)
 			started := time.Now()
+			returned := false
 			defer func() {
 				status := tracked.Status()
-				if status == 0 {
-					status = http.StatusOK
+				outcome := "aborted"
+				if returned {
+					outcome = "completed"
+					if status == 0 {
+						status = http.StatusOK
+					}
 				}
+				// Zero means no final status was committed before abort.
+				// Observe unwinding without recovering or replacing its panic.
 				route := "unmatched"
 				if rc := chi.RouteContext(r.Context()); rc != nil && status != 404 && status != 405 {
 					if pattern := rc.RoutePattern(); pattern != "" {
@@ -67,11 +74,12 @@ func requestLog(logger *slog.Logger) func(http.Handler) http.Handler {
 				}
 				logger.LogAttrs(r.Context(), slog.LevelInfo, "http.request_completed",
 					slog.String("request_id", RequestID(r.Context())), slog.String("method", safeMethod(r.Method)),
-					slog.String("route", route), slog.Int("status", status),
+					slog.String("route", route), slog.Int("status", status), slog.String("outcome", outcome),
 					slog.Float64("duration_ms", float64(time.Since(started))/float64(time.Millisecond)),
 					slog.Int("response_bytes", tracked.BytesWritten()))
 			}()
 			next.ServeHTTP(tracked, r)
+			returned = true
 		})
 	}
 }

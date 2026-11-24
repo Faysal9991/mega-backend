@@ -187,6 +187,26 @@ func TestFlushAndAbortNeverAppend(t *testing.T) {
 		if mode == "204" && rec.Code != 204 {
 			t.Fatal("204 replaced")
 		}
+		completions := 0
+		for _, entry := range records(t, out.String()) {
+			if entry["event"] != "http.request_completed" {
+				continue
+			}
+			completions++
+			status := float64(200)
+			if mode == "abort before" {
+				status = 0
+			}
+			if mode == "204" {
+				status = 204
+			}
+			if entry["outcome"] != "aborted" || entry["status"] != status || entry["response_bytes"] != float64(len(want)) {
+				t.Fatal("incorrect aborted completion", entry)
+			}
+		}
+		if completions != 1 {
+			t.Fatal("duplicate or missing completion")
+		}
 		if strings.HasPrefix(mode, "abort") && strings.Contains(out.String(), "http.handler_panicked") {
 			t.Fatal("explicit abort treated as panic")
 		}
