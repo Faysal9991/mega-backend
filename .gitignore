@@ -1,0 +1,29 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+secrets/
+*.pem
+*.key
+
+# Go build
+bin/
+build/
+dist/
+*.exe
+*.test
+*.out
+coverage/
+
+# Logs
+*.log
+logs/
+
+# IDE
+.idea/
+.vscode/
+.DS_Store
+
+# Local data
+data/
+tmp/
