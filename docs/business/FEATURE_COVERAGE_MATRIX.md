@@ -1,6 +1,6 @@
 # Feature Coverage Matrix
 
-Status: Business requirements inventory with incremental foundation evidence. Stable IDs below identify requested capabilities, not evidence of old implementation. Step 1 configuration is authorized; no business module is authorized or verified.
+Status: Business requirements inventory with incremental foundation evidence. Step 1 source-level architectural review is approved by the owner at bf409ff. Step 2 logging implementation and local final verification are complete; source-level architectural review is pending. No business module is authorized or verified.
 
 Business rows have these unresolved fields until individually specified: reference path/symbol/commit, approved detailed requirements, roles, inputs/outputs, side effects, data dependencies, edge cases, new API/code/tests and intentional changes. Foundation evidence is recorded separately per row. No business API route or physical table is assumed. Source availability does not block the independent foundation task.
 
@@ -9,7 +9,8 @@ Permitted statuses: discovered, specified, implemented, verified, deferred, bloc
 | Stable ID | Capability | Requirement / evidence | Status | Gate / acceptance |
 | --- | --- | --- | --- | --- |
 | FND-001 | Foundation inspection and system architecture | Current owner task; AGENTS.md; local Go bootstrap | specified | Inspection/check results and architecture review; no runtime feature claim |
-| FND-002 | Typed runtime configuration | Owner Step 1 requirements; `internal/platform/config/config.go`, `config_test.go`; `cmd/api/main.go`, `main_test.go`; `docs/architecture/RUNTIME_CONFIGURATION.md` | implemented | Automated verification evidence in `docs/architecture/FOUNDATION_VERIFICATION.md`; architectural review pending; no HTTP listener or business rules |
+| FND-002 | Typed runtime configuration | Owner Step 1 requirements; `internal/platform/config/config.go`, `config_test.go`; `cmd/api/main.go`, `main_test.go`; `docs/architecture/RUNTIME_CONFIGURATION.md` | verified | Owner confirms source-level architectural review passed at bf409ff; actual local test results recorded separately in FOUNDATION_VERIFICATION.md; no production performance or runtime-service claim |
+| FND-003 | Structured logging foundation | Owner Step 2 requirements; `internal/platform/logging/`, `internal/platform/config/logging_test.go`, startup tests; `docs/architecture/STRUCTURED_LOGGING.md` | implemented | Final local checks and scope/security limitations in FOUNDATION_VERIFICATION.md; source-level architectural review pending; no HTTP or business implementation |
 | IDN-001 | Identity, sessions and recovery | Requested coverage; no reference evidence | discovered | Verify providers, challenge/recovery policy and session requirements |
 | PRO-001 | Profiles | Requested coverage; no reference evidence | discovered | Approve fields, privacy and editing authority |
 | SOC-001 | Follows and blocks | Requested coverage; no reference evidence | discovered | Approve relationship and visibility semantics |

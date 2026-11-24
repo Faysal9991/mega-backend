@@ -6,7 +6,7 @@ Date: 2026-11-24 (Asia/Dhaka)
 
 The owner's greenfield instruction and current `AGENTS.md` supersede the earlier migration framing. Approved requirements define new behavior; Django is optional read-only reference evidence. No legacy schema, API adapter, data import or Python runtime dependency is planned. `docs/migration/` contains superseded historical notes.
 
-Current authorized task: Step 1, typed runtime configuration only, including startup integration, isolated tests and documentation. Architecture preparation is the completed preceding task. Steps 2 onward and all business modules remain outside current authorization. See `architecture/RUNTIME_CONFIGURATION.md` and the Step 1 evidence in `architecture/FOUNDATION_VERIFICATION.md`.
+Current authorized task: final verification of Step 2, structured logging only. Step 1 passed source-level architectural review per owner approval at baseline bf409ff. This records review approval, distinct from reported tests and unmeasured production behavior. Step 3 onward and all business modules remain unauthorized. See `architecture/STRUCTURED_LOGGING.md` and the Step 2 evidence in `architecture/FOUNDATION_VERIFICATION.md`.
 
 ## Initial architecture inspection (historical)
 
@@ -20,13 +20,13 @@ Current authorized task: Step 1, typed runtime configuration only, including sta
 
 ## Execution sequence and gates
 
-Each row requires owner authorization before execution. Step 1 is now authorized; later capabilities must not be bundled into it.
+Each row requires owner authorization before execution. Step 2 is authorized; later capabilities must not be bundled into it.
 
 | Step | Scope | Acceptance evidence |
 | --- | --- | --- |
 | 0 | Foundation inspection and architecture | Baseline prepared; owner authorized Step 1 using this baseline |
-| 1 — current | Typed runtime configuration | Implemented; bounded typed values, required production/staging identity/bind settings, safe errors and isolated tests. Actual verification is recorded in `architecture/FOUNDATION_VERIFICATION.md`; stop for architectural review |
-| 2 | Structured logging | Explicit slog injection, request-safe fields, redaction policy and tests for sensitive fields |
+| 1 | Typed runtime configuration | Implemented and source-level architectural review approved by owner at bf409ff; test evidence recorded separately; no production behavior claim |
+| 2 — current | Structured logging | Implemented with explicit slog injection, bounded configuration, defensive redaction and security/concurrency regression tests; final verification report records actual results. Stop for architectural review |
 | 3 | HTTP lifecycle and middleware | Pin Chi when introduced; server deadlines/body limits, request IDs, panic handling, shutdown/drain behavior and cancellation verified |
 | 4 | Response/error engine | Reviewed OpenAPI common schemas and error registry; response, 204, invalid input and error contract tests |
 | 5 | Health endpoints | Separate liveness/readiness semantics; draining/unavailable behavior tested without exposing internals |
@@ -43,7 +43,13 @@ Runtime/dependency versions other than the observed Go version are not selected 
 
 Inspection baseline: commit `55b4db29977d6c646bd41955bacb14ac94ce47a2`. Git now has this initial commit. At task start, the only working-tree change was the owner's correction of `go.mod` to `github.com/Faysal9991/mega-backend`; it was preserved. New imports use that module path. The former repository identity in the historical inspection above is not the current Go module.
 
-Configuration uses the standard library only. HTTP settings are loaded but not enforced by a server yet. No subsequent roadmap capability, dependency or infrastructure was introduced. Next proposed step is structured logging, only after architectural review and explicit authorization.
+Configuration uses the standard library only. HTTP settings are loaded but not enforced by a server yet. Step 1 approval was supplied by the owner at reviewed commit bf409ff738a3e61bb535b06e99cab9102005f594.
+
+## Step 2 verification plan and handoff
+
+Review constructor/configuration/startup behavior, With/WithGroup redaction, nested and arbitrary values, reserved/duplicate keys, injection, UTC/JSON output and concurrency. Correct only Step 2 defects, preserve Step 1 regression checks, then run all owner-requested uncached commands and record actual outcomes. No external dependencies, runtime globals or asynchronous infrastructure are introduced.
+
+Final review tightened duplicate-key handling to first accepted occurrence per JSON object and retained sensitive context for invalid group names. Security tests inspect JSON tokens rather than relying on map decoding. `FND-003` tracks implementation and local evidence; source-level architectural review of Step 2 remains pending. Next proposed step is HTTP lifecycle/middleware (Step 3), only after architectural review and explicit authorization.
 
 ## Stop conditions and deferred work
 

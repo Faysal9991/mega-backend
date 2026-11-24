@@ -1,12 +1,12 @@
 # Typed Runtime Configuration
 
-Scope: Step 1 only. Standard-library configuration loading and startup validation, with no HTTP listener, logging engine, database or business module.
+Scope: Step 1 configuration with the authorized Step 2 logging extension. No HTTP listener, database or business module. The owner approved Step 1 source-level architecture at reviewed baseline bf409ff; that approval does not establish production behavior.
 
 ## Architecture
 
 `internal/platform/config.Load(lookup)` builds a typed `Config` with an `Environment` and an `HTTPConfig`. Durations are `time.Duration`, body bytes are `int64`, and port is an integer. Environment constants are development, test, staging and production.
 
-`cmd/api/main.go` calls `Load` once using `os.LookupEnv`. Validation completes before any future dependency can start. Invalid configuration produces a safe setting-specific error on stderr and exit status 1. Successful validation prints a fixed message and exits 0; it does not start a server. Once future components exist, the composition root will pass this snapshot explicitly into their constructors.
+`cmd/api/main.go` calls `Load` once using `os.LookupEnv`. Validation completes before logger construction. Invalid configuration produces a safe setting-specific error on stderr and exit status 1. Step 2 injects the validated snapshot into `logging.New` and emits a fixed INFO startup event; WARN/ERROR thresholds suppress it. It exits without starting a server. Future components will receive configuration explicitly through constructors.
 
 No init function, mutable global, environment mutation, hot reload or dotenv parser is used. Tests inject map-backed lookups without touching process environment. Each recognized setting is read at most once per load; failure stops immediately and returns a zero Config rather than partially usable settings. Treat returned snapshots as immutable after wiring; Go does not enforce immutability of exported fields.
 
@@ -28,6 +28,9 @@ Bounds are inclusive. Defaults are conservative initial engineering choices, not
 | `HTTP_IDLE_TIMEOUT` | `HTTP.IdleTimeout` | `60s` | Go duration, 1ms–15m |
 | `HTTP_SHUTDOWN_TIMEOUT` | `HTTP.ShutdownTimeout` | `10s` | Go duration, 1ms–5m |
 | `HTTP_MAX_BODY_BYTES` | `HTTP.MaxBodyBytes` | `1048576` (1 MiB) | Base-10 bytes, 1024–16777216 (1 KiB–16 MiB) |
+| `LOG_LEVEL` | `Logging.Level` (slog.Level) | `INFO` | Exactly DEBUG, INFO, WARN or ERROR |
+| `LOG_FORMAT` | `Logging.Format` (LogFormat) | text in development/test, json in staging/production | text or json; staging/production reject text |
+| `INSTANCE_ID` | `Logging.InstanceID` | local in development/test | Explicitly required in staging/production; 1–64 ASCII letters/digits/dot/underscore/hyphen |
 
 Duration examples: `500ms`, `1.5s`, `2m`. Unitless numbers, overflow, zero, negative and excessive durations fail. Numeric parser errors are replaced with safe messages so input values cannot appear in error chains or formatted output. Hosts such as `::1`, `127.0.0.1` and `0.0.0.0` are accepted literals; hostname resolution and socket binding are not performed by the loader. Network availability, address ownership and port privileges are checked only when a future server binds.
 
@@ -53,10 +56,10 @@ Build a binary outside the repository and validate production settings:
 
 ```sh
 go build -o /tmp/mega-api ./cmd/api
-APP_ENV=production APP_NAME=biho-live-api HTTP_HOST=127.0.0.1 /tmp/mega-api
+APP_ENV=production APP_NAME=biho-live-api HTTP_HOST=127.0.0.1 INSTANCE_ID=api-1 /tmp/mega-api
 ```
 
-Set `APP_ENV=staging` or `APP_ENV=production` explicitly in the relevant environment. Both modes require explicit `APP_NAME` and `HTTP_HOST`; unset mode deliberately selects local development. Choose a bind address appropriate to the future network design. Do not treat mode selection as a security boundary. No secret is required to run these examples.
+Set `APP_ENV=staging` or `APP_ENV=production` explicitly in the relevant environment. Both modes require explicit `APP_NAME`, `HTTP_HOST` and (from Step 2) `INSTANCE_ID`; unset mode deliberately selects local development. LOG_FORMAT defaults to json there, and any explicit text setting is rejected. Choose a bind address appropriate to the future network design. Do not treat mode selection as a security boundary. No secret is required to run these examples.
 
 To use the provided development example in a POSIX-style shell, first inspect it, then export its simple assignments in a subshell:
 
@@ -81,4 +84,6 @@ Add future settings only when an authorized capability requires them: a typed fi
 
 Tests cover defaults, all overrides/modes, missing versus empty required values, all empty keys, invalid names/hosts, port boundaries/overflow, every timeout's syntax/range, read/header consistency, body limits, safe error formatting, independent snapshots and one-read-per-setting behavior. Startup tests verify success/failure output and exit codes through the same `run` function used by `main`.
 
-See the Step 1 verification section in `FOUNDATION_VERIFICATION.md` for actual commands, coverage and process-level checks. Automated verification completes this step's implementation evidence; architectural review is still the handoff gate. No performance benchmark or production-readiness claim is made.
+See `STRUCTURED_LOGGING.md` for format precedence, instance identity, security policy and limitations. Loading now reads 13 recognized settings once each on success. Existing HTTP/application validation is preserved; production/staging now additionally require INSTANCE_ID as the explicitly authorized logging-related extension.
+
+See the Step 1 and Step 2 verification sections in `FOUNDATION_VERIFICATION.md` for actual commands and coverage. Step 1 source-level architectural review passed per owner approval; Step 2 awaits review. Neither test coverage nor architectural review establishes measured production behavior.

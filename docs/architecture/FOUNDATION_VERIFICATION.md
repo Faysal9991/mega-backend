@@ -2,7 +2,7 @@
 
 Date: 2026-11-24 (Asia/Dhaka)
 
-The original sections below record the architecture-preparation snapshot. Current Step 1 implementation and verification are recorded in the appended **Step 1 — Typed runtime configuration** section; earlier statements about missing configuration/tests are historical.
+The original sections below record the architecture-preparation snapshot. Step 1 and Step 2 results are recorded in their appended sections. Earlier statements about missing configuration, logging or tests are historical.
 
 ## Outcome
 
@@ -82,3 +82,60 @@ All Step 1 automated checks pass. Tests exercise defaults, all settings/modes, m
 Configuration values are not yet enforced by a running HTTP server. Bind availability, port privileges, workload suitability, integration, load and production behavior remain untested. Hostnames and scoped IPv6 addresses are deliberately unsupported; only unscoped IP literals are accepted. Unknown inherited environment keys are ignored; optional-key typos can retain a default. Production/staging must explicitly set APP_ENV to select their stricter requirements. No secrets are required at this step, and no sensitive configuration is printed.
 
 No SQL generation, lint/security tool, database or Redis checks apply because those tools/capabilities are not introduced. No performance measurements were taken. Structured logging, HTTP, response helpers, health endpoints and all excluded capabilities remain unimplemented. No commit, push or deployment occurred. Stop for architectural review; Step 2 requires separate authorization.
+
+## Step 1 architectural approval
+
+The owner explicitly confirmed that Step 1 passed source-level architectural review for its authorized scope at reviewed baseline `bf409ff738a3e61bb535b06e99cab9102005f594`. This approval is recorded as owner-provided review evidence, separate from the earlier reported command results and from measured production behavior, which remains unavailable. FND-002 is verified for the reviewed foundation scope. Step 2's necessary logging extension is covered by the separate review gate below.
+
+## Step 2 — Structured logging final verification
+
+Date: 2026-11-24 (Asia/Dhaka). Baseline: `bf409ff738a3e61bb535b06e99cab9102005f594`. Final verification applies to the uncommitted Step 2 working tree. Interrupted earlier work was retained and completed; no owner edits were overwritten. FND-003 is implemented with local automated evidence; architectural review remains pending.
+
+### Scope and security review
+
+- Standard-library slog constructor with injected writer and validated configuration. No mutable global logger, SetDefault, init side effects, external dependency, network logging, asynchronous queue or rotation.
+- Configuration adds only LOG_LEVEL, LOG_FORMAT and INSTANCE_ID. Existing application/HTTP validation and all regression scenarios remain; expected snapshots/read counts and staging/production fixtures were extended for the three settings. Staging/production require explicit instance identity and JSON output. Development/test default to INFO, text and local identity.
+- With and WithGroup are intercepted before built-in handler resolution/serialization. Sensitive parent groups propagate redaction to nested/attached values. Raw errors, arbitrary objects and LogValuer are replaced without calling Error, String, MarshalJSON or LogValue; panic-on-evaluation test fixtures verify this.
+- Final review found ordinary duplicate attributes could still create duplicate JSON keys. The handler now uses immutable attached key sets and record-local deduplication, with first accepted occurrence winning in each object, including inline/nested groups. A colliding WithGroup suppresses its subsequent attributes. JSON tests inspect tokens before map decoding to detect duplicates.
+- Final review also retained sensitive treatment when invalid/reserved group names become invalid_group; descendants cannot escape the policy during rename. Collisions after rename are suppressed.
+- Reserved metadata cannot be overridden through attached or record attributes. Key/event syntax is bounded ASCII; invalid events are replaced without echoing input. Text and JSON handlers escape control characters; tests verify newline-bearing values do not add log records.
+- UTC timestamps, production JSON, independent logger configuration/default preservation and concurrent derived loggers are covered. Eight concurrent workers write 200 independently parsed records to one handler family without corruption or race findings.
+- Startup loads configuration exactly once, injects its logger, emits an INFO startup.configuration_validated event with http_server_implemented=false, and starts no HTTP server. DEBUG/INFO emit it; WARN/ERROR suppress it without failure. Invalid configuration still fails before logger creation at every threshold; startup sink errors produce a fixed safe stderr message and exit 1.
+
+### Actual command results
+
+All commands below exited 0 on the local Go 1.26.3 darwin/arm64 toolchain:
+
+| Command | Actual result |
+| --- | --- |
+| `go build ./...` | PASS |
+| `go test -count=1 ./...` | PASS: cmd/api, internal/platform/config, internal/platform/logging; uncached |
+| `go test -race -count=1 ./...` | PASS: all three packages; uncached, no race reports |
+| `go vet ./...` | PASS; no findings |
+| `go test -cover ./...` | PASS: cmd/api 94.4%, config 100.0%, logging 96.2% statement coverage; config coverage reused an unchanged cached result |
+| `git diff --check` | PASS; no tracked whitespace errors |
+| `gofmt -l` on all seven changed/new Go files | PASS; no output; files were formatted with gofmt -w |
+| `go list -m all` | Only github.com/Faysal9991/mega-backend; no external modules |
+
+Process-level smoke checks built a temporary binary outside the repository and verified production DEBUG/INFO JSON events and UTC time; WARN/ERROR produced no startup event and exited 0. Malformed LOG_LEVEL, empty LOG_FORMAT and missing required production INSTANCE_ID exited 1 with safe stderr and no success output. The explicitly shell-supplied development .env.example succeeded. Temporary artifacts were removed.
+
+Ignore-rule inspection confirmed real .env, .env.production, secret-directory PEM and key paths remain ignored; .env.example remains trackable. No probe secrets were created. Separate whitespace checks cover untracked Go/documentation files because git diff --check omits them.
+
+### Changed files for Step 2
+
+- Updated `cmd/api/main.go` and `cmd/api/main_test.go`.
+- Updated `internal/platform/config/config.go` and `config_test.go`; added `logging_test.go`.
+- Added `internal/platform/logging/logging.go` and `logging_test.go`.
+- Updated `.env.example`, `docs/architecture/RUNTIME_CONFIGURATION.md`, `docs/IMPLEMENTATION_ROADMAP.md`, `docs/business/FEATURE_COVERAGE_MATRIX.md` and this report.
+- Added `docs/architecture/STRUCTURED_LOGGING.md` and `docs/decisions/0002-logging-attribute-policy.md`.
+- `go.mod`, business rules and unrelated architecture decisions are unchanged.
+
+### Limitations and remaining risks
+
+No unresolved failure was found in the exercised Step 2 checks. Test/coverage results establish local evidence only; they do not establish production reliability or comprehensive confidentiality. Key-based redaction cannot recognize secrets under innocent keys or in syntactically valid dynamic event/group names. Callers must select safe primitive attributes and static names; never log raw request bodies/headers, environment/configuration snapshots or private user content.
+
+Redaction is intentionally conservative and may hide useful diagnostic fields. Raw errors and LogValuer are intentionally unsupported; callers must supply reviewed failure codes. Duplicate attributes/groups are dropped rather than merged. Normalization/deduplication allocate per record, and synchronous output can block. Standard slog convenience methods discard sink errors; logging is not financial settlement or durable audit evidence. Independent logger families sharing an unsafe writer require caller-provided synchronization. The constructor requires a validated configuration snapshot and a usable writer; do not bypass startup validation or mutate attached object/group inputs concurrently.
+
+Instance-ID uniqueness is an operator responsibility; APP_ENV must explicitly select staging/production. There is no distributed collector, request correlation or fleet/load verification. A small synthetic benchmark is provided but was not run during final verification; no throughput, allocation improvement or production performance claim is made.
+
+No SQL generation/database/Redis checks apply. No extra lint/security tool is configured. HTTP server/middleware, response engine and all Step 3+ capabilities remain absent. No commit, push or deployment occurred. Step 2 stops here for source-level architectural review; Step 3 requires explicit authorization.

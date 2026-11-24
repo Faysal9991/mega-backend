@@ -2,6 +2,7 @@ package config_test
 
 import (
 	"fmt"
+	"log/slog"
 	"strings"
 	"testing"
 	"time"
@@ -19,6 +20,7 @@ func lookup(values map[string]string) config.LookupEnv {
 func TestLoadValid(t *testing.T) {
 	defaults := config.Config{
 		Environment: config.Development, AppName: "biho-live-api",
+		Logging: config.LoggingConfig{Level: slog.LevelInfo, Format: config.LogText, InstanceID: "local"},
 		HTTP: config.HTTPConfig{
 			Host: "127.0.0.1", Port: 8080, ReadHeaderTimeout: 5 * time.Second,
 			ReadTimeout: 15 * time.Second, WriteTimeout: 30 * time.Second,
@@ -27,6 +29,7 @@ func TestLoadValid(t *testing.T) {
 	}
 	overrides := config.Config{
 		Environment: config.Production, AppName: "mega-api_2.0",
+		Logging: config.LoggingConfig{Level: slog.LevelInfo, Format: config.LogJSON, InstanceID: "api-1"},
 		HTTP: config.HTTPConfig{
 			Host: "::1", Port: 9090, ReadHeaderTimeout: time.Second,
 			ReadTimeout: 2 * time.Second, WriteTimeout: 3 * time.Second,
@@ -40,7 +43,7 @@ func TestLoadValid(t *testing.T) {
 	}{
 		{"defaults", nil, defaults},
 		{"all overrides", map[string]string{
-			"APP_ENV": "production", "APP_NAME": "mega-api_2.0", "HTTP_HOST": "::1", "HTTP_PORT": "9090",
+			"APP_ENV": "production", "APP_NAME": "mega-api_2.0", "HTTP_HOST": "::1", "HTTP_PORT": "9090", "INSTANCE_ID": "api-1",
 			"HTTP_READ_HEADER_TIMEOUT": "1s", "HTTP_READ_TIMEOUT": "2s", "HTTP_WRITE_TIMEOUT": "3s",
 			"HTTP_IDLE_TIMEOUT": "4m", "HTTP_SHUTDOWN_TIMEOUT": "1.5s", "HTTP_MAX_BODY_BYTES": "2048",
 		}, overrides},
@@ -48,11 +51,14 @@ func TestLoadValid(t *testing.T) {
 	for _, env := range []config.Environment{config.Test, config.Staging} {
 		want := defaults
 		want.Environment = env
+		if env == config.Staging {
+			want.Logging.Format = config.LogJSON
+		}
 		tests = append(tests, struct {
 			name string
 			env  map[string]string
 			want config.Config
-		}{string(env), map[string]string{"APP_ENV": string(env), "APP_NAME": defaults.AppName, "HTTP_HOST": defaults.HTTP.Host}, want})
+		}{string(env), map[string]string{"APP_ENV": string(env), "APP_NAME": defaults.AppName, "HTTP_HOST": defaults.HTTP.Host, "INSTANCE_ID": "local"}, want})
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -123,6 +129,7 @@ func TestMissingRequiredSettings(t *testing.T) {
 			t.Run(env+"/"+key, func(t *testing.T) {
 				t.Parallel()
 				values := map[string]string{"APP_ENV": env, "APP_NAME": "api", "HTTP_HOST": "127.0.0.1"}
+				values["INSTANCE_ID"] = "api-1"
 				delete(values, key)
 				_, err := config.Load(lookup(values))
 				if err == nil || err.Error() != "configuration: "+key+": is required" {
@@ -190,8 +197,8 @@ func TestDeterministicLoading(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(calls) != 10 {
-		t.Fatalf("expected exactly 10 settings read, got %d", len(calls))
+	if len(calls) != 13 {
+		t.Fatalf("expected exactly 13 settings read, got %d", len(calls))
 	}
 	for key, count := range calls {
 		if count != 1 {

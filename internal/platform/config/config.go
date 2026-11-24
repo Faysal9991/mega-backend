@@ -3,6 +3,7 @@ package config
 
 import (
 	"fmt"
+	"log/slog"
 	"net/netip"
 	"strconv"
 	"time"
@@ -23,6 +24,20 @@ type Config struct {
 	Environment Environment
 	AppName     string
 	HTTP        HTTPConfig
+	Logging     LoggingConfig
+}
+
+type LogFormat string
+
+const (
+	LogText LogFormat = "text"
+	LogJSON LogFormat = "json"
+)
+
+type LoggingConfig struct {
+	Level      slog.Level
+	Format     LogFormat
+	InstanceID string
 }
 
 // HTTPConfig defines limits for the future HTTP server; it starts no listener.
@@ -109,6 +124,44 @@ func Load(lookup LookupEnv) (Config, error) {
 	cfg.HTTP.MaxBodyBytes, err = integer(lookup, "HTTP_MAX_BODY_BYTES", "1048576", 1024, 16*1024*1024)
 	if err != nil {
 		return Config{}, err
+	}
+	level, err := text(lookup, "LOG_LEVEL", "INFO", false)
+	if err != nil {
+		return Config{}, err
+	}
+	switch level {
+	case "DEBUG":
+		cfg.Logging.Level = slog.LevelDebug
+	case "INFO":
+		cfg.Logging.Level = slog.LevelInfo
+	case "WARN":
+		cfg.Logging.Level = slog.LevelWarn
+	case "ERROR":
+		cfg.Logging.Level = slog.LevelError
+	default:
+		return Config{}, invalid("LOG_LEVEL", "must be DEBUG, INFO, WARN or ERROR")
+	}
+	formatDefault := string(LogText)
+	if required {
+		formatDefault = string(LogJSON)
+	}
+	format, err := text(lookup, "LOG_FORMAT", formatDefault, false)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.Logging.Format = LogFormat(format)
+	if cfg.Logging.Format != LogText && cfg.Logging.Format != LogJSON {
+		return Config{}, invalid("LOG_FORMAT", "must be text or json")
+	}
+	if required && cfg.Logging.Format != LogJSON {
+		return Config{}, invalid("LOG_FORMAT", "must be json in staging and production")
+	}
+	cfg.Logging.InstanceID, err = text(lookup, "INSTANCE_ID", "local", required)
+	if err != nil {
+		return Config{}, err
+	}
+	if !validName(cfg.Logging.InstanceID) {
+		return Config{}, invalid("INSTANCE_ID", "must contain 1 to 64 ASCII letters, digits, dots, underscores or hyphens")
 	}
 	return cfg, nil
 }
