@@ -25,17 +25,27 @@ func main() {
 }
 
 func run(ctx context.Context, lookup config.LookupEnv, stdout, stderr io.Writer, listen func(string, string) (net.Listener, error)) int {
-	return runWithDatabase(ctx, lookup, stdout, stderr, listen, func(ctx context.Context, cfg config.DatabaseConfig) (func(), error) {
+	return runWithDatabase(ctx, lookup, stdout, stderr, listen, func(ctx context.Context, cfg config.DatabaseConfig) (databaseRuntime, error) {
 		pool, err := postgres.Open(ctx, cfg)
 		if err != nil {
-			return nil, err
+			return databaseRuntime{}, err
 		}
-		return pool.Close, nil
+		availability, err := postgres.NewAvailability(pool, 2*time.Second, time.Second)
+		if err != nil {
+			pool.Close()
+			return databaseRuntime{}, err
+		}
+		return databaseRuntime{close: pool.Close, available: availability.Available}, nil
 	})
 }
 
+type databaseRuntime struct {
+	close     func()
+	available func(context.Context) bool
+}
+
 // The injected starter isolates lifecycle tests from external database access.
-func runWithDatabase(ctx context.Context, lookup config.LookupEnv, stdout, stderr io.Writer, listen func(string, string) (net.Listener, error), start func(context.Context, config.DatabaseConfig) (func(), error)) int {
+func runWithDatabase(ctx context.Context, lookup config.LookupEnv, stdout, stderr io.Writer, listen func(string, string) (net.Listener, error), start func(context.Context, config.DatabaseConfig) (databaseRuntime, error)) int {
 	// Load once at the composition root and inject the validated snapshot.
 	cfg, err := config.Load(lookup)
 	if err != nil {
@@ -59,7 +69,7 @@ func runWithDatabase(ctx context.Context, lookup config.LookupEnv, stdout, stder
 		fmt.Fprintln(stderr, err)
 		return 1
 	}
-	closeDatabase, err := start(ctx, database)
+	runtimeDatabase, err := start(ctx, database)
 	if err != nil {
 		if ctx.Err() != nil {
 			return 0
@@ -68,8 +78,15 @@ func runWithDatabase(ctx context.Context, lookup config.LookupEnv, stdout, stder
 		fmt.Fprintln(stderr, "database: initialization failed")
 		return 1
 	}
-	defer closeDatabase()
-	lifecycle := &httpserver.Lifecycle{}
+	if runtimeDatabase.close == nil || runtimeDatabase.available == nil {
+		if runtimeDatabase.close != nil {
+			runtimeDatabase.close()
+		}
+		fmt.Fprintln(stderr, "database: incomplete runtime dependencies")
+		return 1
+	}
+	defer runtimeDatabase.close()
+	lifecycle := httpserver.NewLifecycle(runtimeDatabase.available)
 	router, err := httpserver.NewRouter(cfg.HTTP, logger, lifecycle)
 	if err != nil {
 		fmt.Fprintln(stderr, "http: router construction failed")

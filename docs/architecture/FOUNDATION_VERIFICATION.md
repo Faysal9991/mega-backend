@@ -392,3 +392,47 @@ Added config/database.go and its tests; platform/postgres pool/migration/unit/in
 FND-007 is implemented with local/real-test acceptance evidence, pending architectural review. No business/financial/compatibility rule changed. No PgBouncer was installed, configured or deployed. Future proxy requirements include cache/protocol/cancellation testing, schema-qualified/session-independent runtime operations, explicit transactions, independent frontend/backend/fleet connection budgets, TLS/auth on both legs and a permanently direct migration route for session locks. Present tests use direct PostgreSQL only and do not prove proxy behavior. Production verify-full enforcement is tested at configuration/constructor level, not deployed against a production certificate. Ongoing DB-outage readiness and populated production schema rollback/backup/restore remain outside this foundation. Pool Close requires consumers to release leases; no claim is made that arbitrary uncooperative code can be terminated.
 
 No commit, push or application/proxy deployment occurred. Stop after Step 6 for review. Later Redis/business/infrastructure steps require separate authorization.
+
+## Step 6 two-gap follow-up — transactions and ongoing readiness
+
+Date: 2026-11-25 (Asia/Dhaka). Inspected HEAD cf296a9ff0f6d27042a4f961178a6ea4e5cfc9a8; working tree was clean. Scope is only the two owner-requested missing Step 6 requirements. FND-007 remains implemented pending architectural review; no prior approval or later-phase authorization is invented.
+
+### Implemented behavior
+
+Added `postgres.Transactions` with an injected BeginTx consumer interface satisfied by the existing pool, explicit TxOptions and callback context propagation. Commit runs once only on callback success with an uncanceled caller. Every unfinished transaction rolls back in a defer, including error, failed commit, cancellation and panic. Cleanup preserves context values but detaches caller cancellation/deadline and imposes its own required 1ms–5s bound. ErrTxClosed is benign; other rollback errors join the original cause. Fixed safe wrapper messages/Go formatting preserve errors.Is/As without printing raw causes. Original panic propagates after cleanup. No transaction/commit is automatically retried, and rollback after a commit error does not establish whether a commit was settled.
+
+Added one on-demand `Availability` checker over the already-initialized runtime pool, injected at API composition into Lifecycle. Production wiring uses a 2s check deadline, 1s success/failure cache and at most 32 coalesced waiting request handlers. Excess waiters fail closed; individual waiters honor cancellation/deadline. One synchronous check is active at a time, with an independent timeout so a disconnected first caller does not poison peers. No custom background loop/goroutine, new pool or unbounded waiting queue. Panic releases the flight and caches failure before existing recovery handles it. The HTTP running gate is checked before and after dependency checking. Database unavailability returns common 503 without changing terminal lifecycle state, so recovery is possible while running; shutdown cannot be reversed by cached/in-flight success. Liveness and unsupported-method routing do not check PostgreSQL. Existing JSON/HEAD/no-store/retry/header behavior is retained; operational OpenAPI descriptions reflect the new readiness condition without changing schemas.
+
+API lifecycle regression tests now inject a close+availability dependency pair; they verify actual startup route wiring through loss/live independence/recovery and resource closure. Existing configuration, TLS, pgx pool, direct Goose migration and generation code remain unchanged. No module/version, role, credential, permanent migration or infrastructure change was introduced.
+
+### Actual verification
+
+All final applicable checks exited 0:
+
+| Command/check | Result |
+| --- | --- |
+| gofmt on changed/new Go source; `gofmt -l cmd internal database` | PASS, no remaining paths |
+| `go build ./...` | PASS |
+| `go test -count=1 ./...` | PASS, full default suite |
+| `go test -race -count=1 ./...` | PASS, no race reports |
+| `go vet ./...` | PASS |
+| `go test -race -tags=integration -count=1 -v ./internal/platform/postgres` | PASS, explicitly executed against existing dedicated test app/migrator credentials; new real transaction/readiness test 15.59s and existing foundation integration 22.77s in this run |
+| `go test -count=1 ./cmd/api ./internal/platform/postgres ./internal/platform/httpserver` and focused race run | PASS |
+| Operational OpenAPI validation with existing isolated validator | PASS; common schema references intact |
+| `git diff --check` and supplementary new-file text/secret checks | PASS |
+
+The integration suite was available and executed, not skipped. The launcher read the existing ignored local file without printing credentials, supplied only TEST_DB_*/TEST_MIGRATION_DB_* and explicit biho_live_test acknowledgment to the subprocess, and retained approved testing TLS settings. It did not provision/rotate roles or connect with administrator credentials. Existing TLS policy tests also pass: temporary dev/test require with unverified identity, staging/production verify-full, no plaintext fallback. No new coverage percentage, production-performance or proxy-behavior claim is made.
+
+Unit cases cover context/options, commit once/no retry, begin/callback/commit/rollback error classification including SQLSTATE/ambiguous transport error, canceled callback cleanup, panic identity and bounded cleanup completion, cleanup error joining/timeouts, safe error formatting, success/failure cache and recovery, canceled owner/waiter behavior, 32 genuine coalesced waiters plus fail-closed overflow, and pinger panic recovery without a leaked flight. HTTP cases cover 200 -> 503 -> 200 while running, HEAD failures, independent liveness, no checking before startup/after shutdown and a successful check finishing after Shutdown still returning 503.
+
+Real PostgreSQL follow-up created only app.step6_followup_fixture inside the authenticated biho_live_test target, granted its dedicated test app role the needed fixture privileges, and removed the fixture afterward. It verified one committed row, rolled-back callback/panic/cancellation rows, SQLSTATE 23505 classification, ErrTxCommitRollback classification without callback replay, no leaked pool leases and subsequent successful ping. Real HTTP probes over loopback used that same test pool: reserving its two connections induced bounded availability failure and 16 concurrent readiness 503s from one coalesced check; liveness stayed 200; releasing leases and expiring the controlled cache restored readiness 200. A gated successful real-pool check completed during real HTTP Shutdown and still returned 503; later handler checks remained unready without querying PostgreSQL. This simulates temporary pool unavailability, not a server restart/network outage. No infrastructure changes were made. Existing integration guards/cases also ran and cleaned up all named fixtures; no destructive test targeted development or postgres.
+
+During the initial starter-signature edit, a broad replacement accidentally changed two unrelated test listener/Accept nil returns to the new database dependency struct, producing a compilation failure. Restored those two original listener returns and reran focused/full/race checks successfully. No test was deleted or weakened to pass. The final source and behavior are reflected in the passing results above.
+
+### Files, limitations and stop gate
+
+Added transaction.go/transaction_test.go, availability.go/availability_test.go and followup_integration_test.go under platform/postgres. Updated HTTP lifecycle/health tests and API composition/lifecycle tests. Updated PostgreSQL/health/HTTP docs, README, ADR 0006, operational OpenAPI descriptions, roadmap, coverage matrix, testing strategy and this evidence report. No unrelated initial edits existed.
+
+Readiness caches snapshots: outage/recovery detection can lag by the remaining 1s TTL plus a next check of up to 2s, subject to scheduling/transport behavior. Overflow intentionally returns 503 even if PostgreSQL might be healthy. A detached shared check can outlive its disconnected owner but remains driver-timeout bounded; arbitrary injected code that ignores context cannot be forcibly terminated. A response already past its final running gate may overlap shutdown; no new-connection 503 is promised after listener closure. Cleanup on panic preserves the original panic even if rollback reports failure, and an ambiguous commit remains an operation-specific reconciliation concern. These limitations are documented, not represented as production availability or financial settlement guarantees.
+
+No Redis, business module, infrastructure/PgBouncer setup, commit, push or deployment. Stop after the two Step 6 fixes for review.

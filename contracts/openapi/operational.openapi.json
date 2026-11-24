@@ -3,7 +3,7 @@
   "info": {
     "title": "Biho Live v2 operational probes",
     "version": "0.1.0",
-    "description": "Step 5 only. Probes bypass ordinary work admission but retain shared transport protections. No external dependency checks; no guarantee of HTTP response after listener closure."
+    "description": "Operational probes with Step 6 PostgreSQL readiness. Probes bypass ordinary work admission and retain shared transport protections. Readiness combines running lifecycle with a bounded cached/coalesced existing-pool check; liveness is independent. No response is guaranteed after listener closure."
   },
   "paths": {
     "/health/live": {
@@ -285,7 +285,7 @@
         "summary": "Readiness probe",
         "responses": {
           "200": {
-            "description": "Initialization and binding complete; accepting work.",
+            "description": "Initialization/binding complete, lifecycle still running, and cached or coalesced PostgreSQL availability succeeded.",
             "headers": {
               "X-Request-ID": {
                 "$ref": "./common.openapi.json#/components/headers/RequestID"
@@ -319,7 +319,7 @@
             }
           },
           "503": {
-            "description": "Not yet started or draining/stopped. Only observable while a connection can still be served.",
+            "description": "Not started, draining/stopped, or PostgreSQL availability failed/timed out/waiter limit reached. Temporary dependency failures may recover only while running.",
             "headers": {
               "X-Request-ID": {
                 "$ref": "./common.openapi.json#/components/headers/RequestID"
@@ -474,7 +474,7 @@
         "summary": "Same status and headers as GET, without response body.",
         "responses": {
           "200": {
-            "description": "Initialization and binding complete; accepting work.",
+            "description": "Initialization/binding complete, lifecycle still running, and cached or coalesced PostgreSQL availability succeeded.",
             "headers": {
               "X-Request-ID": {
                 "$ref": "./common.openapi.json#/components/headers/RequestID"
@@ -501,7 +501,7 @@
             }
           },
           "503": {
-            "description": "Not yet started or draining/stopped. Only observable while a connection can still be served.",
+            "description": "Not started, draining/stopped, or PostgreSQL availability failed/timed out/waiter limit reached. Temporary dependency failures may recover only while running.",
             "headers": {
               "X-Request-ID": {
                 "$ref": "./common.openapi.json#/components/headers/RequestID"

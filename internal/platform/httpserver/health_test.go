@@ -399,3 +399,79 @@ func TestHealthCompletionLogging(t *testing.T) {
 		t.Fatal("probe route/HEAD accounting")
 	}
 }
+
+func TestDependencyReadinessLossRecoveryAndShutdown(t *testing.T) {
+	var healthy atomic.Bool
+	var checks atomic.Int64
+	healthy.Store(true)
+	state := NewLifecycle(func(context.Context) bool { checks.Add(1); return healthy.Load() })
+	router := healthRouter(t, state, io.Discard, nil)
+	probe := func(method, path string, want int) {
+		t.Helper()
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, httptest.NewRequest(method, path, nil))
+		if rec.Code != want || rec.Header().Get("Cache-Control") != "no-store" {
+			t.Fatalf("%s %s = %d", method, path, rec.Code)
+		}
+		if want == 503 && method != "HEAD" {
+			checkErrorContract(t, rec, "SERVICE_UNAVAILABLE")
+		}
+		if method == "HEAD" && rec.Body.Len() != 0 {
+			t.Fatal("HEAD body")
+		}
+	}
+	probe("GET", "/health/ready", 503)
+	if checks.Load() != 0 {
+		t.Fatal("dependency checked before running")
+	}
+	state.markReady()
+	probe("GET", "/health/ready", 200)
+	healthy.Store(false)
+	probe("HEAD", "/health/ready", 503)
+	probe("GET", "/health/live", 200)
+	if !state.Ready() {
+		t.Fatal("outage made lifecycle terminal")
+	}
+	healthy.Store(true)
+	probe("GET", "/health/ready", 200)
+	// Use the real shutdown entry point while a successful check is in flight.
+	entered, release := make(chan struct{}), make(chan struct{})
+	blocked := NewLifecycle(func(context.Context) bool { close(entered); <-release; return true })
+	blocked.markReady()
+	blockedRouter := healthRouter(t, blocked, io.Discard, nil)
+	cfg := testConfig(t, nil)
+	logger, err := logging.New(cfg, io.Discard)
+	if err != nil {
+		t.Fatal(err)
+	}
+	server, err := New(cfg.HTTP, logger, blocked, blockedRouter)
+	if err != nil {
+		t.Fatal(err)
+	}
+	result := make(chan *httptest.ResponseRecorder, 1)
+	go func() {
+		rec := httptest.NewRecorder()
+		blockedRouter.ServeHTTP(rec, httptest.NewRequest("GET", "/health/ready", nil))
+		result <- rec
+	}()
+	await(t, entered)
+	if err := server.Shutdown(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	close(release)
+	rec := <-result
+	if rec.Code != 503 || blocked.Ready() {
+		t.Fatal("in-flight recovery restored readiness after shutdown")
+	}
+	for _, path := range []string{"/health/live", "/health/ready"} {
+		rec := httptest.NewRecorder()
+		blockedRouter.ServeHTTP(rec, httptest.NewRequest("GET", path, nil))
+		want := 200
+		if path == "/health/ready" {
+			want = 503
+		}
+		if rec.Code != want {
+			t.Fatal("post-shutdown handler contract")
+		}
+	}
+}

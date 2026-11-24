@@ -1,6 +1,7 @@
 package httpserver
 
 import (
+	"context"
 	"net/http"
 	"sync/atomic"
 
@@ -17,7 +18,27 @@ const (
 
 // Lifecycle is shared by one router and its single-use Server. Its zero value
 // is unready. Do not copy it after use. Only the Server changes readiness.
-type Lifecycle struct{ phase atomic.Uint32 }
+type Lifecycle struct {
+	phase     atomic.Uint32
+	available func(context.Context) bool
+}
+
+// NewLifecycle injects ongoing dependency availability. A zero-value Lifecycle
+// remains useful for transports without database dependencies and unit fixtures.
+func NewLifecycle(available func(context.Context) bool) *Lifecycle {
+	return &Lifecycle{available: available}
+}
+
+func (l *Lifecycle) readyFor(ctx context.Context) bool {
+	if !l.Ready() {
+		return false
+	}
+	if l.available != nil && !l.available(ctx) {
+		return false
+	}
+	// Dependency recovery must never change or bypass terminal shutdown state.
+	return l.Ready() && ctx.Err() == nil
+}
 
 func (l *Lifecycle) Ready() bool { return l.phase.Load() == lifecycleReady }
 func (l *Lifecycle) markReady()  { l.phase.CompareAndSwap(lifecycleStarting, lifecycleReady) }
@@ -41,7 +62,7 @@ func mountHealth(router chi.Router, lifecycle *Lifecycle, responses *response.Wr
 		}
 	}
 	ready := func(w http.ResponseWriter, r *http.Request) {
-		if !lifecycle.Ready() {
+		if !lifecycle.readyFor(r.Context()) {
 			w.Header().Set("Retry-After", "1")
 			infrastructureError(responses, w, r, apperror.ServiceUnavailable)
 			return

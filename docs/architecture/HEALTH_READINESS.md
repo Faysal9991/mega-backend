@@ -1,6 +1,6 @@
 # Health and readiness
 
-Status: Step 5 implemented for architectural review. Operational probes are outside the business `/api/v1` namespace. No database, Redis or other external service is checked.
+Status: operational probes with the authorized Step 6 PostgreSQL readiness follow-up, for architectural review. Probes are outside /api/v1. Only readiness checks PostgreSQL through the existing pool; no Redis or other service is checked.
 
 ## Contract
 
@@ -23,8 +23,8 @@ Run marks unready before emitting shutdown_started and before initiating Shutdow
 
 Exact operational probe paths bypass ordinary request-admission slots, for all methods (so unsupported methods still receive 405 under saturation). They retain request ID validation, safe completion logging, panic recovery, request body/context deadlines and net/http header/read/write/idle protections. Other requests retain bounded, nonwaiting admission. No external call, queue, loop or additional goroutine is introduced by probes. Existing completion outcome/abort semantics are unchanged.
 
-Liveness means the process can execute and return the probe; readiness is a point-in-time lifecycle snapshot. Neither is a production capacity, financial correctness or dependency guarantee. Saturated ordinary admission does not itself make the lifecycle unready. Future dependency criteria require separate scope and tests. Synchronous logging, CPU/connection exhaustion and transport limits can still affect probes; bypassing API admission is not a separate listener or full DoS isolation.
+Liveness means the process can execute and return the probe; readiness combines the running lifecycle with bounded/cached PostgreSQL availability. Neither is a production capacity, financial correctness or dependency guarantee. Saturated ordinary admission does not itself make the lifecycle unready. Other future dependency criteria require separate scope and tests. Synchronous logging, CPU/connection exhaustion and transport limits can still affect probes; bypassing API admission is not a separate listener or full DoS isolation.
 
 Once shutdown closes the listener, new connections may fail rather than receive 503. Only requests that can still be served can observe draining responses. A probe that read the state just before shutdown may complete with its prior result; the atomic snapshot does not serialize the entire response against drain. Parser-level errors precede middleware and do not share its envelope/cache/request-ID guarantees. No production benchmark, media/deployment feature or probe consumer is implemented.
 
-Step 6 extension: initialization now includes successful bounded database connection, authenticated identity and app schema-access verification before listener binding. No probe performs database I/O; liveness remains independent of dependencies/admission and readiness remains a lifecycle snapshot after startup. Ongoing database outage monitoring is not implemented by this foundation.
+Step 6 extension: initialization includes bounded database connection, authenticated identity and app-schema access before binding. Readiness additionally uses one injected on-demand PostgreSQL Ping (2s timeout, 1s success/failure cache, at most 32 coalesced waiters; overflow/cancellation fails closed). The running gate is checked before and after dependency checking. Temporary outage yields common 503 without stopping the lifecycle; recovery is allowed while running. Shutdown permanently closes the running gate, even if an in-flight check then succeeds. Liveness remains independent, with no database I/O. No separate pool or background polling loop is introduced. See POSTGRESQL_FOUNDATION.md for timeout/cache semantics and testing limitations.

@@ -6,7 +6,7 @@ Date: 2026-11-24 (Asia/Dhaka)
 
 The owner's greenfield instruction and current `AGENTS.md` supersede the earlier migration framing. Approved requirements define new behavior; Django is optional read-only reference evidence. No legacy schema, API adapter, data import or Python runtime dependency is planned. `docs/migration/` contains superseded historical notes.
 
-Current authorized task: Step 6 PostgreSQL foundation. Authentication and isolated dev/test database/role setup succeeded over TLS 1.3 using the owner's temporary require exception (encrypted, server identity not verified). Direct pgxpool, separate direct Goose connections and sqlc are implemented for review; no PgBouncer is deployed. Staging/production enforce verify-full. Earlier blockers below are historical. Step 7 onward remains unauthorized; Step 5 review approval is not inferred.
+Current authorized task: only the two Step 6 follow-up gaps—an injected pgx transaction helper and ongoing bounded/coalesced PostgreSQL readiness. Preserve existing TLS, pool/migration isolation and earlier implementation/review status. No Step 7, business module or infrastructure change is authorized.
 
 ## Initial architecture inspection (historical)
 
@@ -113,3 +113,8 @@ Credential-file follow-up: a local .env template was created with owner-only mod
 Password availability resolved the historical authentication blocker. The owner additionally requires direct pgxpool now, future transaction-pool compatibility without deploying PgBouncer, and direct Goose connections. Authenticated PostgreSQL 18.7/TLS 1.3; target names absent; created two isolated databases/four roles without changing existing databases or administrator credentials. FND-007 is implemented with local/remote testing acceptance evidence, pending architectural review.
 
 Application startup loads explicit runtime settings, initializes a bounded pool and validates authenticated identity/app schema before binding; cleanup follows HTTP drain. Test environment selection and destructive migration guards reject default/development targets. Development migrations are upgrade-only; integration resets occur only on biho_live_test. Module/schema/API scope remains foundation only. See POSTGRESQL_FOUNDATION.md, ADR 0006 and verification evidence. Stop after Step 6; Redis or any business module requires separate authorization and justification.
+
+
+## Step 6 two-gap follow-up plan and gate
+
+At cf296a9ff0f6d27042a4f961178a6ea4e5cfc9a8, the working tree was clean. Preserve existing behavior and approved temporary TLS rules. Add a small BeginTx consumer interface/helper with context propagation, one success-only commit, independent bounded rollback, error classification, panic propagation and no retry. Add one injected pool availability checker with timeout/cache/coalescing/waiter bounds; combine it with the running lifecycle without changing terminal shutdown state. Verify unit/HTTP/concurrent and isolated PostgreSQL transaction/outage/recovery/shutdown cases, execute full/race/integration checks, update evidence and stop for review. No schema, credentials, runtime TLS policy or infrastructure mutation is needed beyond named isolated test fixtures.
