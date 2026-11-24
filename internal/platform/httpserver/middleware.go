@@ -121,6 +121,13 @@ func admission(maximum int, responses *response.Writer) func(http.Handler) http.
 	slots := make(chan struct{}, maximum)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Operational probes do not compete for ordinary work slots.
+			// Keep all remaining middleware and transport limits in effect.
+			if isHealthPath(r) {
+				w.Header().Set("Cache-Control", "no-store")
+				next.ServeHTTP(w, r)
+				return
+			}
 			select {
 			case slots <- struct{}{}:
 				defer func() { <-slots }()

@@ -44,7 +44,7 @@ func testRouter(t *testing.T, values map[string]string, out io.Writer, register 
 	if err != nil {
 		t.Fatal(err)
 	}
-	router, err := NewRouter(cfg.HTTP, logger, register)
+	router, err := NewRouter(cfg.HTTP, logger, &Lifecycle{}, register)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -390,7 +390,7 @@ func TestRequestLogFiltering(t *testing.T) {
 
 func TestEmptyRouterAndEscapedMethodPaths(t *testing.T) {
 	var out bytes.Buffer
-	router, err := NewRouter(testConfig(t, nil).HTTP, slog.New(slog.NewTextHandler(&out, nil)))
+	router, err := NewRouter(testConfig(t, nil).HTTP, slog.New(slog.NewTextHandler(&out, nil)), &Lifecycle{})
 	if err != nil {
 		t.Fatal(err)
 	}

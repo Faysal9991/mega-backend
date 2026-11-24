@@ -6,7 +6,7 @@ Date: 2026-11-24 (Asia/Dhaka)
 
 The owner's greenfield instruction and current `AGENTS.md` supersede the earlier migration framing. Approved requirements define new behavior; Django is optional read-only reference evidence. No legacy schema, API adapter, data import or Python runtime dependency is planned. `docs/migration/` contains superseded historical notes.
 
-Current authorized task: Step 4 API response, error and validation foundation only, explicitly authorized by the owner. Implemented for architectural review; Step 5 onward remains unauthorized. Step 2 approval remains recorded against 7dc9d97. No new Step 3 architectural approval is inferred from Step 4 authorization. See architecture/API_RESPONSE_ENGINE.md and the appended Step 4 verification evidence.
+Current authorized task: Step 5 Health & Readiness only. Step 4 scoped review is complete at c875d876e3782b9cd672bf092c6ce57febe645b5: the previous Step 4 baseline passed full checks; the completion-logging fix passed source review, focused TCP regression tests, HTTP/startup race tests, vet and formatting/diff checks. This is not production-performance approval. Step 6 onward remains unauthorized. Step 3 review status is not changed by this scoped approval.
 
 ## Initial architecture inspection (historical)
 
@@ -20,7 +20,7 @@ Current authorized task: Step 4 API response, error and validation foundation on
 
 ## Execution sequence and gates
 
-Each row requires owner authorization before execution. Step 4 is authorized; later capabilities must not be bundled into it.
+Each row requires owner authorization before execution. Step 5 is authorized; later capabilities must not be bundled into it.
 
 | Step | Scope | Acceptance evidence |
 | --- | --- | --- |
@@ -28,8 +28,8 @@ Each row requires owner authorization before execution. Step 4 is authorized; la
 | 1 | Typed runtime configuration | Implemented and source-level architectural review approved by owner at bf409ff; test evidence recorded separately; no production behavior claim |
 | 2 | Structured logging | Implemented; owner source-level architectural approval recorded against 7dc9d97. Reported tests and production behavior are separate evidence |
 | 3 | HTTP lifecycle and middleware | Implemented with Chi v5.5.0, constructor-injected transport, request IDs/logging/recovery, resource limits and bounded shutdown. Final verification recorded in FOUNDATION_VERIFICATION.md; stop for architectural review |
-| 4 — current | Response/error/validation foundation | Implemented: common schemas/fixtures, safe typed errors/envelopes, bounded JSON/validation/pagination and middleware integration. Local checks in FOUNDATION_VERIFICATION.md; architectural review pending |
-| 5 | Health endpoints | Separate liveness/readiness semantics; draining/unavailable behavior tested without exposing internals |
+| 4 | Response/error/validation foundation | Scoped owner review complete at c875d876; previous baseline full checks and fix-specific review evidence are distinguished in FOUNDATION_VERIFICATION.md; no production-performance approval |
+| 5 — current | Health & readiness | Implemented for review: explicit atomic lifecycle, operational GET/HEAD probes independent of ordinary admission, no-store/minimal JSON, startup/drain/error contracts and deterministic tests; final evidence in FOUNDATION_VERIFICATION.md |
 | 6 | PostgreSQL foundation | Pin pgx/Goose/sqlc versions after compatibility verification; isolated Compose DB, bounded pool, migration upgrade checks, generated-query consistency and cancellation tests |
 | 7 | Redis, when justified | Explicit use case, bounded clients/memory/TTLs, eviction separation, timeout and outage tests; no durable financial authority |
 | 8 | Identity | Approved login/session/verification requirements and permission policy before implementation; abuse, token revocation and recovery tests |
@@ -75,3 +75,16 @@ Stop after reporting this task. Do not implement unresolved financial or permiss
 4. Format, verify modules/build/tests/coverage/race/vet and OpenAPI; record actual evidence, limitations and review status. Stop after Step 4.
 
 Baseline: 0caa8e2c752e8f1bb0502ffe76c00ac882b98aba, initially clean. Existing helper packages were present but unintegrated and untested. FND-005 is implemented with local acceptance evidence, awaiting architectural review. No new module dependency, business rule, schema or compatibility adapter is introduced. The next proposed capability is Step 5 health endpoints, only after explicit authorization.
+
+Step 4 review follow-up at 5598a2b4ec2e8f89af2f2dd35c7c2fbeddfdef35: correct completion logging to distinguish completed/aborted execution and represent an unsent final status as 0. Focused loopback and regression evidence is recorded in FOUNDATION_VERIFICATION.md. This finding fix does not change review approval or authorize Step 5.
+
+
+## Step 5 plan and acceptance gate
+
+1. Inspect Git, lifecycle, middleware/response contracts and prior review evidence; preserve existing roadmap/feature-matrix edits.
+2. Inject one initially unready atomic lifecycle into the router and server; mark ready at Serve entry with a bound listener after initialization, and terminally unready before shutdown/close or on Serve exit.
+3. Add only GET/HEAD /health/live and /health/ready with shared protections, JSON/no-store/405 semantics and no ordinary admission slot or external checks.
+4. Verify readiness transitions, concurrent access, saturated admission, already-accepted draining probes, graceful/forced shutdown and existing abort logs. Add a separate operational OpenAPI document referencing unchanged common schemas.
+5. Complete requested checks and documentation, then stop for Step 5 review. No Step 6 implementation is authorized.
+
+Step 5 baseline: c875d876e3782b9cd672bf092c6ce57febe645b5. Initial owner edits to this roadmap and the feature matrix were preserved. FND-006 is implemented pending architectural review. The next proposed capability is PostgreSQL foundation (Step 6), only after explicit authorization.

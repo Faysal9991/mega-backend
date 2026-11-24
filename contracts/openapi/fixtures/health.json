@@ -1,0 +1,74 @@
+[
+  {
+    "state": "starting",
+    "path": "/health/live",
+    "status": 200,
+    "schema": "LiveResponse",
+    "body": {
+      "success": true,
+      "code": "HEALTH_LIVE",
+      "request_id": "health-test",
+      "data": {}
+    }
+  },
+  {
+    "state": "starting",
+    "path": "/health/ready",
+    "status": 503,
+    "schema": "UnavailableResponse",
+    "body": {
+      "success": false,
+      "code": "SERVICE_UNAVAILABLE",
+      "request_id": "health-test",
+      "message": "Service temporarily unavailable"
+    }
+  },
+  {
+    "state": "ready",
+    "path": "/health/live",
+    "status": 200,
+    "schema": "LiveResponse",
+    "body": {
+      "success": true,
+      "code": "HEALTH_LIVE",
+      "request_id": "health-test",
+      "data": {}
+    }
+  },
+  {
+    "state": "ready",
+    "path": "/health/ready",
+    "status": 200,
+    "schema": "ReadyResponse",
+    "body": {
+      "success": true,
+      "code": "HEALTH_READY",
+      "request_id": "health-test",
+      "data": {}
+    }
+  },
+  {
+    "state": "draining",
+    "path": "/health/live",
+    "status": 200,
+    "schema": "LiveResponse",
+    "body": {
+      "success": true,
+      "code": "HEALTH_LIVE",
+      "request_id": "health-test",
+      "data": {}
+    }
+  },
+  {
+    "state": "draining",
+    "path": "/health/ready",
+    "status": 503,
+    "schema": "UnavailableResponse",
+    "body": {
+      "success": false,
+      "code": "SERVICE_UNAVAILABLE",
+      "request_id": "health-test",
+      "message": "Service temporarily unavailable"
+    }
+  }
+]

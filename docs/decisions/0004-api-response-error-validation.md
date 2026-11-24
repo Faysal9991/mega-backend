@@ -1,6 +1,6 @@
 # ADR 0004: Common API response, error and validation boundary
 
-Date: 2026-11-24 (Asia/Dhaka). Status: Implemented under explicit Step 4 authorization; architectural review pending.
+Date: 2026-11-24 (Asia/Dhaka). Status: Scoped owner review complete at c875d876e3782b9cd672bf092c6ce57febe645b5. Previous Step 4 baseline passed full checks; the fix passed source review, focused TCP regression tests, HTTP/startup race tests, vet and formatting/diff checks. No production-performance approval is implied.
 
 ## Decision
 

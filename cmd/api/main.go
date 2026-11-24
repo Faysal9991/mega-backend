@@ -42,12 +42,13 @@ func run(ctx context.Context, lookup config.LookupEnv, stdout, stderr io.Writer,
 	if ctx.Err() != nil {
 		return 0
 	}
-	router, err := httpserver.NewRouter(cfg.HTTP, logger)
+	lifecycle := &httpserver.Lifecycle{}
+	router, err := httpserver.NewRouter(cfg.HTTP, logger, lifecycle)
 	if err != nil {
 		fmt.Fprintln(stderr, "http: router construction failed")
 		return 1
 	}
-	server, err := httpserver.New(cfg.HTTP, logger, router)
+	server, err := httpserver.New(cfg.HTTP, logger, lifecycle, router)
 	if err != nil {
 		fmt.Fprintln(stderr, "http: server construction failed")
 		return 1

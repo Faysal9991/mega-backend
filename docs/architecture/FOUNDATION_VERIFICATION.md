@@ -2,7 +2,7 @@
 
 Date: 2026-11-24 (Asia/Dhaka)
 
-The original sections below record historical snapshots. Step 1, Step 2 and Step 3 results are recorded in their appended sections. Earlier statements about missing configuration, logging, HTTP or tests are historical; current Step 3 evidence is at the end.
+The original sections below record historical snapshots. Step 1 through Step 5 results and scoped reviews are recorded in appended sections. Earlier statements about missing capabilities are historical; current Step 5 evidence and limitations are at the end.
 
 ## Outcome
 
@@ -272,3 +272,44 @@ Actual checks, all exit 0:
 - `git diff --check`: PASS.
 
 Changed only the completion logger, two existing test files, middleware documentation, this review evidence and the roadmap/feature traceability notes. No dependency, API response contract, business behavior or production performance claim changes. No Step 5 implementation, commit, push or deployment. Stop for review of this finding fix.
+
+## Step 4 scoped review approval
+
+The owner confirms Step 4 review is complete at `c875d876e3782b9cd672bf092c6ce57febe645b5`. Scope is recorded precisely: the previous Step 4 baseline passed full checks; the completion-logging fix passed source review, focused TCP regression tests, HTTP/startup race tests, vet and formatting/diff checks. These owner-provided review results are distinct from the earlier agent-reported local runs. No production-performance approval, business capability or broader Step 3 review approval is inferred. FND-005 is verified for the reviewed Step 4 foundation scope.
+
+## Step 5 — Health & Readiness
+
+Inspected HEAD: `c875d876e3782b9cd672bf092c6ce57febe645b5`. Initial Git status contained only edits in docs/IMPLEMENTATION_ROADMAP.md and docs/business/FEATURE_COVERAGE_MATRIX.md; their preexisting review notes were preserved and extended in place. Step 5 only was authorized. Results below apply to the uncommitted working tree. FND-006 is implemented with local acceptance evidence, awaiting architectural review.
+
+### Delivered scope
+
+- Added `internal/platform/httpserver/health.go` and `health_test.go`: zero-value unready atomic Lifecycle, terminal stop state, and operational GET/HEAD /health/live and /health/ready. Success uses HEALTH_LIVE/HEALTH_READY with empty data; not ready uses common SERVICE_UNAVAILABLE/503 and Retry-After: 1.
+- Updated `cmd/api/main.go`, `httpserver/router.go`, `server.go` and middleware admission to inject the same lifecycle, mark ready at Serve entry after initialization and binding, clear before shutdown/close or Serve exit, and bypass ordinary admission only for exact probe paths. Retained other shared protections, request IDs, safe logs/recovery and the completed/aborted logging fix. Every application-level probe response has no-store; HEAD/405/Allow use the existing response/method semantics.
+- Updated startup and existing HTTP/lifecycle test call sites for explicit state injection. Added state assertions to graceful/forced-shutdown regressions and startup probes to the executable lifecycle test.
+- Added operational.openapi.json and fixtures/health.json; updated contract reproduction instructions. Common OpenAPI schemas/fixtures and go.mod/go.sum are unchanged. No runtime dependency or external check is added.
+- Updated README, API standards, HTTP/middleware architecture, roadmap, feature coverage and testing strategy. Added HEALTH_READINESS.md and ADR 0005. Recorded scoped Step 4 approval in ADR 0004 and this report.
+
+### Actual verification
+
+Toolchain: `go1.26.4 darwin/arm64`; module declaration remains Go 1.26.3. All final requested commands exited 0:
+
+| Check | Result |
+| --- | --- |
+| `gofmt -w` on changed/new Go sources; `gofmt -l cmd internal` | PASS; final inspection returned no paths |
+| `go build ./...` | PASS |
+| `go test -count=1 ./...` | PASS, all eight packages |
+| `go test -race -count=1 ./...` | PASS, all eight packages; no race reports |
+| `go vet ./...` | PASS, no findings |
+| `git diff --check` | PASS; supplementary newline/whitespace checks include untracked files |
+
+Focused runs also passed: `go test -count=1 ./internal/platform/httpserver -run 'TestHealth|TestLifecycleConcurrentAndTerminal'` and `go test -count=1 ./internal/platform/httpserver ./cmd/api`. Common and operational OpenAPI 3.1 document validation passed using the existing isolated development venv (openapi-spec-validator 0.7.2, jsonschema 4.26.0). Six health fixtures matched operational response schemas and six invalid diagnostic-bearing payloads were rejected. Fixtures are independently compared against real GET/HEAD router output; documented validation also verifies operation paths, schema references and bodyless HEAD declarations. No endpoint code generator or deployment tooling was run.
+
+Tests exercise startup/ready/draining fixtures; empty success data and sanitized failures; matching IDs, JSON/nosniff/no-store/length/retry headers; HEAD and unsupported methods/Allow; exact routing and inherited body limits; minimal safe completion logs; saturated one-slot API admission while probes still respond; concurrent lifecycle mutation/read and terminal stop; constructor/nil-listener failure, failed Accept, canceled startup, Shutdown/Close before Serve; executable startup GET/HEAD; real loopback already-accepted probes returning live=200 and ready=503 during graceful drain. A channel-signaled listener verifies readiness was cleared before Close begins; no arbitrary sleep is used. Existing graceful/forced shutdown, partial response, abort/EOF and no-write completion regressions remain enabled.
+
+### Guarantees, limitations and handoff
+
+Initialization here is configuration, logging/router/server construction and successful binding. Server marks ready immediately before net/http.Serve; new probes can execute only after transport acceptance. Readiness is a point-in-time lifecycle snapshot, not a future PostgreSQL/Redis or capacity check. Stop is terminal and competing startup cannot restore readiness. Run marks unready before shutdown logging and transport shutdown; direct Shutdown/Close clear it first as well. There is no drain sleep or background loop.
+
+An already-accepted request can observe draining state; a new request after listener closure may receive a connection error rather than 503. A probe racing the state transition can return its earlier snapshot. Liveness is independent of lifecycle/admission but still shares CPU, connection limits, transport, logger and response protections. Parser-level failures precede application envelopes/cache headers. These are local acceptance tests, not production availability/performance approval; no load benchmark or fresh coverage percentage was measured in this step. No database/Redis/sqlc/provider checks apply; additional lint/security tooling is not configured.
+
+No business/financial/compatibility behavior changed. No database, Redis, authentication, business module, WebSocket, LiveKit, deployment, commit or push was implemented. Stop after Step 5 for review. Step 6 PostgreSQL foundation remains a proposed next step requiring separate authorization.

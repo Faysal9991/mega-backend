@@ -58,6 +58,27 @@ func TestRunSuccessfulLifecycle(t *testing.T) {
 	if response.StatusCode != 404 || response.Header.Get("X-Request-ID") == "" {
 		t.Fatal("startup router unavailable")
 	}
+	for _, path := range []string{"/health/live", "/health/ready"} {
+		for _, method := range []string{"GET", "HEAD"} {
+			request, err := http.NewRequest(method, "http://"+listener.Addr().String()+path, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			probe, err := client.Do(request)
+			if err != nil {
+				t.Fatal(err)
+			}
+			body, err := io.ReadAll(probe.Body)
+			_ = probe.Body.Close()
+			if err != nil || probe.StatusCode != 200 || probe.Header.Get("Cache-Control") != "no-store" || probe.Header.Get("X-Request-ID") == "" {
+				t.Fatal("startup health probe failed")
+			}
+			if method == "HEAD" && len(body) != 0 {
+				t.Fatal("HEAD probe returned a body")
+			}
+		}
+	}
+
 	cancel()
 	select {
 	case code := <-result:

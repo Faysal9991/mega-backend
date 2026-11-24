@@ -23,7 +23,7 @@ func testServer(t *testing.T, values map[string]string, handler http.Handler) *S
 	if err != nil {
 		t.Fatal(err)
 	}
-	server, err := New(cfg.HTTP, logger, handler)
+	server, err := New(cfg.HTTP, logger, &Lifecycle{}, handler)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,7 +45,7 @@ func TestServerConstruction(t *testing.T) {
 	logger, _ := logging.New(cfg, io.Discard)
 	for _, tt := range []struct{ host, want string }{{"127.0.0.1", "127.0.0.1:8080"}, {"::1", "[::1]:8080"}} {
 		cfg.HTTP.Host = tt.host
-		server, err := New(cfg.HTTP, logger, http.NotFoundHandler())
+		server, err := New(cfg.HTTP, logger, &Lifecycle{}, http.NotFoundHandler())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -53,17 +53,17 @@ func TestServerConstruction(t *testing.T) {
 			t.Fatal("transport settings not applied")
 		}
 	}
-	if _, err := New(cfg.HTTP, nil, http.NotFoundHandler()); err == nil {
+	if _, err := New(cfg.HTTP, nil, &Lifecycle{}, http.NotFoundHandler()); err == nil {
 		t.Fatal("nil logger accepted")
 	}
-	if _, err := New(cfg.HTTP, logger, nil); err == nil {
+	if _, err := New(cfg.HTTP, logger, &Lifecycle{}, nil); err == nil {
 		t.Fatal("nil router accepted")
 	}
-	if _, err := NewRouter(cfg.HTTP, nil); err == nil {
+	if _, err := NewRouter(cfg.HTTP, nil, &Lifecycle{}); err == nil {
 		t.Fatal("nil router logger accepted")
 	}
 	cfg.HTTP.MaxConcurrentRequests = 0
-	if _, err := NewRouter(cfg.HTTP, logger); err == nil {
+	if _, err := NewRouter(cfg.HTTP, logger, &Lifecycle{}); err == nil {
 		t.Fatal("unbounded admission accepted")
 	}
 }
@@ -144,8 +144,14 @@ func TestGracefulDrain(t *testing.T) {
 	}()
 	await(t, entered)
 	reqCtx := <-requestContext
+	if !server.lifecycle.Ready() {
+		t.Fatal("active server not ready")
+	}
 	cancel()
 	await(t, listener.closed)
+	if server.lifecycle.Ready() {
+		t.Error("draining server still ready")
+	}
 	if reqCtx.Err() != nil {
 		t.Error("shutdown canceled in-flight context before drain")
 	}
@@ -202,6 +208,9 @@ func TestForcedShutdownCancelsConnection(t *testing.T) {
 	}
 	await(t, handlerDone)
 	await(t, clientDone)
+	if server.lifecycle.Ready() {
+		t.Fatal("forced shutdown left readiness enabled")
+	}
 }
 
 type failingListener struct {
@@ -228,7 +237,7 @@ func TestUnexpectedServeErrorAndCanceledStartup(t *testing.T) {
 func TestResponseControllerAndPartialPanicOverTCP(t *testing.T) {
 	cfg := testConfig(t, nil)
 	logger, _ := logging.New(cfg, io.Discard)
-	router, err := NewRouter(cfg.HTTP, logger, func(r chi.Router) {
+	router, err := NewRouter(cfg.HTTP, logger, &Lifecycle{}, func(r chi.Router) {
 		r.Get("/flush", func(w http.ResponseWriter, r *http.Request) {
 			controller := http.NewResponseController(w)
 			if err := controller.SetWriteDeadline(time.Now().Add(time.Second)); err != nil {

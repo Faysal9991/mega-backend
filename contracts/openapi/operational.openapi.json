@@ -1,0 +1,699 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Biho Live v2 operational probes",
+    "version": "0.1.0",
+    "description": "Step 5 only. Probes bypass ordinary work admission but retain shared transport protections. No external dependency checks; no guarantee of HTTP response after listener closure."
+  },
+  "paths": {
+    "/health/live": {
+      "get": {
+        "operationId": "health_live",
+        "security": [],
+        "summary": "Liveness probe",
+        "responses": {
+          "200": {
+            "description": "Application can serve this probe.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "./common.openapi.json#/components/headers/RequestID"
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "const": "nosniff"
+                },
+                "description": "Disables content type sniffing."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Probe results must not be cached."
+              },
+              "Content-Length": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "description": "Byte length of the equivalent GET envelope, also on HEAD."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveResponse"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Only GET and HEAD are supported.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "./common.openapi.json#/components/headers/RequestID"
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "const": "nosniff"
+                },
+                "description": "Disables content type sniffing."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Probe results must not be cached."
+              },
+              "Content-Length": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "description": "Byte length of the equivalent GET envelope, also on HEAD."
+              },
+              "Allow": {
+                "schema": {
+                  "const": "GET, HEAD"
+                },
+                "description": "Explicitly supported probe methods."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MethodNotAllowedResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body exceeds the existing transport budget.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "./common.openapi.json#/components/headers/RequestID"
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "const": "nosniff"
+                },
+                "description": "Disables content type sniffing."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Probe results must not be cached."
+              },
+              "Content-Length": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "description": "Byte length of the equivalent GET envelope, also on HEAD."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Safe application failure.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "./common.openapi.json#/components/headers/RequestID"
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "const": "nosniff"
+                },
+                "description": "Disables content type sniffing."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Probe results must not be cached."
+              },
+              "Content-Length": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "description": "Byte length of the equivalent GET envelope, also on HEAD."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "head": {
+        "operationId": "health_live_head",
+        "security": [],
+        "summary": "Same status and headers as GET, without response body.",
+        "responses": {
+          "200": {
+            "description": "Application can serve this probe.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "./common.openapi.json#/components/headers/RequestID"
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "const": "nosniff"
+                },
+                "description": "Disables content type sniffing."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Probe results must not be cached."
+              },
+              "Content-Length": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "description": "Byte length of the equivalent GET envelope, also on HEAD."
+              }
+            }
+          },
+          "405": {
+            "description": "Only GET and HEAD are supported.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "./common.openapi.json#/components/headers/RequestID"
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "const": "nosniff"
+                },
+                "description": "Disables content type sniffing."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Probe results must not be cached."
+              },
+              "Content-Length": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "description": "Byte length of the equivalent GET envelope, also on HEAD."
+              },
+              "Allow": {
+                "schema": {
+                  "const": "GET, HEAD"
+                },
+                "description": "Explicitly supported probe methods."
+              }
+            }
+          },
+          "413": {
+            "description": "Request body exceeds the existing transport budget.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "./common.openapi.json#/components/headers/RequestID"
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "const": "nosniff"
+                },
+                "description": "Disables content type sniffing."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Probe results must not be cached."
+              },
+              "Content-Length": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "description": "Byte length of the equivalent GET envelope, also on HEAD."
+              }
+            }
+          },
+          "500": {
+            "description": "Safe application failure.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "./common.openapi.json#/components/headers/RequestID"
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "const": "nosniff"
+                },
+                "description": "Disables content type sniffing."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Probe results must not be cached."
+              },
+              "Content-Length": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "description": "Byte length of the equivalent GET envelope, also on HEAD."
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "operationId": "health_ready",
+        "security": [],
+        "summary": "Readiness probe",
+        "responses": {
+          "200": {
+            "description": "Initialization and binding complete; accepting work.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "./common.openapi.json#/components/headers/RequestID"
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "const": "nosniff"
+                },
+                "description": "Disables content type sniffing."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Probe results must not be cached."
+              },
+              "Content-Length": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "description": "Byte length of the equivalent GET envelope, also on HEAD."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadyResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Not yet started or draining/stopped. Only observable while a connection can still be served.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "./common.openapi.json#/components/headers/RequestID"
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "const": "nosniff"
+                },
+                "description": "Disables content type sniffing."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Probe results must not be cached."
+              },
+              "Content-Length": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "description": "Byte length of the equivalent GET envelope, also on HEAD."
+              },
+              "Retry-After": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "Retry hint in seconds."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnavailableResponse"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Only GET and HEAD are supported.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "./common.openapi.json#/components/headers/RequestID"
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "const": "nosniff"
+                },
+                "description": "Disables content type sniffing."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Probe results must not be cached."
+              },
+              "Content-Length": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "description": "Byte length of the equivalent GET envelope, also on HEAD."
+              },
+              "Allow": {
+                "schema": {
+                  "const": "GET, HEAD"
+                },
+                "description": "Explicitly supported probe methods."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MethodNotAllowedResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body exceeds the existing transport budget.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "./common.openapi.json#/components/headers/RequestID"
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "const": "nosniff"
+                },
+                "description": "Disables content type sniffing."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Probe results must not be cached."
+              },
+              "Content-Length": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "description": "Byte length of the equivalent GET envelope, also on HEAD."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Safe application failure.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "./common.openapi.json#/components/headers/RequestID"
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "const": "nosniff"
+                },
+                "description": "Disables content type sniffing."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Probe results must not be cached."
+              },
+              "Content-Length": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "description": "Byte length of the equivalent GET envelope, also on HEAD."
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "./common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "head": {
+        "operationId": "health_ready_head",
+        "security": [],
+        "summary": "Same status and headers as GET, without response body.",
+        "responses": {
+          "200": {
+            "description": "Initialization and binding complete; accepting work.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "./common.openapi.json#/components/headers/RequestID"
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "const": "nosniff"
+                },
+                "description": "Disables content type sniffing."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Probe results must not be cached."
+              },
+              "Content-Length": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "description": "Byte length of the equivalent GET envelope, also on HEAD."
+              }
+            }
+          },
+          "503": {
+            "description": "Not yet started or draining/stopped. Only observable while a connection can still be served.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "./common.openapi.json#/components/headers/RequestID"
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "const": "nosniff"
+                },
+                "description": "Disables content type sniffing."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Probe results must not be cached."
+              },
+              "Content-Length": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "description": "Byte length of the equivalent GET envelope, also on HEAD."
+              },
+              "Retry-After": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "Retry hint in seconds."
+              }
+            }
+          },
+          "405": {
+            "description": "Only GET and HEAD are supported.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "./common.openapi.json#/components/headers/RequestID"
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "const": "nosniff"
+                },
+                "description": "Disables content type sniffing."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Probe results must not be cached."
+              },
+              "Content-Length": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "description": "Byte length of the equivalent GET envelope, also on HEAD."
+              },
+              "Allow": {
+                "schema": {
+                  "const": "GET, HEAD"
+                },
+                "description": "Explicitly supported probe methods."
+              }
+            }
+          },
+          "413": {
+            "description": "Request body exceeds the existing transport budget.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "./common.openapi.json#/components/headers/RequestID"
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "const": "nosniff"
+                },
+                "description": "Disables content type sniffing."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Probe results must not be cached."
+              },
+              "Content-Length": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "description": "Byte length of the equivalent GET envelope, also on HEAD."
+              }
+            }
+          },
+          "500": {
+            "description": "Safe application failure.",
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "./common.openapi.json#/components/headers/RequestID"
+              },
+              "X-Content-Type-Options": {
+                "schema": {
+                  "const": "nosniff"
+                },
+                "description": "Disables content type sniffing."
+              },
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                },
+                "description": "Probe results must not be cached."
+              },
+              "Content-Length": {
+                "schema": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "description": "Byte length of the equivalent GET envelope, also on HEAD."
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "LiveResponse": {
+        "allOf": [
+          {
+            "$ref": "./common.openapi.json#/components/schemas/SuccessEnvelope"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "code": {
+                "const": "HEALTH_LIVE"
+              },
+              "data": {
+                "type": "object",
+                "maxProperties": 0
+              }
+            }
+          }
+        ]
+      },
+      "ReadyResponse": {
+        "allOf": [
+          {
+            "$ref": "./common.openapi.json#/components/schemas/SuccessEnvelope"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "code": {
+                "const": "HEALTH_READY"
+              },
+              "data": {
+                "type": "object",
+                "maxProperties": 0
+              }
+            }
+          }
+        ]
+      },
+      "UnavailableResponse": {
+        "allOf": [
+          {
+            "$ref": "./common.openapi.json#/components/schemas/ErrorEnvelope"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "code": {
+                "const": "SERVICE_UNAVAILABLE"
+              }
+            }
+          }
+        ]
+      },
+      "MethodNotAllowedResponse": {
+        "allOf": [
+          {
+            "$ref": "./common.openapi.json#/components/schemas/ErrorEnvelope"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "code": {
+                "const": "METHOD_NOT_ALLOWED"
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

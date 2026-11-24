@@ -28,3 +28,7 @@ General API p95 ≤200 ms is an initial goal, not a guarantee. Zero duplicate mo
 ## Current task evidence
 
 The implementation roadmap records inspection facts. Record actual current command outcomes in the foundation verification report. Real local HTTP lifecycle and test-only contract routes are exercised. Database, Redis, SQL generation, provider, distributed multi-instance and load verification are deferred; no such production capability is implemented. Step 4 tests cover wrapped/unknown errors, decoder precision/duplicate/case policies, known/chunked overflow, deterministic diagnostics/pagination, HEAD/204, informational/Flush/final commitment, pre/post-commit and encoding panics, short/failed writes, private-data protection and shared-helper concurrency. Existing configuration/logging/lifecycle regressions remain enabled.
+
+## Step 5 operational acceptance
+
+Health fixtures are compared with router responses and validated against a separate operational OpenAPI referencing common schemas. Deterministic channel gates cover startup, accepted probes draining after readiness clears, ordinary admission saturation and graceful/forced shutdown. Atomic lifecycle access and terminal stop behavior are exercised concurrently. HEAD/405/Allow/cache/request-ID/JSON/privacy contracts and executable startup probes are included. Existing abort-logging/TCP tests remain active. No future dependency check or production capacity is inferred.

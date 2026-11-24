@@ -14,9 +14,9 @@ import (
 
 // NewRouter composes infrastructure once. Future modules register explicitly on
 // the /api/v1 subrouter; an empty registration list creates no business routes.
-func NewRouter(cfg config.HTTPConfig, logger *slog.Logger, register ...func(chi.Router)) (http.Handler, error) {
-	if logger == nil || cfg.MaxConcurrentRequests < 1 {
-		return nil, errors.New("httpserver: validated limits and logger are required")
+func NewRouter(cfg config.HTTPConfig, logger *slog.Logger, lifecycle *Lifecycle, register ...func(chi.Router)) (http.Handler, error) {
+	if logger == nil || lifecycle == nil || cfg.MaxConcurrentRequests < 1 {
+		return nil, errors.New("httpserver: validated limits, logger and lifecycle are required")
 	}
 	responses, err := response.New(logger)
 	if err != nil {
@@ -49,6 +49,7 @@ func NewRouter(cfg config.HTTPConfig, logger *slog.Logger, register ...func(chi.
 		infrastructureError(responses, w, r, apperror.MethodNotAllowed)
 	}
 	router.MethodNotAllowed(methodNotAllowed)
+	mountHealth(router, lifecycle, responses)
 	if len(register) > 0 {
 		router.Route("/api/v1", func(api chi.Router) {
 			for _, mount := range register {

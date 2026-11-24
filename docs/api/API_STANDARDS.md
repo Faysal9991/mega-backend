@@ -1,6 +1,6 @@
 # API Standards
 
-Status: Step 4 common response/error/validation foundation implemented for review. Common OpenAPI schemas exist in `contracts/openapi/common.openapi.json`; paths remain empty. No business or health endpoint exists. Examples illustrate shapes, not approved profile functionality.
+Status: Step 4 common foundation scoped review complete at c875d876; Step 5 operational probes implemented for review. Common OpenAPI schemas exist in `contracts/openapi/common.openapi.json`; paths remain empty. No business endpoint exists. Operational health routes are defined separately in operational.openapi.json. Examples illustrate shapes, not approved profile functionality.
 
 New APIs use `/api/v1/` independently of old routes. Resource names, methods, trailing-slash behavior, authentication, authorization and request/response schemas must be reviewed in OpenAPI before each endpoint is implemented. No legacy adapters or dual versions are planned. Provider callbacks retain their externally required protocol and raw-body signature semantics.
 
@@ -39,3 +39,7 @@ Use `response.List[T]` on collection DTO fields to encode nil as []; optional/nu
 Decode using the validated body limit (or a tighter endpoint budget). Require application/json with optional charset=utf-8, parsed with mime.ParseMediaType; unsupported media/parameters/encodings are 415. The root must be an object struct DTO. Reject empty/malformed/unknown-field/multiple-document/trailing-garbage JSON; body overflow, including chunked reads, is 413. Numeric interface values use json.Number. Exact-case enforcement is not claimed: encoding/json matches struct fields case insensitively. Reject duplicates at every object level, including escaped and Unicode simple-fold/case equivalents. Plain DTOs must not use custom nested decoders to bypass strict validation. Null/coercion semantics otherwise follow encoding/json; semantic checks remain explicit. See [engine architecture](../architecture/API_RESPONSE_ENGINE.md) for full bounds and caveats.
 
 Pagination metadata uses limit 1–1000 (operation contracts must choose an appropriate maximum), next_cursor as opaque string/null, and has_more as boolean. Continuing pages require a nonempty cursor, at most 1024 UTF-8 bytes, without controls or whitespace; terminal pages require next_cursor=null and has_more=false. No total counts or cursor engine are introduced. Identifier/amount wire types remain unresolved for future operation contracts.
+
+## Operational probe exception (Step 5)
+
+GET/HEAD /health/live and /health/ready sit outside the business /api/v1 namespace and use the same envelope/header/error helpers. Success codes are HEALTH_LIVE and HEALTH_READY with data {}; unready is SERVICE_UNAVAILABLE/503 with Retry-After: 1. Every application-level probe response sets Cache-Control: no-store; HEAD has no body and the equivalent GET length. Only GET/HEAD are registered; unsupported methods return 405 with Allow: GET, HEAD. Parser-level failures precede middleware. No credentials or dependency diagnostics are exposed. See HEALTH_READINESS.md and operational.openapi.json for lifecycle guarantees and limits.

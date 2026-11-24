@@ -56,3 +56,46 @@ PY
 ```
 
 Schema lengths count Unicode characters; runtime byte budgets and exact Unicode control/space policy are documented in API_RESPONSE_ENGINE.md. Operation-specific data schemas, security and success codes must be reviewed when endpoints are authorized. No OpenAPI generator, full endpoint request/response validator or client compatibility claim is implied.
+
+## Step 5 operational probes
+
+`operational.openapi.json` adds only GET/HEAD /health/live and /health/ready and references the unchanged common schemas. `fixtures/health.json` is compared to actual router output by `go test -count=1 ./internal/platform/httpserver -run TestHealth`. After installing the optional isolated validation tools above, run from the repository root:
+
+```sh
+/tmp/biho-step4-openapi-validation/bin/python - <<'PY'
+import json
+from pathlib import Path
+from openapi_spec_validator import validate
+from jsonschema import Draft202012Validator
+from referencing import Registry, Resource
+from referencing.jsonschema import DRAFT202012
+
+root = Path('contracts/openapi').resolve()
+common = json.loads((root / 'common.openapi.json').read_text())
+spec = json.loads((root / 'operational.openapi.json').read_text())
+validate(common)
+uri = (root / 'operational.openapi.json').as_uri()
+validate(spec, base_uri=uri)
+assert common['paths'] == {}
+assert set(spec['paths']) == {'/health/live', '/health/ready'}
+registry = Registry().with_resource(
+    (root / 'common.openapi.json').as_uri(),
+    Resource.from_contents(common, default_specification=DRAFT202012),
+)
+fixtures = json.loads((root / 'fixtures/health.json').read_text())
+for fixture in fixtures:
+    path = spec['paths'][fixture['path']]
+    assert set(path) == {'get', 'head'}
+    schema = path['get']['responses'][str(fixture['status'])]['content']['application/json']['schema']
+    assert schema['$ref'].endswith('/' + fixture['schema'])
+    validator = Draft202012Validator({
+        '$id': uri, 'allOf': [schema], 'components': spec['components'],
+    }, registry=registry)
+    validator.validate(fixture['body'])
+    assert not validator.is_valid({**fixture['body'], 'private_diagnostic': 'rejected'})
+    assert 'content' not in path['head']['responses'][str(fixture['status'])]
+print('PASS: common/operational OpenAPI 3.1, 6 health fixtures, 6 negative cases')
+PY
+```
+
+These schema checks do not assert fleet behavior, production availability or dependency health. HEAD behavior and headers are exercised by Go router/startup tests.

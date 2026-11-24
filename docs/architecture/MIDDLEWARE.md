@@ -1,13 +1,13 @@
 # HTTP Middleware Foundation
 
-Status: Step 3 transport with authorized Step 4 response integration. Constructors capture the validated HTTP settings and logger once. No middleware reads environment variables, performs authentication or implements business logic.
+Status: Step 3 transport with reviewed Step 4 response integration and Step 5 operational health. Constructors capture the validated HTTP settings and logger once. No middleware reads environment variables, performs authentication or implements business logic.
 
 ## Order and request flow
 
 1. Request ID: select one strictly valid untrusted correlation value or generate 128 random bits using crypto/rand, hex-encoded as 32 characters. Store it under a private typed context key and set X-Request-ID.
 2. Completion logging: install Chi's protocol-aware WrapResponseWriter and defer one completion event through the existing security-filtered slog logger.
 3. Recovery: handle handler/middleware panic without disclosing its value or stack. Being inside completion logging ensures final status/bytes are observed even on panic; being outside admission ensures slots release during unwinding.
-4. Admission: acquire a per-process buffered-channel slot without waiting. If full, return 503 with Retry-After: 1. Deferred release covers normal return, errors, cancellations and panics.
+4. Admission: exact /health/live and /health/ready paths set Cache-Control: no-store and bypass ordinary work slots for all methods. All other requests acquire a per-process buffered-channel slot without waiting. If full, return 503 with Retry-After: 1. Deferred release covers normal return, errors, cancellations and panics.
 5. Body limit: reject known excessive Content-Length before handler execution and wrap the body in http.MaxBytesReader. Do not read/buffer it.
 6. Request deadline: derive context.WithTimeout from the incoming context, preserving earlier cancellation/deadlines; cancel it on return. Execute the handler synchronously without a timeout goroutine.
 7. Route dispatch: business routes register explicitly under /api/v1 when authorized. The current executable has no business registrations.
@@ -43,3 +43,5 @@ When a cooperative handler returns after its deadline without committing, middle
 ## Common error contract and future work
 
 404/405/413/500/503/504 now use the common JSON engine. Explicit http.ErrAbortHandler passes through without a replacement envelope or panic event; completion logging still runs. Write failure aborts without a second response. HEAD suppresses bytes, 204 remains bodyless and informational responses do not finalize. See API_RESPONSE_ENGINE.md for decoder/encoding bounds and the error registry. Header/parser errors from net/http happen outside this boundary and may lack correlation/logging. No health endpoints, rate-limit service, trusted proxy configuration, response compression, JWT, database, realtime or deployment infrastructure is added. Future modules must not bypass body-error checks, inject raw paths into route templates, log dynamic event names or treat request IDs as trusted identities.
+
+Step 5 probes retain all other middleware, transport limits and the completed/aborted logging semantics above. GET/HEAD routes use minimal common envelopes; unsupported methods retain 405/Allow even during admission saturation. Readiness follows the shared Server lifecycle; no external dependency check or background work is introduced. See HEALTH_READINESS.md.

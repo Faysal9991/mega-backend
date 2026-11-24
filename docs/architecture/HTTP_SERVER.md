@@ -1,10 +1,10 @@
 # HTTP Server Foundation
 
-Status: Step 3 HTTP lifecycle with Step 4 response integration, for architectural review. No business or health/readiness endpoints exist.
+Status: HTTP lifecycle with reviewed Step 4 response foundation and Step 5 operational health/readiness, awaiting Step 5 architectural review. No business endpoints exist.
 
 ## Composition and dependency
 
-`cmd/api` loads configuration once, constructs the existing logging engine, composes a router and constructs `httpserver.Server`. Constructors receive explicit dependencies; no DefaultServeMux, mutable global server/router or init side effects. The listener factory is injected into the process runner for deterministic bind-failure/lifecycle tests; production supplies net.Listen.
+`cmd/api` loads configuration once, constructs the existing logging engine, injects one initially unready Lifecycle into the router and Server, and constructs `httpserver.Server`. Constructors receive explicit dependencies; no DefaultServeMux, mutable global server/router or init side effects. The listener factory is injected into the process runner for deterministic bind-failure/lifecycle tests; production supplies net.Listen.
 
 Routing uses `github.com/go-chi/chi/v5 v5.5.0`, pinned in go.mod/go.sum. The [official stable release](https://github.com/go-chi/chi/releases/tag/v5.5.0) and downloaded tag module declare Go 1.24 minimum; the project's Go 1.26.3 satisfies that requirement. Local compilation, tests and race checks supply compatibility evidence for this project. Chi introduces no transitive module dependency. No framework or unrelated package was added.
 
@@ -26,9 +26,9 @@ MaxHeaderBytes uses Go's parser accounting, which includes an implementation-spe
 
 ## Routing and response boundary
 
-The centralized router accepts explicit registration functions for the `/api/v1` subrouter. No registration is supplied in normal startup, so all resource requests return 404. Tests supply isolated test-only routes. A dedicated root infrastructure mount ensures middleware also runs for an empty business mux; Chi otherwise bypasses its middleware on an entirely empty mux.
+The centralized router accepts explicit registration functions for the `/api/v1` subrouter. No business registration is supplied in normal startup. Operational GET/HEAD /health/live and /health/ready are mounted outside /api/v1; all other resource requests return 404. Tests supply isolated test-only routes. A dedicated root infrastructure mount ensures middleware also runs for an empty business mux; Chi otherwise bypasses its middleware on an entirely empty mux.
 
-Registered routes with unsupported methods return 405 and an Allow header derived with fresh, side-effect-free route probes for standard HTTP methods. Escaped paths follow the same RawPath preference as Chi. A path with no allowed method returns 404. Adding extension HTTP methods requires explicitly extending this policy; implicit HEAD/OPTIONS endpoints are not created. Request logging uses matched static templates; 404/405 use a fixed fallback.
+Registered routes with unsupported methods return 405 and an Allow header derived with fresh, side-effect-free route probes for standard HTTP methods. Escaped paths follow the same RawPath preference as Chi. A path with no allowed method returns 404. Adding extension HTTP methods requires explicitly extending this policy; implicit business HEAD/OPTIONS endpoints are not created. Operational health routes explicitly register HEAD and advertise GET, HEAD. Request logging uses matched static templates; 404/405 use a fixed fallback.
 
 Infrastructure errors now use the common Step 4 response engine and registry, preserving Allow, Retry-After and shared request IDs. Temporary plain-text InfrastructureError has been removed. Common contracts and failure/commitment semantics are documented in API_RESPONSE_ENGINE.md; endpoint DTO/authorization policies remain deferred.
 
@@ -36,9 +36,9 @@ Infrastructure errors now use the common Step 4 response engine and registry, pr
 
 1. Validate configuration before logger creation or binding. Invalid settings exit 1 with a safe stderr message.
 2. Emit startup.configuration_validated (http_server_implemented=true), then bind. Only after successful bind emit http.listener_bound; this states socket ownership, not readiness or availability of downstream services.
-3. Serve using the injected listener. Serve normalizes http.ErrServerClosed. Unexpected errors propagate internally, close active connections and result in a fixed safe failure event/message and exit 1; raw net errors and addresses are never logged.
-4. signal.NotifyContext handles SIGINT/SIGTERM. On cancellation, Shutdown closes listeners/idle connections and drains active requests using a separate background context bounded by HTTP_SHUTDOWN_TIMEOUT. The signal context is not used as request BaseContext, so normal drain does not immediately cancel in-flight work.
-5. On drain timeout, Close force-closes remaining connections, canceling their request contexts. The runner waits for its single Serve goroutine, logs a safe forced-shutdown event and exits 1. A completed drain exits 0. Lifecycle channels are bounded and there is no application waiting queue.
+3. Enter Serve using the bound injected listener; after initialization, mark the shared lifecycle ready immediately before calling net/http.Serve. Clear readiness on Serve exit. Serve normalizes http.ErrServerClosed. Unexpected errors propagate internally, close active connections and result in a fixed safe failure event/message and exit 1; raw net errors and addresses are never logged.
+4. signal.NotifyContext handles SIGINT/SIGTERM. On cancellation, first mark the lifecycle terminally unready, then log shutdown start; Shutdown closes listeners/idle connections and drains active requests using a separate background context bounded by HTTP_SHUTDOWN_TIMEOUT. The signal context is not used as request BaseContext, so normal drain does not immediately cancel in-flight work.
+5. Direct Shutdown/Close also clear readiness before their net/http calls. On drain timeout, Close force-closes remaining connections, canceling their request contexts. The runner waits for its single Serve goroutine, logs a safe forced-shutdown event and exits 1. A completed drain exits 0. Lifecycle channels are bounded and there is no application waiting queue.
 
 Close cannot terminate non-cooperative Go code, and Shutdown does not manage hijacked connections. Future WebSocket work must define its own connection registry/drain policy before use. Request bodies/streams are not buffered for panic recovery or shutdown.
 
@@ -51,3 +51,5 @@ net/http raw ErrorLog is discarded because it can print stacks, request/TLS data
 Admission bounds handler work, not all TCP connections, TLS handshakes, keep-alive sockets or net/http connection goroutines. Transport limits help but do not establish complete DoS protection or production capacity. Deployments need measured connection/resource budgets later. No throughput or latency improvement is claimed.
 
 See MIDDLEWARE.md for ordering, error/status accounting, deadlines and future upgrade considerations; FOUNDATION_VERIFICATION.md records actual test outcomes and limitations.
+
+See HEALTH_READINESS.md for probe admission bypass, snapshot guarantees, contracts and the absence of guaranteed HTTP responses after listener closure.
