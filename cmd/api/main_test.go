@@ -2,8 +2,12 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
+	"github.com/Faysal9991/mega-backend/internal/platform/config"
+	"io"
+	"net"
 	"strings"
 	"testing"
 )
@@ -19,7 +23,7 @@ func TestRun(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var stdout, stderr bytes.Buffer
 			calls := map[string]int{}
-			code := run(func(key string) (string, bool) {
+			code := runCancelled(func(key string) (string, bool) {
 				calls[key]++
 				return tt.port, key == "HTTP_PORT" && tt.port != ""
 			}, &stdout, &stderr)
@@ -37,7 +41,7 @@ func TestRun(t *testing.T) {
 			if tt.want == 1 && (stdout.Len() != 0 || !strings.Contains(stderr.String(), "HTTP_PORT")) {
 				t.Fatal("invalid configuration must fail before successful startup output")
 			}
-			if tt.want == 0 && (stderr.Len() != 0 || !strings.Contains(stdout.String(), "event=startup.configuration_validated") || !strings.Contains(stdout.String(), "http_server_implemented=false")) {
+			if tt.want == 0 && (stderr.Len() != 0 || !strings.Contains(stdout.String(), "event=startup.configuration_validated") || !strings.Contains(stdout.String(), "http_server_implemented=true")) {
 				t.Fatal("unexpected startup output")
 			}
 		})
@@ -50,7 +54,7 @@ func (failingWriter) Write([]byte) (int, error) { return 0, errors.New("output u
 
 func TestRunOutputFailure(t *testing.T) {
 	var stderr bytes.Buffer
-	if code := run(func(string) (string, bool) { return "", false }, failingWriter{}, &stderr); code != 1 {
+	if code := runCancelled(func(string) (string, bool) { return "", false }, failingWriter{}, &stderr); code != 1 {
 		t.Fatalf("output failure exit code = %d, want 1", code)
 	}
 }
@@ -74,7 +78,7 @@ func TestRunLoggingModes(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var stdout, stderr bytes.Buffer
 			calls := map[string]int{}
-			code := run(func(key string) (string, bool) { calls[key]++; v, ok := tt.values[key]; return v, ok }, &stdout, &stderr)
+			code := runCancelled(func(key string) (string, bool) { calls[key]++; v, ok := tt.values[key]; return v, ok }, &stdout, &stderr)
 			if code != tt.code {
 				t.Fatalf("exit %d, want %d", code, tt.code)
 			}
@@ -83,7 +87,7 @@ func TestRunLoggingModes(t *testing.T) {
 					t.Fatalf("%s read more than once", key)
 				}
 			}
-			if code == 0 && len(calls) != 13 {
+			if code == 0 && len(calls) != 16 {
 				t.Fatal("startup did not load complete configuration once")
 			}
 			if strings.Contains(stdout.String()+stderr.String(), "PRIVATE_SENTINEL") {
@@ -99,7 +103,7 @@ func TestRunLoggingModes(t *testing.T) {
 			if err := json.Unmarshal(stdout.Bytes(), &event); err != nil {
 				t.Fatal(err)
 			}
-			if stderr.Len() != 0 || event["event"] != "startup.configuration_validated" || event["http_server_implemented"] != false {
+			if stderr.Len() != 0 || event["event"] != "startup.configuration_validated" || event["http_server_implemented"] != true {
 				t.Fatal("invalid startup event")
 			}
 		})
@@ -108,7 +112,15 @@ func TestRunLoggingModes(t *testing.T) {
 
 func TestRunLoggerConstructionFailure(t *testing.T) {
 	var stderr bytes.Buffer
-	if code := run(func(string) (string, bool) { return "", false }, nil, &stderr); code != 1 || !strings.Contains(stderr.String(), "writer is required") {
+	if code := runCancelled(func(string) (string, bool) { return "", false }, nil, &stderr); code != 1 || !strings.Contains(stderr.String(), "writer is required") {
 		t.Fatal("logger construction failure not reported")
 	}
+}
+
+// Existing config/logging regression fixtures stop after startup validation;
+// lifecycle tests below exercise actual listener ownership and shutdown.
+func runCancelled(lookup config.LookupEnv, stdout, stderr io.Writer) int {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	return run(ctx, lookup, stdout, stderr, func(string, string) (net.Listener, error) { panic("canceled startup must not bind") })
 }

@@ -1,12 +1,12 @@
 # Typed Runtime Configuration
 
-Scope: Step 1 configuration with the authorized Step 2 logging extension. No HTTP listener, database or business module. The owner approved Step 1 source-level architecture at reviewed baseline bf409ff; that approval does not establish production behavior.
+Scope: Step 1 configuration with authorized Step 2 logging and Step 3 HTTP extensions. The HTTP listener and middleware now run; database and business modules are absent. The owner approved Step 1 source-level architecture at reviewed baseline bf409ff; that approval does not establish production behavior.
 
 ## Architecture
 
 `internal/platform/config.Load(lookup)` builds a typed `Config` with an `Environment` and an `HTTPConfig`. Durations are `time.Duration`, body bytes are `int64`, and port is an integer. Environment constants are development, test, staging and production.
 
-`cmd/api/main.go` calls `Load` once using `os.LookupEnv`. Validation completes before logger construction. Invalid configuration produces a safe setting-specific error on stderr and exit status 1. Step 2 injects the validated snapshot into `logging.New` and emits a fixed INFO startup event; WARN/ERROR thresholds suppress it. It exits without starting a server. Future components will receive configuration explicitly through constructors.
+`cmd/api/main.go` calls `Load` once using `os.LookupEnv`. Validation completes before logger construction. Invalid configuration produces a safe setting-specific error on stderr and exit status 1. The snapshot is injected into `logging.New`, router and HTTP server constructors. Startup events are INFO (filtered at WARN/ERROR). The process binds and serves until SIGINT/SIGTERM or an unexpected lifecycle failure. See HTTP_SERVER.md for drain/exit behavior; future components continue using constructor injection.
 
 No init function, mutable global, environment mutation, hot reload or dotenv parser is used. Tests inject map-backed lookups without touching process environment. Each recognized setting is read at most once per load; failure stops immediately and returns a zero Config rather than partially usable settings. Treat returned snapshots as immutable after wiring; Go does not enforce immutability of exported fields.
 
@@ -14,7 +14,7 @@ Missing optional values use defaults. Explicit empty values are always errors, i
 
 ## Environment reference
 
-Bounds are inclusive. Defaults are conservative initial engineering choices, not measured workload recommendations. Review them when implementing the HTTP lifecycle; the values are validated but do not enforce server behavior yet.
+Bounds are inclusive. Defaults are conservative initial engineering choices, not measured workload recommendations. Step 3 applies transport and middleware values. They are initial engineering choices, not measured production capacity.
 
 | Variable | Typed field | Default | Validation |
 | --- | --- | --- | --- |
@@ -28,11 +28,14 @@ Bounds are inclusive. Defaults are conservative initial engineering choices, not
 | `HTTP_IDLE_TIMEOUT` | `HTTP.IdleTimeout` | `60s` | Go duration, 1ms–15m |
 | `HTTP_SHUTDOWN_TIMEOUT` | `HTTP.ShutdownTimeout` | `10s` | Go duration, 1ms–5m |
 | `HTTP_MAX_BODY_BYTES` | `HTTP.MaxBodyBytes` | `1048576` (1 MiB) | Base-10 bytes, 1024–16777216 (1 KiB–16 MiB) |
+| `HTTP_MAX_HEADER_BYTES` | `HTTP.MaxHeaderBytes` | 32768 | Base-10 bytes, 1024–1048576; net/http parser allowance applies |
+| `HTTP_REQUEST_TIMEOUT` | `HTTP.RequestTimeout` | 10s | Go duration, 1ms–5m; cooperative cancellation |
+| `HTTP_MAX_CONCURRENT_REQUESTS` | `HTTP.MaxConcurrentRequests` | 256 | Base-10 integer, 1–4096; nonwaiting per-process admission |
 | `LOG_LEVEL` | `Logging.Level` (slog.Level) | `INFO` | Exactly DEBUG, INFO, WARN or ERROR |
 | `LOG_FORMAT` | `Logging.Format` (LogFormat) | text in development/test, json in staging/production | text or json; staging/production reject text |
 | `INSTANCE_ID` | `Logging.InstanceID` | local in development/test | Explicitly required in staging/production; 1–64 ASCII letters/digits/dot/underscore/hyphen |
 
-Duration examples: `500ms`, `1.5s`, `2m`. Unitless numbers, overflow, zero, negative and excessive durations fail. Numeric parser errors are replaced with safe messages so input values cannot appear in error chains or formatted output. Hosts such as `::1`, `127.0.0.1` and `0.0.0.0` are accepted literals; hostname resolution and socket binding are not performed by the loader. Network availability, address ownership and port privileges are checked only when a future server binds.
+Duration examples: `500ms`, `1.5s`, `2m`. Unitless numbers, overflow, zero, negative and excessive durations fail. Numeric parser errors are replaced with safe messages so input values cannot appear in error chains or formatted output. Hosts such as `::1`, `127.0.0.1` and `0.0.0.0` are accepted literals; hostname resolution and socket binding are not performed by the loader. Network availability, address ownership and port privileges are checked when Step 3 binds the listener.
 
 There are no credentials or secret settings in this step. Application name is a non-secret machine label, not a free-form display string. Do not put sensitive information into any of these variables.
 
@@ -84,6 +87,12 @@ Add future settings only when an authorized capability requires them: a typed fi
 
 Tests cover defaults, all overrides/modes, missing versus empty required values, all empty keys, invalid names/hosts, port boundaries/overflow, every timeout's syntax/range, read/header consistency, body limits, safe error formatting, independent snapshots and one-read-per-setting behavior. Startup tests verify success/failure output and exit codes through the same `run` function used by `main`.
 
-See `STRUCTURED_LOGGING.md` for format precedence, instance identity, security policy and limitations. Loading now reads 13 recognized settings once each on success. Existing HTTP/application validation is preserved; production/staging now additionally require INSTANCE_ID as the explicitly authorized logging-related extension.
+See `STRUCTURED_LOGGING.md` for format precedence, instance identity, security policy and limitations. Loading now reads 16 recognized settings once each on success. Existing HTTP/application validation is preserved; production/staging now additionally require INSTANCE_ID as the explicitly authorized logging-related extension.
 
-See the Step 1 and Step 2 verification sections in `FOUNDATION_VERIFICATION.md` for actual commands and coverage. Step 1 source-level architectural review passed per owner approval; Step 2 awaits review. Neither test coverage nor architectural review establishes measured production behavior.
+See the Step 1, Step 2 and Step 3 verification sections in `FOUNDATION_VERIFICATION.md` for actual commands and coverage. Step 1 source-level architectural review passed per owner approval; Step 2 review is owner-approved against inspected baseline 7dc9d97; Step 3 awaits review. Neither test coverage nor architectural review establishes measured production behavior.
+
+## Step 3 timeout and resource semantics
+
+Header size, context request deadline and concurrency limit are the only new settings. Existing values, required modes, logging rules and invalid/empty input behavior remain unchanged. Body limits apply through MaxBytesReader; handlers must recognize MaxBytesError before committing streamed responses. Net/http header parser limits include an implementation allowance and can reject before request-ID middleware.
+
+Request timeout cancels context; it does not kill non-cooperative handlers or replace committed responses. Read/write/idle timeouts protect transport independently. Signal shutdown uses a separate bounded background context and does not prematurely cancel active requests. See HTTP_SERVER.md and MIDDLEWARE.md for full security/operational limitations. No trusted-proxy CIDR setting is introduced; forwarding headers are ignored.

@@ -40,16 +40,19 @@ type LoggingConfig struct {
 	InstanceID string
 }
 
-// HTTPConfig defines limits for the future HTTP server; it starts no listener.
+// HTTPConfig defines transport and middleware limits; it starts no listener.
 type HTTPConfig struct {
-	Host              string
-	Port              int
-	ReadHeaderTimeout time.Duration
-	ReadTimeout       time.Duration
-	WriteTimeout      time.Duration
-	IdleTimeout       time.Duration
-	ShutdownTimeout   time.Duration
-	MaxBodyBytes      int64
+	Host                  string
+	Port                  int
+	ReadHeaderTimeout     time.Duration
+	ReadTimeout           time.Duration
+	WriteTimeout          time.Duration
+	IdleTimeout           time.Duration
+	ShutdownTimeout       time.Duration
+	MaxBodyBytes          int64
+	MaxHeaderBytes        int
+	RequestTimeout        time.Duration
+	MaxConcurrentRequests int
 }
 
 // LookupEnv distinguishes an absent setting from an explicitly empty value.
@@ -104,6 +107,7 @@ func Load(lookup LookupEnv) (Config, error) {
 		{"HTTP_WRITE_TIMEOUT", "30s", 5 * time.Minute, &cfg.HTTP.WriteTimeout},
 		{"HTTP_IDLE_TIMEOUT", "60s", 15 * time.Minute, &cfg.HTTP.IdleTimeout},
 		{"HTTP_SHUTDOWN_TIMEOUT", "10s", 5 * time.Minute, &cfg.HTTP.ShutdownTimeout},
+		{"HTTP_REQUEST_TIMEOUT", "10s", 5 * time.Minute, &cfg.HTTP.RequestTimeout},
 	} {
 		value, err := text(lookup, setting.key, setting.fallback, false)
 		if err != nil {
@@ -125,6 +129,16 @@ func Load(lookup LookupEnv) (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
+	headers, err := integer(lookup, "HTTP_MAX_HEADER_BYTES", "32768", 1024, 1048576)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.HTTP.MaxHeaderBytes = int(headers)
+	concurrent, err := integer(lookup, "HTTP_MAX_CONCURRENT_REQUESTS", "256", 1, 4096)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.HTTP.MaxConcurrentRequests = int(concurrent)
 	level, err := text(lookup, "LOG_LEVEL", "INFO", false)
 	if err != nil {
 		return Config{}, err

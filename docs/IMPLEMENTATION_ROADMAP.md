@@ -6,7 +6,7 @@ Date: 2026-11-24 (Asia/Dhaka)
 
 The owner's greenfield instruction and current `AGENTS.md` supersede the earlier migration framing. Approved requirements define new behavior; Django is optional read-only reference evidence. No legacy schema, API adapter, data import or Python runtime dependency is planned. `docs/migration/` contains superseded historical notes.
 
-Current authorized task: final verification of Step 2, structured logging only. Step 1 passed source-level architectural review per owner approval at baseline bf409ff. This records review approval, distinct from reported tests and unmeasured production behavior. Step 3 onward and all business modules remain unauthorized. See `architecture/STRUCTURED_LOGGING.md` and the Step 2 evidence in `architecture/FOUNDATION_VERIFICATION.md`.
+Current authorized task: Step 3 HTTP server lifecycle, router and middleware only. The owner approved Step 2 source-level architecture; that approval is recorded against the inspected Step 2 commit `7dc9d97e9c21584c05a6b10263beab905bba12dc`. Review approval, locally executed tests and unmeasured production behavior remain distinct. Step 4 onward and business modules remain unauthorized. See `architecture/HTTP_SERVER.md`, `architecture/MIDDLEWARE.md` and the Step 3 verification report.
 
 ## Initial architecture inspection (historical)
 
@@ -20,14 +20,14 @@ Current authorized task: final verification of Step 2, structured logging only. 
 
 ## Execution sequence and gates
 
-Each row requires owner authorization before execution. Step 2 is authorized; later capabilities must not be bundled into it.
+Each row requires owner authorization before execution. Step 3 is authorized; later capabilities must not be bundled into it.
 
 | Step | Scope | Acceptance evidence |
 | --- | --- | --- |
 | 0 | Foundation inspection and architecture | Baseline prepared; owner authorized Step 1 using this baseline |
 | 1 | Typed runtime configuration | Implemented and source-level architectural review approved by owner at bf409ff; test evidence recorded separately; no production behavior claim |
-| 2 — current | Structured logging | Implemented with explicit slog injection, bounded configuration, defensive redaction and security/concurrency regression tests; final verification report records actual results. Stop for architectural review |
-| 3 | HTTP lifecycle and middleware | Pin Chi when introduced; server deadlines/body limits, request IDs, panic handling, shutdown/drain behavior and cancellation verified |
+| 2 | Structured logging | Implemented; owner source-level architectural approval recorded against 7dc9d97. Reported tests and production behavior are separate evidence |
+| 3 — current | HTTP lifecycle and middleware | Implemented with Chi v5.5.0, constructor-injected transport, request IDs/logging/recovery, resource limits and bounded shutdown. Final verification recorded in FOUNDATION_VERIFICATION.md; stop for architectural review |
 | 4 | Response/error engine | Reviewed OpenAPI common schemas and error registry; response, 204, invalid input and error contract tests |
 | 5 | Health endpoints | Separate liveness/readiness semantics; draining/unavailable behavior tested without exposing internals |
 | 6 | PostgreSQL foundation | Pin pgx/Goose/sqlc versions after compatibility verification; isolated Compose DB, bounded pool, migration upgrade checks, generated-query consistency and cancellation tests |
@@ -45,11 +45,23 @@ Inspection baseline: commit `55b4db29977d6c646bd41955bacb14ac94ce47a2`. Git now 
 
 Configuration uses the standard library only. HTTP settings are loaded but not enforced by a server yet. Step 1 approval was supplied by the owner at reviewed commit bf409ff738a3e61bb535b06e99cab9102005f594.
 
-## Step 2 verification plan and handoff
+## Step 2 verification plan and handoff (historical)
 
 Review constructor/configuration/startup behavior, With/WithGroup redaction, nested and arbitrary values, reserved/duplicate keys, injection, UTC/JSON output and concurrency. Correct only Step 2 defects, preserve Step 1 regression checks, then run all owner-requested uncached commands and record actual outcomes. No external dependencies, runtime globals or asynchronous infrastructure are introduced.
 
-Final review tightened duplicate-key handling to first accepted occurrence per JSON object and retained sensitive context for invalid group names. Security tests inspect JSON tokens rather than relying on map decoding. `FND-003` tracks implementation and local evidence; source-level architectural review of Step 2 remains pending. Next proposed step is HTTP lifecycle/middleware (Step 3), only after architectural review and explicit authorization.
+Final review tightened duplicate-key handling to first accepted occurrence per JSON object and retained sensitive context for invalid group names. Security tests inspect JSON tokens rather than relying on map decoding. `FND-003` tracks implementation and local evidence; source-level review was subsequently approved by the owner against the inspected 7dc9d97 baseline. That approval authorizes the separate Step 3 work below.
+
+## Step 3 implementation plan and gate
+
+1. Inspect instructions, source, approved configuration/logging/API standards and Git state at 7dc9d97; verify the stable Chi tag and compatibility before pinning.
+2. Add only validated bounded header, cooperative request-timeout and admission settings; preserve existing defaults and regression scenarios.
+3. Implement constructor-injected lifecycle and centralized routing, then request ID, completion logging, recovery and resource middleware in that order.
+4. Verify isolated test routes, real loopback transport, cancellation, concurrency, body/header limits, partial panics, bind failure and graceful/forced drain. Keep real executable routing empty.
+5. Complete docs, module integrity/format/build/test/race/vet/coverage checks, report actual evidence and stop for review. No Step 4 response engine or health endpoint.
+
+During implementation a loopback lifecycle test exposed Chi's empty-mux middleware bypass. A dedicated infrastructure mount fixes it without fake routes; explicit empty-router regression coverage remains. The new request timeout cooperatively cancels context, and force-close does not claim to terminate arbitrary Go code. Deployment capacity and performance are unmeasured. FND-004 tracks implementation, local evidence and the pending architectural-review gate.
+
+Next proposed step is the Step 4 response/error engine, only after explicit authorization.
 
 ## Stop conditions and deferred work
 

@@ -2,7 +2,7 @@
 
 Date: 2026-11-24 (Asia/Dhaka)
 
-The original sections below record the architecture-preparation snapshot. Step 1 and Step 2 results are recorded in their appended sections. Earlier statements about missing configuration, logging or tests are historical.
+The original sections below record historical snapshots. Step 1, Step 2 and Step 3 results are recorded in their appended sections. Earlier statements about missing configuration, logging, HTTP or tests are historical; current Step 3 evidence is at the end.
 
 ## Outcome
 
@@ -139,3 +139,68 @@ Redaction is intentionally conservative and may hide useful diagnostic fields. R
 Instance-ID uniqueness is an operator responsibility; APP_ENV must explicitly select staging/production. There is no distributed collector, request correlation or fleet/load verification. A small synthetic benchmark is provided but was not run during final verification; no throughput, allocation improvement or production performance claim is made.
 
 No SQL generation/database/Redis checks apply. No extra lint/security tool is configured. HTTP server/middleware, response engine and all Step 3+ capabilities remain absent. No commit, push or deployment occurred. Step 2 stops here for source-level architectural review; Step 3 requires explicit authorization.
+
+## Step 2 architectural approval
+
+The owner explicitly confirmed that Step 2 passed source-level architectural review for its authorized scope. That approval is recorded against the inspected Step 2 commit `7dc9d97e9c21584c05a6b10263beab905bba12dc` (feat(logging): implement secure structured logging foundation), the baseline for Step 3. This is owner-provided review approval, distinct from earlier reported test results and unmeasured production behavior. FND-003 is verified for that foundation scope. The logging implementation itself is unchanged in Step 3.
+
+## Step 3 — HTTP server and middleware final verification
+
+Date: 2026-11-24 (Asia/Dhaka). Baseline: `7dc9d97e9c21584c05a6b10263beab905bba12dc`; initial working tree was clean. Evidence below applies to the uncommitted Step 3 working tree. FND-004 is implemented with local automated evidence and awaits architectural review. No later roadmap phase is authorized.
+
+### Delivered scope and decisions
+
+- Constructor-injected net/http lifecycle and centralized Chi router. Listener binding is separate from construction/Serve/Shutdown. Bind addresses use net.JoinHostPort; IPv4/IPv6 address construction is tested. No DefaultServeMux, mutable global state or implicit startup.
+- Existing timeout/body settings applied, with only three new validated settings: maximum header bytes (32768, range 1024–1048576), cooperative request timeout (10s, range 1ms–5m), and nonwaiting concurrent admission (256, range 1–4096). Defaults are engineering proposals, not measured production capacity. Application/logging validation and regression scenarios remain intact; successful lookup counts now cover 16 settings.
+- Strict single-value request IDs, crypto/rand replacement and private context propagation. Request completion logs only approved correlation/method/template/status/duration/byte fields through unchanged Step 2 logging. Unknown methods/paths use fixed safe values; payloads, raw URLs/queries, credentials, cookies and private content are not logged.
+- Safe pre-commit panic 500; committed partial responses are aborted through ErrAbortHandler with original status/bytes retained. No response buffering. Capacity releases during unwinding. Chunked consumers explicitly classify MaxBytesError before responding; infrastructure never reads whole request bodies.
+- Peer-IP validation ignores all forwarding headers. No trusted proxy CIDR feature, load balancer or deployment work. ResponseController Unwrap and protocol-appropriate writer capabilities are tested.
+- SIGINT/SIGTERM trigger separately bounded drain. Active request contexts are not canceled just because shutdown begins. Timeout force-close cancels connections, returns an error/exit 1, and the single Serve goroutine is joined. Unexpected Serve errors propagate safely. Raw net/http diagnostics are suppressed to avoid unreviewed stack/request leakage.
+- Temporary infrastructure error responses are centralized plain status text. No final JSON response/error engine, health endpoint or fake business route exists. Main supplies no module registrations; all actual paths currently return a protected 404.
+
+### Defect found and resolved during implementation
+
+An initial successful-lifecycle test failed because Chi skips middleware when its mux is completely empty. A dedicated infrastructure root mount now guarantees middleware runs before the empty business mux; a regression test checks request ID and completion output on empty-router 404. Method tests also cover escaped-path Allow handling and avoid a 405 with no allowed method on unknown paths. The final runs below passed after these changes; the initial failure was not hidden by weakening tests.
+
+### Dependency and compatibility evidence
+
+Pinned `github.com/go-chi/chi/v5 v5.5.0`, mandated by the approved stack. Verified the official stable release and downloaded exact tag module: its Go minimum is 1.24, satisfied by installed/project Go 1.26.3. go.mod/go.sum record the version and checksums. go list -m all reports only the project and Chi; no transitive module was introduced. Tests compile and run locally on darwin/arm64. See ADR 0003 and HTTP_SERVER.md for the official release link and decision.
+
+### Actual final commands
+
+All commands exited 0:
+
+| Command | Actual result |
+| --- | --- |
+| gofmt -w on changed/new Go files | Applied; final gofmt -l produced no output |
+| `go mod tidy` | PASS; Chi is a direct pinned dependency |
+| `go mod verify` | PASS: all modules verified |
+| `go build ./...` | PASS |
+| `go test -count=1 ./...` | PASS: cmd/api, config, httpserver, logging; uncached |
+| `go test -race -count=1 ./...` | PASS: all four packages; uncached, no race reports |
+| `go vet ./...` | PASS; no findings |
+| `go test -cover ./...` | PASS: cmd/api 80.5%, config 100.0%, httpserver 98.7%, logging 96.2% statement coverage |
+| `git diff --check` | PASS; no tracked whitespace errors |
+
+Tests cover ID ambiguity/invalid/oversized values and 128 concurrent generated IDs, route/template privacy, 404/405/Allow, status/bytes, pre/post-commit panic and slot recovery, known and chunked oversized bodies, real TCP oversized-header 431, nonwaiting overload, cooperative deadlines and parent cancellation, spoofed forwarding headers, writer capabilities/ResponseController, bind failure, unexpected Serve error, active-request graceful drain and forced connection cancellation. Channel synchronization and explicit timeout bounds replace arbitrary sleeps. Existing configuration and logging regression tests remain active; only necessary expected fields/counts and the obsolete startup state were updated. Existing startup fixtures use a canceled lifecycle context to validate configuration/logging without binding; separate lifecycle tests exercise real listeners.
+
+Additional binary smoke tests built outside the repository, used isolated loopback ports and explicit non-secret production settings, and verified safe JSON/UTC startup, a correlated 404, exactly one completion event, no raw sentinel path/query/header values in logs, and graceful exit 0 for both SIGTERM and SIGINT. A genuinely occupied local port produced a safe listener-failure event/message and exit 1. Temporary artifacts/processes were cleaned up. These process checks exercise signal handling outside the instrumented package-coverage run; they do not increase its reported percentage.
+
+### Changed files
+
+- Added `internal/platform/httpserver/server.go`, `router.go`, `middleware.go`, `server_test.go`, `middleware_test.go`.
+- Updated configuration and existing tests; added `internal/platform/config/http_test.go`.
+- Updated `cmd/api/main.go` and its regression tests; added `cmd/api/lifecycle_test.go`.
+- Updated go.mod and added go.sum for Chi only.
+- Updated `.env.example`, README.md, roadmap, runtime/logging documentation, feature matrix, ADR 0002 approval status and this report.
+- Added HTTP_SERVER.md, MIDDLEWARE.md and ADR 0003. Unrelated business/schema/media architecture is preserved.
+
+### Acceptance limits and open risks
+
+All current Step 3 automated checks pass. This is local transport/security/regression evidence, not production-readiness or performance certification. No load benchmark, p95/p99 measurement, production connection or deployment occurred.
+
+Context cancellation cannot stop non-cooperative handler code or arbitrary blocked I/O. Synchronous logging can block. Shutdown/Close cannot drain hijacked streams; WebSocket and upgraded-stream byte accounting remain future work. Standard protocol-aware writer capabilities and ResponseController are covered; exotic custom writer combinations and legacy CloseNotifier assertions are not guaranteed. Normal completed response byte counts are application writes, not client delivery proof.
+
+Admission does not bound every TCP connection or net/http connection goroutine. Parser-level header/malformed-request failures precede request-ID/logging middleware, and Go's header parser includes an extra read-buffer allowance. Low-level raw diagnostics are intentionally suppressed. Exact fleet/connection budgets, safe transport metrics, TLS/HTTP2 setup and trusted-proxy chain handling require later explicit scope. Instance uniqueness is operator-managed; static template registration and safe log field selection remain code-review obligations.
+
+Temporary text errors must be replaced/reviewed in Step 4. Extension HTTP methods require an explicit Allow-policy update; no automatic business HEAD/OPTIONS semantics are invented. No additional security/lint tool is configured, and SQL generation/database/Redis checks do not apply. No commit, push or deploy occurred. Stop for Step 3 architectural review; recommended next phase is Step 4 only after owner authorization.

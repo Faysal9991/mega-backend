@@ -24,7 +24,7 @@ func TestLoadValid(t *testing.T) {
 		HTTP: config.HTTPConfig{
 			Host: "127.0.0.1", Port: 8080, ReadHeaderTimeout: 5 * time.Second,
 			ReadTimeout: 15 * time.Second, WriteTimeout: 30 * time.Second,
-			IdleTimeout: time.Minute, ShutdownTimeout: 10 * time.Second, MaxBodyBytes: 1048576,
+			IdleTimeout: time.Minute, ShutdownTimeout: 10 * time.Second, MaxBodyBytes: 1048576, MaxHeaderBytes: 32768, RequestTimeout: 10 * time.Second, MaxConcurrentRequests: 256,
 		},
 	}
 	overrides := config.Config{
@@ -33,7 +33,7 @@ func TestLoadValid(t *testing.T) {
 		HTTP: config.HTTPConfig{
 			Host: "::1", Port: 9090, ReadHeaderTimeout: time.Second,
 			ReadTimeout: 2 * time.Second, WriteTimeout: 3 * time.Second,
-			IdleTimeout: 4 * time.Minute, ShutdownTimeout: 1500 * time.Millisecond, MaxBodyBytes: 2048,
+			IdleTimeout: 4 * time.Minute, ShutdownTimeout: 1500 * time.Millisecond, MaxBodyBytes: 2048, MaxHeaderBytes: 32768, RequestTimeout: 10 * time.Second, MaxConcurrentRequests: 256,
 		},
 	}
 	tests := []struct {
@@ -197,8 +197,8 @@ func TestDeterministicLoading(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(calls) != 13 {
-		t.Fatalf("expected exactly 13 settings read, got %d", len(calls))
+	if len(calls) != 16 {
+		t.Fatalf("expected exactly 16 settings read, got %d", len(calls))
 	}
 	for key, count := range calls {
 		if count != 1 {

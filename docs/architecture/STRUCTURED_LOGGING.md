@@ -1,6 +1,6 @@
 # Structured Logging Foundation
 
-Status: Step 2 implementation with local verification; source-level architectural review is pending. No HTTP server, request middleware or business service is implemented.
+Status: Step 2 source-level architectural review approved by the owner against inspected logging baseline 7dc9d97. Step 3 now uses this unchanged logging engine for HTTP lifecycle/middleware; no business service is implemented.
 
 ## Architecture and configuration
 
@@ -21,12 +21,12 @@ Set APP_ENV explicitly for staging/production. If adapting the development `.env
 Each record has `time`, `level`, `event`, `service`, `environment` and `instance_id`, plus approved structured attributes. Built-in `msg` is renamed to `event`. JSON output is one object per line; development text output is quoted key/value text. Record timestamps and time-valued attributes are converted to UTC. Ordinary slog calls supply timestamps; a manually constructed record with zero time follows standard handler behavior and omits time.
 
 ```json
-{"time":"2026-11-24T00:00:00Z","level":"INFO","event":"startup.configuration_validated","service":"biho-live-api","environment":"production","instance_id":"api-1","http_server_implemented":false}
+{"time":"2026-11-24T00:00:00Z","level":"INFO","event":"startup.configuration_validated","service":"biho-live-api","environment":"production","instance_id":"api-1","http_server_implemented":true}
 ```
 
 Use DEBUG for bounded diagnostic facts, INFO for lifecycle/normal operational events, WARN for recoverable degradation and ERROR for failed operations. All levels use the same security policy; DEBUG never grants permission to log private data.
 
-Startup validates configuration once, constructs the logger and injects it into `validateStartup`. Its fixed INFO event states `http_server_implemented=false`. DEBUG/INFO thresholds emit it; WARN/ERROR thresholds suppress it and still exit 0 after successful validation. Invalid configuration exits 1 with a safe pre-logger stderr message at every threshold. Startup uses Handler.Handle after Enabled to observe write errors, reporting a fixed safe failure and exit 1. Ordinary slog convenience methods discard handler errors; logging is not a durable audit ledger.
+Startup validates configuration once, constructs the logger and injects it into `validateStartup`. At the Step 2 snapshot its INFO event stated `http_server_implemented=false`; Step 3 now accurately sets that field to true and adds listener/drain events. DEBUG/INFO thresholds emit it; WARN/ERROR thresholds suppress it and still exit 0 after successful validation. Invalid configuration exits 1 with a safe pre-logger stderr message at every threshold. Startup uses Handler.Handle after Enabled to observe write errors, reporting a fixed safe failure and exit 1. Ordinary slog convenience methods discard handler errors; logging is not a durable audit ledger.
 
 ## Defensive attribute policy
 
@@ -68,4 +68,4 @@ There are no network calls, queues, background goroutines, retries, file rotatio
 
 `BenchmarkJSONLogging` is a reproducible synthetic benchmark using io.Discard and one integer attribute. Run `go test -run '^$' -bench BenchmarkJSONLogging -benchmem ./internal/platform/logging`. It measures no collector, filesystem or production workload; no speedup or throughput guarantee is claimed.
 
-Future request correlation will use explicit request-scoped logger derivation with a validated request ID when the HTTP/middleware phase is authorized. No request IDs, tracing middleware, telemetry exporter or deployment collector is added here. See FOUNDATION_VERIFICATION.md for actual checks and remaining risks.
+HTTP middleware supplies validated correlation attributes explicitly through the existing logger. Future module consumers may derive a logger from the request context under the same policy. Step 3 now supplies bounded request IDs and safe completion events; no tracing middleware, telemetry exporter or deployment collector is added. See FOUNDATION_VERIFICATION.md for actual checks and remaining risks.
