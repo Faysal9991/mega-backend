@@ -12,16 +12,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Faysal9991/mega-backend/internal/platform/apperror"
+	"github.com/Faysal9991/mega-backend/internal/platform/requestmeta"
+	"github.com/Faysal9991/mega-backend/internal/platform/response"
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 )
 
-type requestIDKey struct{}
-
-func RequestID(ctx context.Context) string {
-	id, _ := ctx.Value(requestIDKey{}).(string)
-	return id
-}
+// RequestID delegates to the shared validated correlation context.
+func RequestID(ctx context.Context) string { return requestmeta.ID(ctx) }
 
 func requestID(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -38,27 +37,17 @@ func requestID(next http.Handler) http.Handler {
 		if count != 1 || !validRequestID(id) {
 			var entropy [16]byte
 			if _, err := rand.Read(entropy[:]); err != nil {
-				InfrastructureError(w, http.StatusServiceUnavailable)
-				return
+				// Entropy failure cannot produce valid correlation; fail closed.
+				panic(http.ErrAbortHandler)
 			}
 			id = hex.EncodeToString(entropy[:])
 		}
 		w.Header().Set("X-Request-ID", id)
-		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), requestIDKey{}, id)))
+		next.ServeHTTP(w, r.WithContext(requestmeta.WithID(r.Context(), id)))
 	})
 }
 
-func validRequestID(id string) bool {
-	if len(id) < 1 || len(id) > 64 {
-		return false
-	}
-	for _, c := range id {
-		if !(c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '-' || c == '_') {
-			return false
-		}
-	}
-	return true
-}
+func validRequestID(id string) bool { return requestmeta.ValidID(id) }
 
 func requestLog(logger *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -95,16 +84,19 @@ func safeMethod(method string) string {
 	return "OTHER"
 }
 
-func recoverPanic(logger *slog.Logger) func(http.Handler) http.Handler {
+func recoverPanic(logger *slog.Logger, responses *response.Writer) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer func() {
 				if value := recover(); value != nil {
+					if value == http.ErrAbortHandler {
+						panic(http.ErrAbortHandler)
+					}
 					// No panic value, stack, URL or raw error ever reaches log output.
 					logger.LogAttrs(r.Context(), slog.LevelError, "http.handler_panicked", slog.String("request_id", RequestID(r.Context())))
 					tracked := w.(chimiddleware.WrapResponseWriter)
 					if tracked.Status() == 0 {
-						InfrastructureError(w, http.StatusInternalServerError)
+						infrastructureError(responses, w, r, apperror.Internal)
 						return
 					}
 					// Already committed: abort the connection/HTTP2 stream. Never append
@@ -117,7 +109,7 @@ func recoverPanic(logger *slog.Logger) func(http.Handler) http.Handler {
 	}
 }
 
-func admission(maximum int) func(http.Handler) http.Handler {
+func admission(maximum int, responses *response.Writer) func(http.Handler) http.Handler {
 	slots := make(chan struct{}, maximum)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -127,17 +119,17 @@ func admission(maximum int) func(http.Handler) http.Handler {
 				next.ServeHTTP(w, r)
 			default:
 				w.Header().Set("Retry-After", "1")
-				InfrastructureError(w, http.StatusServiceUnavailable)
+				infrastructureError(responses, w, r, apperror.ServiceUnavailable)
 			}
 		})
 	}
 }
 
-func bodyLimit(maximum int64) func(http.Handler) http.Handler {
+func bodyLimit(maximum int64, responses *response.Writer) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.ContentLength > maximum {
-				InfrastructureError(w, http.StatusRequestEntityTooLarge)
+				infrastructureError(responses, w, r, apperror.PayloadTooLarge)
 				return
 			}
 			r.Body = http.MaxBytesReader(w, r.Body, maximum)
@@ -153,14 +145,14 @@ func IsBodyTooLarge(err error) bool {
 	return errors.As(err, &oversized)
 }
 
-func requestDeadline(timeout time.Duration) func(http.Handler) http.Handler {
+func requestDeadline(timeout time.Duration, responses *response.Writer) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx, cancel := context.WithTimeout(r.Context(), timeout)
 			defer cancel()
 			next.ServeHTTP(w, r.WithContext(ctx))
 			if errors.Is(ctx.Err(), context.DeadlineExceeded) && w.(chimiddleware.WrapResponseWriter).Status() == 0 {
-				InfrastructureError(w, http.StatusGatewayTimeout)
+				infrastructureError(responses, w, r, apperror.RequestTimeout)
 			}
 		})
 	}
@@ -178,4 +170,11 @@ func ClientIP(r *http.Request) (netip.Addr, bool) {
 		return netip.Addr{}, false
 	}
 	return ip.Unmap(), true
+}
+
+// A failed write is terminal. Never attempt another envelope on this writer.
+func infrastructureError(responses *response.Writer, w http.ResponseWriter, r *http.Request, code apperror.Code) {
+	if err := responses.Error(w, r, apperror.New(code, nil)); err != nil {
+		panic(http.ErrAbortHandler)
+	}
 }

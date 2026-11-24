@@ -6,7 +6,9 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/Faysal9991/mega-backend/internal/platform/apperror"
 	"github.com/Faysal9991/mega-backend/internal/platform/config"
+	"github.com/Faysal9991/mega-backend/internal/platform/response"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -16,8 +18,12 @@ func NewRouter(cfg config.HTTPConfig, logger *slog.Logger, register ...func(chi.
 	if logger == nil || cfg.MaxConcurrentRequests < 1 {
 		return nil, errors.New("httpserver: validated limits and logger are required")
 	}
+	responses, err := response.New(logger)
+	if err != nil {
+		return nil, err
+	}
 	router := chi.NewRouter()
-	notFound := func(w http.ResponseWriter, r *http.Request) { InfrastructureError(w, http.StatusNotFound) }
+	notFound := func(w http.ResponseWriter, r *http.Request) { infrastructureError(responses, w, r, apperror.NotFound) }
 	router.NotFound(notFound)
 	// Custom 405 bodies must explicitly preserve Allow; route probes use fresh
 	// contexts so completion logging keeps the original matched route context.
@@ -37,10 +43,10 @@ func NewRouter(cfg config.HTTPConfig, logger *slog.Logger, register ...func(chi.
 		if len(allowed) > 0 {
 			w.Header().Set("Allow", strings.Join(allowed, ", "))
 		} else {
-			InfrastructureError(w, http.StatusNotFound)
+			infrastructureError(responses, w, r, apperror.NotFound)
 			return
 		}
-		InfrastructureError(w, http.StatusMethodNotAllowed)
+		infrastructureError(responses, w, r, apperror.MethodNotAllowed)
 	}
 	router.MethodNotAllowed(methodNotAllowed)
 	if len(register) > 0 {
@@ -55,7 +61,7 @@ func NewRouter(cfg config.HTTPConfig, logger *slog.Logger, register ...func(chi.
 	// Chi skips its middleware stack on an entirely empty mux. A dedicated
 	// infrastructure mount runs the chain even before business routes exist.
 	root := chi.NewRouter()
-	root.Use(requestID, requestLog(logger), recoverPanic(logger), admission(cfg.MaxConcurrentRequests), bodyLimit(cfg.MaxBodyBytes), requestDeadline(cfg.RequestTimeout))
+	root.Use(requestID, requestLog(logger), recoverPanic(logger, responses), admission(cfg.MaxConcurrentRequests, responses), bodyLimit(cfg.MaxBodyBytes, responses), requestDeadline(cfg.RequestTimeout, responses))
 	root.NotFound(notFound)
 	root.MethodNotAllowed(methodNotAllowed)
 	root.Mount("/", router)

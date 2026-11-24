@@ -1,0 +1,37 @@
+# API response, error and validation foundation
+
+Date: 2026-11-24 (Asia/Dhaka). Status: Step 4 implemented for review; owner authorization covers this step only. No approval of prior review gates is inferred.
+
+## Ownership and dependency direction
+
+Reuse the existing `apperror`, `response`, `validation` and `requestmeta` packages. `apperror` owns safe application codes/diagnostics and private causes; it has no HTTP dependency. `response` owns HTTP status mapping, envelopes and JSON writing. `validation` owns bounded transport decoding and semantic diagnostic collection without business rules. `requestmeta` owns the single typed correlation context; `httpserver.RequestID` delegates to it. `httpserver` injects one response writer into its infrastructure middleware. No external dependency or runtime route is added.
+
+Future application handlers receive explicit constructors for response writers and decoders, using the validated HTTP body budget or a tighter operation-specific limit. Decoding and semantic validation precede application calls. A failed decode may partially populate a DTO: discard it. Check the response writer's returned error; once writing fails, terminate the request without a second response (transport uses `http.ErrAbortHandler`). Do not bypass the router's tracked writer. DTOs, safe messages and success codes remain reviewed per operation.
+
+## Output and commitment
+
+`Writer.Success` accepts 200/201/202 and delegates 204 to `NoContent`. The latter clears content type/length and writes no body. HEAD encodes the equivalent envelope to compute its content length but writes zero bytes. JSON output sets application/json, nosniff, and the same request ID in body/header. Use `response.List[T]` for every collection field (including nested collections), so nil becomes `[]`; arbitrary nil slice DTOs are not recursively rewritten. Nullable values require explicit contracts. Optional meta/message/error details are omitted when absent.
+
+The writer requires `Status()` commitment tracking from existing Chi middleware and valid shared correlation. It refuses all writes after final status, implicit Write or Flush. Informational responses other than 101 do not finalize. No new ResponseWriter wrapper changes the existing protocol capabilities or Unwrap/ResponseController behavior. Recovery preserves explicit ErrAbortHandler unchanged; a real panic before commitment yields common INTERNAL_ERROR, while a panic after commitment aborts without appending bytes. Completion logging retains original status and successful byte counts, including zero HEAD/error-write bytes. The existing Allow and admission Retry-After headers survive common encoding.
+
+Each compact JSON envelope is staged before headers, capped at 1 MiB including the trailing newline. Invalid metadata, unsupported serialization and over-budget output yield a fixed INTERNAL_ERROR. This bounds staged output, **not peak heap allocation**: encoding/json and custom marshalers can allocate internally; handlers must bound DTOs and collections. Custom marshaler panics are handled by router recovery. A failed or short network Write is logged using only request_id and a static failure_code and returns a sanitized error. There is no retry or second body. Parser failures remain outside application middleware. No streaming/compression framework is introduced.
+
+## Application diagnostics
+
+Application errors have immutable private fields, safe code-only Error(), Unwrap and code-based errors.Is plus errors.As. Private causes remain available internally for classification, never serialization/logging. Unknown codes/errors become INTERNAL_ERROR. Public messages are fixed by the registry. Field names use 1–64 ASCII lowercase letters/digits/underscore/dot, codes use 1–64 uppercase letters/digits/underscore starting with a letter, and messages use 1–256 UTF-8 bytes without controls or surrounding whitespace. These are syntax guards, not automatic secret detection: callers must supply static reviewed metadata and never interpolate input.
+
+`validation.Result` keeps the lexically first 20 unique field/code/message triples, independent of insertion order. `apperror.Validation` validates, clones, sorts and deduplicates at most 20 diagnostics; more direct input is a programmer error mapped to INTERNAL_ERROR. Exposed field slices are copies. Validation failures are 422; no business validator is provided.
+
+Pagination metadata accepts limit 1–1000; each endpoint must specify a suitable tighter bound. Continuing pages require has_more=true and a nonempty opaque next_cursor of at most 1024 UTF-8 bytes with no control/whitespace characters. Terminal pages require has_more=false and next_cursor=null. This validates output consistency; there is no cursor signing, query parser, total count or database ordering engine.
+
+## Input policy
+
+Reuse the existing middleware MaxBytesReader; the decoder applies its own bounded MaxBytesReader too, so the smaller limit wins. It buffers at most its limit plus the overflow probe. Known Content-Length overflow is rejected before reading; unknown/chunked overflow is classified with errors.As(MaxBytesError) as 413. Other read failures are sanitized INVALID_REQUEST. No handler should ignore read errors.
+
+Require exactly one Content-Type, parsed with mime.ParseMediaType, equal to application/json (case insensitive media parsing); only an optional UTF-8 charset is supported. Missing/invalid media, other parameters, nonidentity or multiple content encodings produce 415. Decompression is not provided. The decoder accepts a nonnil pointer to an object struct, rejects a root custom JSON unmarshaler, and uses DisallowUnknownFields and UseNumber. DTO authors must avoid custom nested decoders that bypass these rules; declared map/interface fields intentionally permit arbitrary keys and need operation-specific validation.
+
+Reject empty/malformed input, nonobject/null roots, unknown struct fields, type mismatch, invalid raw UTF-8, multiple documents, trailing garbage and nesting deeper than the token-pass limit of 64. A single key matches struct fields with encoding/json's case-insensitive matching: snake_case is the published spelling, but exact-case enforcement is **not** claimed. A preliminary token pass rejects duplicate keys, including escaped spellings and Unicode simple-fold/case equivalents, in every object (also maps/interface objects). Separate objects may reuse names. This stricter duplicate policy prevents competing assignments; it does not alter encoding/json's other coercion/null/escaped-surrogate semantics. Use exact integer/json.Number DTO fields; interface numbers become json.Number. Explicit float DTO fields can lose precision and must not model exact amounts.
+
+## Contract and limits
+
+`contracts/openapi/common.openapi.json` is OpenAPI 3.1 with empty paths and common schemas/response/header components only. Contract fixtures are compared to real Go writer output; the validation script checks the document and fixture schemas, including negative cases. JSON Schema string lengths count characters while Go guards count bytes; descriptions specify the stricter runtime UTF-8 byte limits. This foundation does not settle identifier/financial wire types or operation-specific success codes. No production benchmark, business implementation, database migration or deployment is implied. See FOUNDATION_VERIFICATION.md for actual checks and review status.

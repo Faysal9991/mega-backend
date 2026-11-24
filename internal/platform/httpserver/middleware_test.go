@@ -17,8 +17,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Faysal9991/mega-backend/internal/platform/apperror"
 	"github.com/Faysal9991/mega-backend/internal/platform/config"
 	"github.com/Faysal9991/mega-backend/internal/platform/logging"
+	"github.com/Faysal9991/mega-backend/internal/platform/response"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -189,7 +191,7 @@ func TestPanicsAndCapacityRelease(t *testing.T) {
 	})
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, httptest.NewRequest("GET", "/api/v1/panic", nil))
-	if w.Code != 500 || w.Body.String() != "Internal Server Error\n" {
+	if w.Code != 500 || !strings.Contains(w.Body.String(), `"code":"INTERNAL_ERROR"`) {
 		t.Fatal("unsafe panic response")
 	}
 	w = httptest.NewRecorder()
@@ -222,23 +224,27 @@ func TestPanicsAndCapacityRelease(t *testing.T) {
 			}
 		}
 	}
-	if completions != 3 || len(logs) != 5 || strings.Contains(out.String(), "PRIVATE_SENTINEL") {
+	if completions != 3 || len(logs) != 6 || strings.Contains(out.String(), "PRIVATE_SENTINEL") {
 		t.Fatal("incorrect panic log behavior")
 	}
 }
 
 func TestBodyLimits(t *testing.T) {
 	var calls atomic.Int32
+	responses, err := response.New(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	if err != nil {
+		t.Fatal(err)
+	}
 	router := testRouter(t, map[string]string{"HTTP_MAX_BODY_BYTES": "1024"}, io.Discard, func(r chi.Router) {
 		r.Post("/read", func(w http.ResponseWriter, r *http.Request) {
 			calls.Add(1)
 			_, err := io.Copy(io.Discard, r.Body)
 			if IsBodyTooLarge(err) {
-				InfrastructureError(w, 413)
+				infrastructureError(responses, w, r, apperror.PayloadTooLarge)
 				return
 			}
 			if err != nil {
-				InfrastructureError(w, 400)
+				infrastructureError(responses, w, r, apperror.InvalidRequest)
 				return
 			}
 			w.WriteHeader(204)

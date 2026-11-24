@@ -204,3 +204,52 @@ Context cancellation cannot stop non-cooperative handler code or arbitrary block
 Admission does not bound every TCP connection or net/http connection goroutine. Parser-level header/malformed-request failures precede request-ID/logging middleware, and Go's header parser includes an extra read-buffer allowance. Low-level raw diagnostics are intentionally suppressed. Exact fleet/connection budgets, safe transport metrics, TLS/HTTP2 setup and trusted-proxy chain handling require later explicit scope. Instance uniqueness is operator-managed; static template registration and safe log field selection remain code-review obligations.
 
 Temporary text errors must be replaced/reviewed in Step 4. Extension HTTP methods require an explicit Allow-policy update; no automatic business HEAD/OPTIONS semantics are invented. No additional security/lint tool is configured, and SQL generation/database/Redis checks do not apply. No commit, push or deploy occurred. Stop for Step 3 architectural review; recommended next phase is Step 4 only after owner authorization.
+
+## Step 4 — API response, error and validation foundation
+
+Date: 2026-11-24 (Asia/Dhaka). Inspected HEAD: `0caa8e2c752e8f1bb0502ffe76c00ac882b98aba`; initial `git status --short` was empty. Results apply to the uncommitted Step 4 working tree. The owner explicitly authorized Step 4 only. No additional Step 3 review approval is inferred. FND-005 is **implemented**, with local automated evidence, awaiting architectural review.
+
+### Delivered scope and decisions
+
+Reused the previously present but unintegrated/untested `apperror`, `response`, `validation` and `requestmeta` helpers. Formatted these existing sources and completed integration rather than introducing competing packages. HTTP mapping remains at the response transport boundary; errors preserve private wrapped causes with errors.Is/As and static public messages. Field diagnostics are copied, lexically ordered/deduplicated and bounded to 20. Shared requestmeta correlation replaces the HTTP-only duplicate key; the existing HTTP accessor remains available.
+
+Common response encoding supports 200/201/202 and bodyless 204, typed nil-as-empty collections, optional metadata, consistent headers/IDs and HEAD suppression. Compact output is staged up to 1 MiB before final headers. Invalid metadata/serialization returns INTERNAL_ERROR, while short/failed writes return safe errors without another response. JSON decoding reuses body limits, parses media with mime.ParseMediaType, preserves json.Number precision and enforces object/unknown-field/document/duplicate policies. Struct matching remains case insensitive; Unicode-fold-equivalent duplicate keys are rejected even inside dynamic objects. Pagination checks consistency with null terminal cursors, without a cursor engine.
+
+Infrastructure 404/405/413/500/503/504 now uses the engine. Allow, Retry-After, admission release, cooperative deadlines/cancellation and completion logging are retained. Chi's existing wrapper/capabilities are unchanged. Informational responses remain nonfinal, Flush/final/implicit writes prevent replacement, explicit ErrAbortHandler passes through, and partial-panic/failed-write recovery aborts without appending bytes. Existing config, logging, startup and lifecycle tests remain active. No runtime route, health endpoint, business validator, database schema, legacy adapter or deployment is added.
+
+### Actual final checks
+
+Installed toolchain: `go1.26.4 darwin/arm64`; go.mod still declares Go 1.26.3. No module version or runtime dependency changed.
+
+| Command | Actual result |
+| --- | --- |
+| `gofmt -w` on changed/new platform Go sources | PASS; final `gofmt -l internal cmd` returned no paths |
+| `go mod tidy` | PASS; no go.mod/go.sum change |
+| `go mod verify` | PASS: all modules verified |
+| `go build ./...` | PASS, exit 0 |
+| `go test -count=1 -cover ./...` | PASS, all eight packages; coverage below |
+| `go test -race -count=1 ./...` | PASS, all eight packages, no race reports |
+| `go vet ./...` | PASS, no findings |
+| `git diff --check` | PASS; supplementary newline/trailing-whitespace checks also cover untracked text files |
+| OpenAPI/JSON Schema validation | PASS: OpenAPI 3.1 document, 19 positive fixtures, 8 negative cases; reproduction in contracts/openapi/README.md |
+
+Statement coverage: cmd/api **80.5%**, apperror **100.0%**, config **100.0%**, httpserver **98.6%**, logging **96.2%**, requestmeta **100.0%**, response **98.9%**, validation **97.3%**. Coverage is local statement execution evidence, not proof of every runtime condition. No test failure occurred during Step 4 implementation/checks. An inspection command encountered the absent tests directory; no check was skipped as a result (Go tests live alongside packages).
+
+OpenAPI tooling was not preinstalled. Created an isolated `/tmp/biho-step4-openapi-validation` development venv with openapi-spec-validator **0.7.2** and jsonschema **4.26.0**. The documented validation command checks document validity and the same fixtures compared to actual Go writer output, plus invalid success/error codes, messages, extra properties and pagination cases. This adds no repository Python runtime or Go dependency. No endpoint request/response middleware validator or generated client was run; there are no operation paths. No additional lint/security tool is configured; SQL generation/database/Redis/provider checks do not apply. No production or load checks were run and no performance improvement is claimed.
+
+### Changed files
+
+- Reused/updated: `internal/platform/apperror/error.go`, `response/response.go`, `validation/json.go`, `validation/result.go`, `requestmeta/request_id.go`.
+- Integrated: `internal/platform/httpserver/middleware.go`, `router.go`, `server.go`; adjusted the existing middleware test's temporary response expectation and consumer calls.
+- Added tests: `apperror/error_test.go`, `response/response_test.go`, `response/contract_test.go`, `validation/json_test.go`, `requestmeta/request_id_test.go`, `httpserver/response_test.go` under internal/platform.
+- Added common contract/fixtures/reproduction: `contracts/openapi/common.openapi.json`, `fixtures/envelopes.json`, `README.md`.
+- Added documentation: `docs/api/ERROR_CODES.md`, `docs/architecture/API_RESPONSE_ENGINE.md`, `docs/decisions/0004-api-response-error-validation.md`.
+- Updated README, API standards, HTTP server/middleware architecture, ADR 0003 follow-up, implementation roadmap, feature coverage, testing strategy and this evidence report.
+
+### Acceptance limits and review status
+
+All requested applicable checks passed. FND-005 remains implemented pending owner architectural review; no business feature is verified by common error fixtures. No business/financial/permission or old-client compatibility rule was changed. The intentional transport change is replacing temporary text failures with the new JSON contract.
+
+Output staging bounds do not cap encoding/json/custom-marshaler peak memory; DTOs must be independently bounded. Use typed List fields for collections; arbitrary nil slices are not rewritten. Static message/field selection remains a privacy obligation. Unknown fields are rejected for ordinary struct DTOs, but custom nested unmarshaling and map/interface fields need later operation-specific review. Go byte limits can be stricter than JSON Schema character limits. Parser-level failures occur before middleware. Non-cooperative handlers, synchronous log sinks, upgraded streams and unmeasured capacity retain the previously documented limitations.
+
+No commit, push, deploy or production connection occurred. Stop after Step 4 for review. Step 5 health endpoints are the recommended next capability only after separate explicit authorization.

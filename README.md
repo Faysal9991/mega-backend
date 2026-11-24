@@ -1,6 +1,6 @@
 # mega-backend
 
-Biho Live 2.0 is a greenfield Go modular monolith. The current authorized scope is Step 3 HTTP transport and middleware; there are no business or health endpoints yet.
+Biho Live 2.0 is a greenfield Go modular monolith. The current authorized scope is Step 4 API response, error and validation foundation; there are no business or health endpoints yet.
 
 Requires Go 1.26.3. The only external module is pinned Chi v5.5.0.
 
@@ -25,4 +25,4 @@ go test -cover ./...
 git diff --check
 ```
 
-Actual outcomes and limitations are in [foundation verification](docs/architecture/FOUNDATION_VERIFICATION.md). Stop for Step 3 architectural review; Step 4 response engine and all business/infrastructure work require separate authorization.
+Actual outcomes and limitations are in [foundation verification](docs/architecture/FOUNDATION_VERIFICATION.md). Step 4 is implemented for architectural review. See [response engine](docs/architecture/API_RESPONSE_ENGINE.md) and [common OpenAPI](contracts/openapi/common.openapi.json). Step 5 health endpoints and all business/infrastructure work require separate authorization.

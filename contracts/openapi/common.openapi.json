@@ -1,0 +1,695 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Biho Live v2 common API contracts",
+    "version": "0.1.0",
+    "description": "Step 4 foundation only. No business or health endpoints. Data types, endpoint-specific pagination limits and operation success codes require later review."
+  },
+  "paths": {},
+  "components": {
+    "schemas": {
+      "RequestID": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64,
+        "pattern": "^[A-Za-z0-9_-]+$",
+        "description": "Untrusted correlation only; same value as X-Request-ID."
+      },
+      "MachineCode": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64,
+        "pattern": "^[A-Z][A-Z0-9_]*$"
+      },
+      "SafeMessage": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 256,
+        "pattern": "^[^\\s\\u0000-\\u001f\\u007f-\\u009f](?:[^\\u0000-\\u001f\\u007f-\\u009f]*[^\\s\\u0000-\\u001f\\u007f-\\u009f])?$",
+        "description": "Static reviewed public message, valid UTF-8, at most 256 UTF-8 bytes; no control characters or surrounding whitespace. Never interpolate private input."
+      },
+      "ErrorCode": {
+        "type": "string",
+        "enum": [
+          "INVALID_REQUEST",
+          "INVALID_JSON",
+          "UNSUPPORTED_MEDIA_TYPE",
+          "VALIDATION_FAILED",
+          "UNAUTHENTICATED",
+          "FORBIDDEN",
+          "NOT_FOUND",
+          "METHOD_NOT_ALLOWED",
+          "CONFLICT",
+          "PAYLOAD_TOO_LARGE",
+          "RATE_LIMITED",
+          "SERVICE_UNAVAILABLE",
+          "REQUEST_TIMEOUT",
+          "INTERNAL_ERROR"
+        ]
+      },
+      "FieldError": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "field": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9_.]+$"
+          },
+          "code": {
+            "$ref": "#/components/schemas/MachineCode"
+          },
+          "message": {
+            "$ref": "#/components/schemas/SafeMessage"
+          }
+        },
+        "required": [
+          "field",
+          "code",
+          "message"
+        ]
+      },
+      "Pagination": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "next_cursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "maxLength": 1024,
+            "pattern": "^[^\\s\\u0000-\\u001f\\u007f-\\u009f]+$",
+            "description": "Opaque valid UTF-8, at most 1024 UTF-8 bytes. Null at terminal page."
+          },
+          "has_more": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "limit",
+          "next_cursor",
+          "has_more"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "has_more": {
+                  "const": true
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "next_cursor": {
+                  "type": "string"
+                }
+              }
+            },
+            "else": {
+              "properties": {
+                "next_cursor": {
+                  "type": "null"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "Meta": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "pagination": {
+            "$ref": "#/components/schemas/Pagination"
+          }
+        },
+        "required": [
+          "pagination"
+        ]
+      },
+      "SuccessEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MachineCode"
+              },
+              {
+                "not": {
+                  "$ref": "#/components/schemas/ErrorCode"
+                }
+              }
+            ]
+          },
+          "data": {},
+          "request_id": {
+            "$ref": "#/components/schemas/RequestID"
+          },
+          "message": {
+            "$ref": "#/components/schemas/SafeMessage"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      },
+      "ErrorEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": false
+          },
+          "code": {
+            "$ref": "#/components/schemas/ErrorCode"
+          },
+          "message": {
+            "$ref": "#/components/schemas/SafeMessage"
+          },
+          "request_id": {
+            "$ref": "#/components/schemas/RequestID"
+          },
+          "error": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "fields": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 20,
+                "uniqueItems": true,
+                "items": {
+                  "$ref": "#/components/schemas/FieldError"
+                }
+              }
+            },
+            "required": [
+              "fields"
+            ]
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "message",
+          "request_id"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "code": {
+                  "const": "INVALID_REQUEST"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "message": {
+                  "const": "Invalid request"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "code": {
+                  "const": "INVALID_JSON"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "message": {
+                  "const": "Invalid JSON request"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "code": {
+                  "const": "UNSUPPORTED_MEDIA_TYPE"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "message": {
+                  "const": "Unsupported media type"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "code": {
+                  "const": "VALIDATION_FAILED"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "message": {
+                  "const": "Invalid request data"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "code": {
+                  "const": "UNAUTHENTICATED"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "message": {
+                  "const": "Authentication required"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "code": {
+                  "const": "FORBIDDEN"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "message": {
+                  "const": "Access forbidden"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "code": {
+                  "const": "NOT_FOUND"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "message": {
+                  "const": "Resource not found"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "code": {
+                  "const": "METHOD_NOT_ALLOWED"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "message": {
+                  "const": "Method not allowed"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "code": {
+                  "const": "CONFLICT"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "message": {
+                  "const": "Resource conflict"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "code": {
+                  "const": "PAYLOAD_TOO_LARGE"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "message": {
+                  "const": "Request body too large"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "code": {
+                  "const": "RATE_LIMITED"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "message": {
+                  "const": "Too many requests"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "code": {
+                  "const": "SERVICE_UNAVAILABLE"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "message": {
+                  "const": "Service temporarily unavailable"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "code": {
+                  "const": "REQUEST_TIMEOUT"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "message": {
+                  "const": "Request deadline exceeded"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "code": {
+                  "const": "INTERNAL_ERROR"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "message": {
+                  "const": "Internal server error"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "headers": {
+      "RequestID": {
+        "description": "Validated correlation; matches the envelope request_id.",
+        "schema": {
+          "$ref": "#/components/schemas/RequestID"
+        }
+      },
+      "Allow": {
+        "description": "Allowed registered standard methods, separated by comma and space.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "RetryAfter": {
+        "description": "Retry delay in seconds or HTTP-date. Admission overload emits 1.",
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "responses": {
+      "INVALID_REQUEST": {
+        "description": "400: INVALID_REQUEST.",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestID"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "INVALID_JSON": {
+        "description": "400: INVALID_JSON.",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestID"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "UNSUPPORTED_MEDIA_TYPE": {
+        "description": "415: UNSUPPORTED_MEDIA_TYPE.",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestID"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "VALIDATION_FAILED": {
+        "description": "422: VALIDATION_FAILED.",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestID"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "UNAUTHENTICATED": {
+        "description": "401: UNAUTHENTICATED.",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestID"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "FORBIDDEN": {
+        "description": "403: FORBIDDEN.",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestID"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "NOT_FOUND": {
+        "description": "404: NOT_FOUND.",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestID"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "METHOD_NOT_ALLOWED": {
+        "description": "405: METHOD_NOT_ALLOWED.",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestID"
+          },
+          "Allow": {
+            "$ref": "#/components/headers/Allow"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "CONFLICT": {
+        "description": "409: CONFLICT.",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestID"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "PAYLOAD_TOO_LARGE": {
+        "description": "413: PAYLOAD_TOO_LARGE.",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestID"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "RATE_LIMITED": {
+        "description": "429: RATE_LIMITED.",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestID"
+          },
+          "Retry-After": {
+            "$ref": "#/components/headers/RetryAfter"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "SERVICE_UNAVAILABLE": {
+        "description": "503: SERVICE_UNAVAILABLE.",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestID"
+          },
+          "Retry-After": {
+            "$ref": "#/components/headers/RetryAfter"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "REQUEST_TIMEOUT": {
+        "description": "504: REQUEST_TIMEOUT.",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestID"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "INTERNAL_ERROR": {
+        "description": "500: INTERNAL_ERROR.",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestID"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      },
+      "NoContent": {
+        "description": "204: bodyless success. HEAD suppresses bodies for every status.",
+        "headers": {
+          "X-Request-ID": {
+            "$ref": "#/components/headers/RequestID"
+          }
+        }
+      }
+    }
+  }
+}

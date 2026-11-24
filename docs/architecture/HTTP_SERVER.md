@@ -1,6 +1,6 @@
 # HTTP Server Foundation
 
-Status: Step 3 implementation for architectural review. No business endpoints, response engine or health/readiness endpoints exist.
+Status: Step 3 HTTP lifecycle with Step 4 response integration, for architectural review. No business or health/readiness endpoints exist.
 
 ## Composition and dependency
 
@@ -30,7 +30,7 @@ The centralized router accepts explicit registration functions for the `/api/v1`
 
 Registered routes with unsupported methods return 405 and an Allow header derived with fresh, side-effect-free route probes for standard HTTP methods. Escaped paths follow the same RawPath preference as Chi. A path with no allowed method returns 404. Adding extension HTTP methods requires explicitly extending this policy; implicit HEAD/OPTIONS endpoints are not created. Request logging uses matched static templates; 404/405 use a fixed fallback.
 
-InfrastructureError writes only the HTTP status text plus newline as text/plain with nosniff; this is temporary, centralized Step 3 behavior, to be replaced by the Step 4 response engine. It never formats internal errors or private values. Request IDs remain on middleware-generated failure responses. There is no competing permanent JSON schema. Handler-specific contract/DTO and OpenAPI work remains deferred.
+Infrastructure errors now use the common Step 4 response engine and registry, preserving Allow, Retry-After and shared request IDs. Temporary plain-text InfrastructureError has been removed. Common contracts and failure/commitment semantics are documented in API_RESPONSE_ENGINE.md; endpoint DTO/authorization policies remain deferred.
 
 ## Lifecycle and signals
 

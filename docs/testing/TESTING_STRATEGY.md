@@ -1,6 +1,6 @@
 # Testing Strategy
 
-Status: Verification plan; no business tests or infrastructure fixtures currently exist.
+Status: Foundation regression and Step 4 contract tests are executable. Business tests and database/infrastructure fixtures remain deferred.
 
 ## Acceptance layers
 
@@ -17,14 +17,14 @@ Status: Verification plan; no business tests or infrastructure fixtures currentl
 
 For Go changes run gofmt, `go test ./...`, `go vet ./...`, and applicable `go test -race ./...`. When sqlc is introduced regenerate with its pinned version and verify no drift. Add lint/security/CI checks when configured; record unavailable checks explicitly. No integration check may silently pass because a dependency was skipped.
 
-The current bootstrap contains no test functions: a successful `go test` verifies package compilation but provides no business, race-safety or API acceptance evidence. Formatting-only inspection uses `gofmt -l` without changing owner files.
+Current tests cover configuration, logging, lifecycle and API response/error/validation boundaries. Step 4 adds synthetic fixtures compared to real writer output and separate OpenAPI/JSON Schema validation; reproduction commands are in contracts/openapi/README.md. Common auth/error codes are contract fixtures, not proof of authentication/authorization implementation. Final runs include uncached coverage and race checks.
 
 ## Performance protocol
 
 Define workload mix, dataset size/skew, payload sizes, concurrency, replica count, tool versions, host CPU/RAM, database settings/pools and warmup/run duration. Use fixed sanitized/synthetic data and label it accurately. Capture p50/p95/p99, throughput, errors, SQL count/time/rows, CPU/RSS/allocations, pool wait/lock waits, network bytes, job depth/age and outbox lag. Include overload, slow client, dependency outage and drain scenarios.
 
-General API p95 ≤200 ms is an initial goal, not a guarantee. Zero duplicate monetary effects and zero unexplained reconciliation differences are acceptance invariants. Compare like workloads; never claim an unmeasured improvement. No benchmark is meaningful against the current print-only bootstrap.
+General API p95 ≤200 ms is an initial goal, not a guarantee. Zero duplicate monetary effects and zero unexplained reconciliation differences are acceptance invariants. Compare like workloads; never claim an unmeasured improvement. No load baseline has been measured for the current foundation.
 
 ## Current task evidence
 
-The implementation roadmap records inspection facts. Record actual current command outcomes in the foundation verification report. No runtime service, database, Redis, SQL generation, provider, multi-instance or load verification is possible in this task because those capabilities are not implemented. Do not add tests that simply mirror the startup print statement.
+The implementation roadmap records inspection facts. Record actual current command outcomes in the foundation verification report. Real local HTTP lifecycle and test-only contract routes are exercised. Database, Redis, SQL generation, provider, distributed multi-instance and load verification are deferred; no such production capability is implemented. Step 4 tests cover wrapped/unknown errors, decoder precision/duplicate/case policies, known/chunked overflow, deterministic diagnostics/pagination, HEAD/204, informational/Flush/final commitment, pre/post-commit and encoding panics, short/failed writes, private-data protection and shared-helper concurrency. Existing configuration/logging/lifecycle regressions remain enabled.

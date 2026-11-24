@@ -15,64 +15,151 @@ import (
 	"github.com/Faysal9991/mega-backend/internal/platform/apperror"
 )
 
-type Decoder struct {maxBytes int64}
+type Decoder struct{ maxBytes int64 }
 
-func NewDecoder(maxBytes int64)(*Decoder,error){
-	if maxBytes<1||maxBytes>16<<20{return nil,errors.New("validation: invalid body budget")}
-	return &Decoder{maxBytes:maxBytes},nil
+func NewDecoder(maxBytes int64) (*Decoder, error) {
+	if maxBytes < 1 || maxBytes > 16<<20 {
+		return nil, errors.New("validation: invalid body budget")
+	}
+	return &Decoder{maxBytes: maxBytes}, nil
 }
 
 // Decode stages at most maxBytes of JSON (plus the MaxBytesReader overflow
 // probe), performs a strict token pass, then decodes directly into an object DTO.
 // A failed decode must not be used by a handler; dst may be partially populated.
-func(d *Decoder) Decode(r *http.Request,dst any) error {
-	value:=reflect.ValueOf(dst)
-	if value.Kind()!=reflect.Pointer||value.IsNil()||value.Elem().Kind()!=reflect.Struct{return apperror.New(apperror.Internal,nil)}
-	if _,custom:=dst.(json.Unmarshaler);custom{return apperror.New(apperror.Internal,nil)}
-	values:=r.Header.Values("Content-Type")
-	if len(values)!=1{return apperror.New(apperror.UnsupportedMediaType,nil)}
-	media,parameters,err:=mime.ParseMediaType(values[0])
-	if err!=nil||media!="application/json"{return apperror.New(apperror.UnsupportedMediaType,nil)}
-	for key,value:=range parameters{if key!="charset"||!strings.EqualFold(value,"utf-8"){return apperror.New(apperror.UnsupportedMediaType,nil)}}
-	if encoding:=r.Header.Get("Content-Encoding");encoding!=""&&!strings.EqualFold(encoding,"identity"){return apperror.New(apperror.UnsupportedMediaType,nil)}
-	if r.Body==nil{return apperror.New(apperror.InvalidJSON,nil)}
-	if r.ContentLength>d.maxBytes{return apperror.New(apperror.PayloadTooLarge,nil)}
-	body,err:=io.ReadAll(http.MaxBytesReader(nil,r.Body,d.maxBytes))
-	if err!=nil {var oversized *http.MaxBytesError;if errors.As(err,&oversized){return apperror.New(apperror.PayloadTooLarge,err)};return apperror.New(apperror.InvalidRequest,err)}
-	if !utf8.Valid(body){return apperror.New(apperror.InvalidJSON,nil)}
-	probe:=json.NewDecoder(bytes.NewReader(body));probe.UseNumber()
-	first,err:=probe.Token()
-	if err!=nil{return apperror.New(apperror.InvalidJSON,err)}
-	if first!=json.Delim('{'){return apperror.New(apperror.InvalidRequest,nil)}
-	if err:=object(probe,0);err!=nil{return apperror.New(apperror.InvalidJSON,err)}
-	if _,err:=probe.Token();err!=io.EOF{return apperror.New(apperror.InvalidJSON,nil)}
-	decoder:=json.NewDecoder(bytes.NewReader(body));decoder.DisallowUnknownFields();decoder.UseNumber()
-	if err:=decoder.Decode(dst);err!=nil{return apperror.New(apperror.InvalidJSON,err)}
+func (d *Decoder) Decode(r *http.Request, dst any) error {
+	value := reflect.ValueOf(dst)
+	if value.Kind() != reflect.Pointer || value.IsNil() || value.Elem().Kind() != reflect.Struct {
+		return apperror.New(apperror.Internal, nil)
+	}
+	if _, custom := dst.(json.Unmarshaler); custom {
+		return apperror.New(apperror.Internal, nil)
+	}
+	values := r.Header.Values("Content-Type")
+	if len(values) != 1 {
+		return apperror.New(apperror.UnsupportedMediaType, nil)
+	}
+	media, parameters, err := mime.ParseMediaType(values[0])
+	if err != nil || media != "application/json" {
+		return apperror.New(apperror.UnsupportedMediaType, nil)
+	}
+	for key, value := range parameters {
+		if key != "charset" || !strings.EqualFold(value, "utf-8") {
+			return apperror.New(apperror.UnsupportedMediaType, nil)
+		}
+	}
+	encodings := r.Header.Values("Content-Encoding")
+	if len(encodings) > 1 || len(encodings) == 1 && !strings.EqualFold(encodings[0], "identity") {
+		return apperror.New(apperror.UnsupportedMediaType, nil)
+	}
+	if r.Body == nil {
+		return apperror.New(apperror.InvalidJSON, nil)
+	}
+	if r.ContentLength > d.maxBytes {
+		return apperror.New(apperror.PayloadTooLarge, nil)
+	}
+	body, err := io.ReadAll(http.MaxBytesReader(nil, r.Body, d.maxBytes))
+	if err != nil {
+		var oversized *http.MaxBytesError
+		if errors.As(err, &oversized) {
+			return apperror.New(apperror.PayloadTooLarge, err)
+		}
+		return apperror.New(apperror.InvalidRequest, err)
+	}
+	if !utf8.Valid(body) {
+		return apperror.New(apperror.InvalidJSON, nil)
+	}
+	probe := json.NewDecoder(bytes.NewReader(body))
+	probe.UseNumber()
+	first, err := probe.Token()
+	if err != nil {
+		return apperror.New(apperror.InvalidJSON, err)
+	}
+	if first != json.Delim('{') {
+		return apperror.New(apperror.InvalidRequest, nil)
+	}
+	if err := object(probe, 0); err != nil {
+		return apperror.New(apperror.InvalidJSON, err)
+	}
+	if _, err := probe.Token(); err != io.EOF {
+		return apperror.New(apperror.InvalidJSON, nil)
+	}
+	decoder := json.NewDecoder(bytes.NewReader(body))
+	decoder.DisallowUnknownFields()
+	decoder.UseNumber()
+	if err := decoder.Decode(dst); err != nil {
+		return apperror.New(apperror.InvalidJSON, err)
+	}
 	return nil
 }
 
-func object(decoder *json.Decoder,depth int)error{
-	seen:=map[string]bool{}
-	for decoder.More(){
-		key,err:=decoder.Token();if err!=nil{return err}
-		name,ok:=key.(string);if !ok{return errors.New("invalid object key")}
-		folded:=fold(name);if seen[folded]{return errors.New("duplicate object key")};seen[folded]=true
-		if err:=jsonValue(decoder,depth+1);err!=nil{return err}
+func object(decoder *json.Decoder, depth int) error {
+	seen := map[string]bool{}
+	for decoder.More() {
+		key, err := decoder.Token()
+		if err != nil {
+			return err
+		}
+		name, ok := key.(string)
+		if !ok {
+			return errors.New("invalid object key")
+		}
+		folded := fold(name)
+		if seen[folded] {
+			return errors.New("duplicate object key")
+		}
+		seen[folded] = true
+		if err := jsonValue(decoder, depth+1); err != nil {
+			return err
+		}
 	}
-	end,err:=decoder.Token();if err!=nil{return err};if end!=json.Delim('}'){return errors.New("invalid object end")};return nil
+	end, err := decoder.Token()
+	if err != nil {
+		return err
+	}
+	if end != json.Delim('}') {
+		return errors.New("invalid object end")
+	}
+	return nil
 }
 
-func jsonValue(decoder *json.Decoder,depth int)error{
-	if depth>64{return errors.New("JSON nesting limit exceeded")}
-	token,err:=decoder.Token();if err!=nil{return err}
-	switch token{
-	case json.Delim('{'):return object(decoder,depth)
+func jsonValue(decoder *json.Decoder, depth int) error {
+	if depth > 64 {
+		return errors.New("JSON nesting limit exceeded")
+	}
+	token, err := decoder.Token()
+	if err != nil {
+		return err
+	}
+	switch token {
+	case json.Delim('{'):
+		return object(decoder, depth)
 	case json.Delim('['):
-		for decoder.More(){if err:=jsonValue(decoder,depth+1);err!=nil{return err}}
-		end,err:=decoder.Token();if err!=nil{return err};if end!=json.Delim(']'){return errors.New("invalid array end")}
+		for decoder.More() {
+			if err := jsonValue(decoder, depth+1); err != nil {
+				return err
+			}
+		}
+		end, err := decoder.Token()
+		if err != nil {
+			return err
+		}
+		if end != json.Delim(']') {
+			return errors.New("invalid array end")
+		}
 	}
 	return nil
 }
 
 // Match encoding/json's Unicode simple-fold equivalence, not just ASCII lower.
-func fold(key string)string{return strings.Map(func(r rune)rune{smallest:=r;for next:=unicode.SimpleFold(r);next!=r;next=unicode.SimpleFold(next){if next<smallest{smallest=next}};return smallest},key)}
+func fold(key string) string {
+	return strings.Map(func(r rune) rune {
+		smallest := r
+		for next := unicode.SimpleFold(r); next != r; next = unicode.SimpleFold(next) {
+			if next < smallest {
+				smallest = next
+			}
+		}
+		return smallest
+	}, key)
+}

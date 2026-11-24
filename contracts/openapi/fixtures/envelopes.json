@@ -1,0 +1,231 @@
+[
+  {
+    "name": "success",
+    "schema": "SuccessEnvelope",
+    "body": {
+      "success": true,
+      "code": "TEST_FETCHED",
+      "data": {},
+      "request_id": "request-123"
+    }
+  },
+  {
+    "name": "empty_list",
+    "schema": "SuccessEnvelope",
+    "body": {
+      "success": true,
+      "code": "TEST_FETCHED",
+      "data": [],
+      "request_id": "request-123"
+    }
+  },
+  {
+    "name": "accepted",
+    "schema": "SuccessEnvelope",
+    "body": {
+      "success": true,
+      "code": "TEST_ACCEPTED",
+      "data": {
+        "state": "pending"
+      },
+      "request_id": "request-123"
+    }
+  },
+  {
+    "name": "terminal_page",
+    "schema": "SuccessEnvelope",
+    "body": {
+      "success": true,
+      "code": "TEST_FETCHED",
+      "data": [],
+      "request_id": "request-123",
+      "meta": {
+        "pagination": {
+          "limit": 10,
+          "next_cursor": null,
+          "has_more": false
+        }
+      }
+    }
+  },
+  {
+    "name": "continuing_page",
+    "schema": "SuccessEnvelope",
+    "body": {
+      "success": true,
+      "code": "TEST_FETCHED",
+      "data": [],
+      "request_id": "request-123",
+      "meta": {
+        "pagination": {
+          "limit": 10,
+          "next_cursor": "next",
+          "has_more": true
+        }
+      }
+    }
+  },
+  {
+    "name": "INVALID_REQUEST",
+    "schema": "ErrorEnvelope",
+    "status": 400,
+    "body": {
+      "success": false,
+      "code": "INVALID_REQUEST",
+      "message": "Invalid request",
+      "request_id": "request-123"
+    }
+  },
+  {
+    "name": "INVALID_JSON",
+    "schema": "ErrorEnvelope",
+    "status": 400,
+    "body": {
+      "success": false,
+      "code": "INVALID_JSON",
+      "message": "Invalid JSON request",
+      "request_id": "request-123"
+    }
+  },
+  {
+    "name": "UNSUPPORTED_MEDIA_TYPE",
+    "schema": "ErrorEnvelope",
+    "status": 415,
+    "body": {
+      "success": false,
+      "code": "UNSUPPORTED_MEDIA_TYPE",
+      "message": "Unsupported media type",
+      "request_id": "request-123"
+    }
+  },
+  {
+    "name": "VALIDATION_FAILED",
+    "schema": "ErrorEnvelope",
+    "status": 422,
+    "body": {
+      "success": false,
+      "code": "VALIDATION_FAILED",
+      "message": "Invalid request data",
+      "request_id": "request-123",
+      "error": {
+        "fields": [
+          {
+            "field": "amount",
+            "code": "INVALID_AMOUNT",
+            "message": "Must be positive"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "name": "UNAUTHENTICATED",
+    "schema": "ErrorEnvelope",
+    "status": 401,
+    "body": {
+      "success": false,
+      "code": "UNAUTHENTICATED",
+      "message": "Authentication required",
+      "request_id": "request-123"
+    }
+  },
+  {
+    "name": "FORBIDDEN",
+    "schema": "ErrorEnvelope",
+    "status": 403,
+    "body": {
+      "success": false,
+      "code": "FORBIDDEN",
+      "message": "Access forbidden",
+      "request_id": "request-123"
+    }
+  },
+  {
+    "name": "NOT_FOUND",
+    "schema": "ErrorEnvelope",
+    "status": 404,
+    "body": {
+      "success": false,
+      "code": "NOT_FOUND",
+      "message": "Resource not found",
+      "request_id": "request-123"
+    }
+  },
+  {
+    "name": "METHOD_NOT_ALLOWED",
+    "schema": "ErrorEnvelope",
+    "status": 405,
+    "body": {
+      "success": false,
+      "code": "METHOD_NOT_ALLOWED",
+      "message": "Method not allowed",
+      "request_id": "request-123"
+    }
+  },
+  {
+    "name": "CONFLICT",
+    "schema": "ErrorEnvelope",
+    "status": 409,
+    "body": {
+      "success": false,
+      "code": "CONFLICT",
+      "message": "Resource conflict",
+      "request_id": "request-123"
+    }
+  },
+  {
+    "name": "PAYLOAD_TOO_LARGE",
+    "schema": "ErrorEnvelope",
+    "status": 413,
+    "body": {
+      "success": false,
+      "code": "PAYLOAD_TOO_LARGE",
+      "message": "Request body too large",
+      "request_id": "request-123"
+    }
+  },
+  {
+    "name": "RATE_LIMITED",
+    "schema": "ErrorEnvelope",
+    "status": 429,
+    "body": {
+      "success": false,
+      "code": "RATE_LIMITED",
+      "message": "Too many requests",
+      "request_id": "request-123"
+    }
+  },
+  {
+    "name": "SERVICE_UNAVAILABLE",
+    "schema": "ErrorEnvelope",
+    "status": 503,
+    "body": {
+      "success": false,
+      "code": "SERVICE_UNAVAILABLE",
+      "message": "Service temporarily unavailable",
+      "request_id": "request-123"
+    }
+  },
+  {
+    "name": "REQUEST_TIMEOUT",
+    "schema": "ErrorEnvelope",
+    "status": 504,
+    "body": {
+      "success": false,
+      "code": "REQUEST_TIMEOUT",
+      "message": "Request deadline exceeded",
+      "request_id": "request-123"
+    }
+  },
+  {
+    "name": "INTERNAL_ERROR",
+    "schema": "ErrorEnvelope",
+    "status": 500,
+    "body": {
+      "success": false,
+      "code": "INTERNAL_ERROR",
+      "message": "Internal server error",
+      "request_id": "request-123"
+    }
+  }
+]

@@ -19,3 +19,5 @@ Recover pre-commit panic to safe 500; abort post-commit streams through ErrAbort
 ## Consequences
 
 Infrastructure errors are temporary plain status text pending Step 4. Parser-level failures cannot receive application correlation IDs. Raw net/http diagnostics are disabled to avoid unreviewed stack/request leakage. Synchronous logging and non-cooperative handlers remain operational risks; admission is not a complete connection/DoS budget. Hijacked/WebSocket drain and upgraded-stream accounting are future work. See HTTP_SERVER.md, MIDDLEWARE.md and FOUNDATION_VERIFICATION.md for evidence and limits.
+
+Step 4 update: temporary plain-text errors are replaced by the common engine under ADR 0004. The original Step 3 review status is unchanged; no owner approval is inferred.

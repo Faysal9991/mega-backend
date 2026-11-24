@@ -4,7 +4,6 @@ package httpserver
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"log/slog"
@@ -78,14 +77,4 @@ func (s *Server) Run(ctx context.Context, listener net.Listener) error {
 		}
 		return errors.Join(shutdownErr, closeErr, serveErr)
 	}
-}
-
-// InfrastructureError is temporary plain text, to be replaced in Step 4.
-// Call only before committing a response. Do not pass raw error text as a body.
-func InfrastructureError(w http.ResponseWriter, status int) {
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.Header().Set("X-Content-Type-Options", "nosniff")
-	w.WriteHeader(status)
-	// A broken client connection needs no second write or raw error logging.
-	_, _ = fmt.Fprintln(w, http.StatusText(status))
 }
