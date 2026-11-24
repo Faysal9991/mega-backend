@@ -6,9 +6,9 @@ Date: 2026-11-24 (Asia/Dhaka)
 
 The owner's greenfield instruction and current `AGENTS.md` supersede the earlier migration framing. Approved requirements define new behavior; Django is optional read-only reference evidence. No legacy schema, API adapter, data import or Python runtime dependency is planned. `docs/migration/` contains superseded historical notes.
 
-Current task: inspect the initialized project, verify its existing foundation and prepare system architecture. Implementation of new foundation capabilities and business modules is outside this task. Architecture documents describe intended behavior, not deployed or tested capabilities.
+Current authorized task: Step 1, typed runtime configuration only, including startup integration, isolated tests and documentation. Architecture preparation is the completed preceding task. Steps 2 onward and all business modules remain outside current authorization. See `architecture/RUNTIME_CONFIGURATION.md` and the Step 1 evidence in `architecture/FOUNDATION_VERIFICATION.md`.
 
-## Current inspection
+## Initial architecture inspection (historical)
 
 - Git is initialized on `master` but has no commits or tracked files. Preserve existing untracked work; no commit or push is authorized.
 - `go.mod` declares `github.com/Faysal9991/biho-live-backend`, Go `1.26.3`; installed toolchain reports `go1.26.3 darwin/arm64`.
@@ -20,12 +20,12 @@ Current task: inspect the initialized project, verify its existing foundation an
 
 ## Execution sequence and gates
 
-Each row is a separate future step, requiring owner authorization before execution. Do not bundle later capabilities into the next step.
+Each row requires owner authorization before execution. Step 1 is now authorized; later capabilities must not be bundled into it.
 
 | Step | Scope | Acceptance evidence |
 | --- | --- | --- |
-| 0 — current | Foundation inspection and architecture | Document current limitations, ownership, data/transaction boundaries, API standards, feature coverage and verification results; report and stop |
-| 1 | Typed runtime configuration | Required settings fail fast, secrets stay out of logs, bounded values validated, isolated tests; no DB or business module |
+| 0 | Foundation inspection and architecture | Baseline prepared; owner authorized Step 1 using this baseline |
+| 1 — current | Typed runtime configuration | Implemented; bounded typed values, required production/staging identity/bind settings, safe errors and isolated tests. Actual verification is recorded in `architecture/FOUNDATION_VERIFICATION.md`; stop for architectural review |
 | 2 | Structured logging | Explicit slog injection, request-safe fields, redaction policy and tests for sensitive fields |
 | 3 | HTTP lifecycle and middleware | Pin Chi when introduced; server deadlines/body limits, request IDs, panic handling, shutdown/drain behavior and cancellation verified |
 | 4 | Response/error engine | Reviewed OpenAPI common schemas and error registry; response, 204, invalid input and error contract tests |
@@ -38,6 +38,12 @@ Each row is a separate future step, requiring owner authorization before executi
 | 11 | Remaining business capabilities | Feature-specific requirements, dependencies, API/schema review and acceptance per coverage ID; order refined after discovery |
 
 Runtime/dependency versions other than the observed Go version are not selected in this task. Check official documentation and compatible tooling before adding and pinning them. Introduce River when durable jobs first require it; do not add unused dependencies now.
+
+## Step 1 repository consistency
+
+Inspection baseline: commit `55b4db29977d6c646bd41955bacb14ac94ce47a2`. Git now has this initial commit. At task start, the only working-tree change was the owner's correction of `go.mod` to `github.com/Faysal9991/mega-backend`; it was preserved. New imports use that module path. The former repository identity in the historical inspection above is not the current Go module.
+
+Configuration uses the standard library only. HTTP settings are loaded but not enforced by a server yet. No subsequent roadmap capability, dependency or infrastructure was introduced. Next proposed step is structured logging, only after architectural review and explicit authorization.
 
 ## Stop conditions and deferred work
 

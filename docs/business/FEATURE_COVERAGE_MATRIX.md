@@ -1,14 +1,15 @@
 # Feature Coverage Matrix
 
-Status: Requirements inventory only. Stable IDs below identify investigation areas requested by the owner/engineering rules, not evidence of old implementation or approved detailed behavior. No business module is authorized or verified.
+Status: Business requirements inventory with incremental foundation evidence. Stable IDs below identify requested capabilities, not evidence of old implementation. Step 1 configuration is authorized; no business module is authorized or verified.
 
-Every row has these unresolved fields until individually specified: reference path/symbol/commit, approved detailed requirements, roles, inputs/outputs, side effects, data dependencies, edge cases, new API/code/tests and intentional changes. No API route or physical table is assumed. Source availability does not block the independent foundation task.
+Business rows have these unresolved fields until individually specified: reference path/symbol/commit, approved detailed requirements, roles, inputs/outputs, side effects, data dependencies, edge cases, new API/code/tests and intentional changes. Foundation evidence is recorded separately per row. No business API route or physical table is assumed. Source availability does not block the independent foundation task.
 
 Permitted statuses: discovered, specified, implemented, verified, deferred, blocked, excluded (owner-approved only). `discovered` means a requested capability needs specification, not that reference behavior has been validated.
 
 | Stable ID | Capability | Requirement / evidence | Status | Gate / acceptance |
 | --- | --- | --- | --- | --- |
 | FND-001 | Foundation inspection and system architecture | Current owner task; AGENTS.md; local Go bootstrap | specified | Inspection/check results and architecture review; no runtime feature claim |
+| FND-002 | Typed runtime configuration | Owner Step 1 requirements; `internal/platform/config/config.go`, `config_test.go`; `cmd/api/main.go`, `main_test.go`; `docs/architecture/RUNTIME_CONFIGURATION.md` | implemented | Automated verification evidence in `docs/architecture/FOUNDATION_VERIFICATION.md`; architectural review pending; no HTTP listener or business rules |
 | IDN-001 | Identity, sessions and recovery | Requested coverage; no reference evidence | discovered | Verify providers, challenge/recovery policy and session requirements |
 | PRO-001 | Profiles | Requested coverage; no reference evidence | discovered | Approve fields, privacy and editing authority |
 | SOC-001 | Follows and blocks | Requested coverage; no reference evidence | discovered | Approve relationship and visibility semantics |
