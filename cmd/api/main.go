@@ -14,6 +14,7 @@ import (
 	"github.com/Faysal9991/mega-backend/internal/platform/config"
 	"github.com/Faysal9991/mega-backend/internal/platform/httpserver"
 	"github.com/Faysal9991/mega-backend/internal/platform/logging"
+	"github.com/Faysal9991/mega-backend/internal/platform/postgres"
 )
 
 func main() {
@@ -24,6 +25,17 @@ func main() {
 }
 
 func run(ctx context.Context, lookup config.LookupEnv, stdout, stderr io.Writer, listen func(string, string) (net.Listener, error)) int {
+	return runWithDatabase(ctx, lookup, stdout, stderr, listen, func(ctx context.Context, cfg config.DatabaseConfig) (func(), error) {
+		pool, err := postgres.Open(ctx, cfg)
+		if err != nil {
+			return nil, err
+		}
+		return pool.Close, nil
+	})
+}
+
+// The injected starter isolates lifecycle tests from external database access.
+func runWithDatabase(ctx context.Context, lookup config.LookupEnv, stdout, stderr io.Writer, listen func(string, string) (net.Listener, error), start func(context.Context, config.DatabaseConfig) (func(), error)) int {
 	// Load once at the composition root and inject the validated snapshot.
 	cfg, err := config.Load(lookup)
 	if err != nil {
@@ -42,6 +54,21 @@ func run(ctx context.Context, lookup config.LookupEnv, stdout, stderr io.Writer,
 	if ctx.Err() != nil {
 		return 0
 	}
+	database, err := config.LoadDatabase(lookup, cfg.Environment)
+	if err != nil {
+		fmt.Fprintln(stderr, err)
+		return 1
+	}
+	closeDatabase, err := start(ctx, database)
+	if err != nil {
+		if ctx.Err() != nil {
+			return 0
+		}
+		logger.Error("database.initialization_failed", slog.String("failure_code", "DATABASE_UNAVAILABLE"))
+		fmt.Fprintln(stderr, "database: initialization failed")
+		return 1
+	}
+	defer closeDatabase()
 	lifecycle := &httpserver.Lifecycle{}
 	router, err := httpserver.NewRouter(cfg.HTTP, logger, lifecycle)
 	if err != nil {

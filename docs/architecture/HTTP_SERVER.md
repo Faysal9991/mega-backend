@@ -53,3 +53,5 @@ Admission bounds handler work, not all TCP connections, TLS handshakes, keep-ali
 See MIDDLEWARE.md for ordering, error/status accounting, deadlines and future upgrade considerations; FOUNDATION_VERIFICATION.md records actual test outcomes and limitations.
 
 See HEALTH_READINESS.md for probe admission bypass, snapshot guarantees, contracts and the absence of guaranteed HTTP responses after listener closure.
+
+Step 6 startup first initializes the dedicated runtime pgxpool and checks database/role/app-schema access; only then does it construct/bind/serve HTTP. Database startup failure cannot make readiness true. Pool Close follows graceful/forced HTTP shutdown. Existing liveness/admission/abort semantics are unchanged. Health remains a lifecycle snapshot: no ongoing database polling or per-probe SQL is introduced.

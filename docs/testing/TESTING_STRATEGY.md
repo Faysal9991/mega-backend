@@ -32,3 +32,8 @@ The implementation roadmap records inspection facts. Record actual current comma
 ## Step 5 operational acceptance
 
 Health fixtures are compared with router responses and validated against a separate operational OpenAPI referencing common schemas. Deterministic channel gates cover startup, accepted probes draining after readiness clears, ordinary admission saturation and graceful/forced shutdown. Atomic lifecycle access and terminal stop behavior are exercised concurrently. HEAD/405/Allow/cache/request-ID/JSON/privacy contracts and executable startup probes are included. Existing abort-logging/TCP tests remain active. No future dependency check or production capacity is inferred.
+
+
+## Step 6 PostgreSQL acceptance
+
+Default unit/race suites need no live credentials; lifecycle tests inject a database starter. Explicit build-tag integration runs fail on missing settings instead of silently skipping. They require test environment/name/roles and BIHO_INTEGRATION_ACK=biho_live_test, then verify authenticated identity before migrations. No automatic reset/default database selection or destructive development test exists. Synthetic fixtures are confined to app in the test database and cleaned up. Goose up/down/up, concurrent upgrades and transactional failure rollback, privilege/cross-database isolation, pool wait bounds, running-query cancellation, parameter precision and transactions/constraints are tested against the owner's real testing server. Generated bindings are checked via pinned sqlc diff. API smoke uses the development runtime role and exercises startup-before-bind plus probes and SIGTERM. No load/production-performance or populated-schema disaster-recovery claim follows from these checks.

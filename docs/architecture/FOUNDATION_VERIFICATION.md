@@ -313,3 +313,82 @@ Initialization here is configuration, logging/router/server construction and suc
 An already-accepted request can observe draining state; a new request after listener closure may receive a connection error rather than 503. A probe racing the state transition can return its earlier snapshot. Liveness is independent of lifecycle/admission but still shares CPU, connection limits, transport, logger and response protections. Parser-level failures precede application envelopes/cache headers. These are local acceptance tests, not production availability/performance approval; no load benchmark or fresh coverage percentage was measured in this step. No database/Redis/sqlc/provider checks apply; additional lint/security tooling is not configured.
 
 No business/financial/compatibility behavior changed. No database, Redis, authentication, business module, WebSocket, LiveKit, deployment, commit or push was implemented. Stop after Step 5 for review. Step 6 PostgreSQL foundation remains a proposed next step requiring separate authorization.
+
+
+## Step 6 — secure PostgreSQL connectivity blocker
+
+Inspected HEAD: e99d4fed2176ae3899eedd90e81e76823d98be86. Initial Git working tree was clean. Read applicable instructions, the current roadmap and database-design constraints. The owner explicitly authorized Step 6 against an existing Coolify testing server, including new biho_live_dev and biho_live_test databases and dedicated roles, contingent on verified TLS. This does not establish Step 5 review approval.
+
+Actual preflight: connected to the owner-specified public TCP endpoint with an eight-second socket timeout and sent only PostgreSQL's eight-byte SSLRequest (length 8, request code 80877103). The server replied with the single byte N: PostgreSQL TLS negotiation explicitly refused. No PostgreSQL StartupMessage, username, database name, password or other authentication data was sent. A TLS handshake and certificate/identity verification could not begin. This is evidence of reachable TCP and refused PostgreSQL TLS, not an authenticated PostgreSQL session or proof of server version/configuration.
+
+`git check-ignore .env` confirmed .env is ignored. Its contents/password were not read because the transport-security gate failed first. No credentials were printed or committed. No fallback to plaintext, sslmode=require without verification, trust bypass or infrastructure modification was attempted.
+
+Outcome: FND-007 blocked. No remote SQL, database/role creation, privilege changes, migrations or destructive tests occurred; postgres and development data were untouched. No Go dependency, application source, migration or sqlc configuration was introduced. Build/unit/race/vet/database checks were not run for this documentation-only blocker report; Step 6 integration acceptance remains unexecuted. Documentation whitespace/fence checks and git diff --check passed.
+
+Required next condition: the owner-designated server must support PostgreSQL TLS and present a certificate verifiable for the intended IP or DNS identity using a trusted CA. Supply the intended DNS name/CA certificate if system trust and the provided IP are insufficient. Then repeat verification before reading the bootstrap secret and performing authorized isolated database/role setup and Step 6 implementation. No TLS weakening, commit, push or deployment occurred.
+
+
+## Step 6 resumption — TLS established, credential file pending
+
+The owner explicitly permits sslmode=require without CA/identity verification for this temporary development/testing server. This supersedes the prior identity-verification gate for this testing connection only; sslmode=disable remains forbidden and the planned production configuration must enforce verify-full.
+
+Actual credential-free preflight now succeeds: PostgreSQL SSLRequest returns S and an encrypted TLS 1.3 handshake completes, with hostname/certificate verification intentionally disabled under the owner's exception. Server identity is not verified. No authentication data was sent, so this does not prove successful database authentication or server version.
+
+At resumed inspection, no .env or other scoped environment-file candidate existed; only .env.example was present. Requested the local credential-file path. Following the owner's acknowledgment, rechecked and still found no credential file. Created an owner-only (0600), Git-ignored .env template containing the supplied bootstrap connection settings, PGSSLMODE=require and an empty PGPASSWORD; no existing file was overwritten. Requested that the owner fill the password locally rather than send it through chat. No password was read, printed or transmitted; authentication remains pending.
+
+No SQL, role/database creation, destructive tests, schema or runtime implementation has occurred. The three existing blocker-document edits were retained and extended. FND-007 remains blocked on the missing credential, not on TLS negotiation. Documentation-only checks apply; no Go/database test result or production TLS enforcement is claimed for unfinished code.
+
+## Step 6 — completed PostgreSQL foundation (resumption)
+
+Baseline remains e99d4fed2176ae3899eedd90e81e76823d98be86. Initial modified files were the three prior blocker documents (roadmap, coverage matrix, this report); their history was preserved and superseded with current evidence. The owner supplied the password locally and explicitly authorized require without identity verification for testing, direct pgxpool now, future PgBouncer transaction-pool compatibility without deploying it, and direct Goose migrations. This does not establish Step 5 architectural review approval.
+
+### Authentication and remote changes
+
+Authenticated the existing testing endpoint first with postgres over encrypted TLS 1.3; PostgreSQL version 18.7 was returned. Server identity/CA trust was intentionally not verified under the testing exception. No sslmode=disable or plaintext fallback was used. Target database/role names were absent; administrator permissions were checked read-only. Observed server max_connections=100 and 9 pg_stat_activity rows are a snapshot, not a capacity guarantee.
+
+Created biho_live_dev and biho_live_test from template0, each owned by its separate migration role. Four new nonsuperuser login roles: biho_live_dev_app, biho_live_dev_migrator, biho_live_test_app, biho_live_test_migrator. Runtime aggregate role connection limits are 12; migration limits 2. Revoked PUBLIC access on the two databases/public schemas, granted own-database runtime CONNECT, prepared private migration schemas and schema-USAGE default privileges. No unrelated database ACL, administrator password or existing data was modified. Runtime cannot create database/schema/table/temp objects or read migration history; test credentials cannot enter dev. Existing unrelated databases' PUBLIC privileges were not changed or claimed as cluster-wide isolation.
+
+Generated separate random passwords, persisted them before provisioning for partial-failure recovery, then passed them in process environment to parameterized/quoted psql variables. Passwords were never printed, placed in command arguments or committed. Ignored .env retains mode 0600 and now holds separate runtime/direct-migration/test credentials; no existing secret file was overwritten. Application/test processes used only their relevant credentials; bootstrap secrets were not supplied to API or integration subprocesses.
+
+### Scope implemented
+
+- New separate typed database configuration loader, redacted secret/config formatting, explicit environment-target separation and require-only-in-dev/test versus verify-full-in-staging/production enforcement, including constructor revalidation. No automatic dotenv loading or global environment mutation.
+- Direct pgxpool with 8 default/max-configurable 32 connections, min 0, bounded connect/startup context, idle/lifetime/jitter limits and generated authenticated database/role/app-schema checks. Runtime role must match the database app role. No session SET/search_path hooks; extended unnamed execution with statement/description caches disabled. Safe initialization errors, cleanup on failure and cancellation; initialization precedes HTTP bind/readiness; pool Close follows HTTP shutdown. No ongoing dependency probe loop.
+- Explicit direct MIGRATION_DB_* settings, separate migration role, embedded Goose schema migration and private qualified version table. One direct database/sql bridge connection (required by Goose), bounded session advisory locking, no global registry/setters or raw SQL/error logging. API never auto-migrates. DownTest refuses default/dev/prod targets and verifies authenticated test identity before writes; rollback is non-CASCADE.
+- Pinned pgx v5.13.0 and Goose v3.30.0 with recorded module checksums; sqlc v1.31.1 is a pinned external build tool. Generated SQL bindings, generation/diff Makefile targets and fresh-install testing bootstrap SQL are reviewable. Exact module Go minimums 1.25/1.26/1.26 compile with project Go 1.26.3 and installed go1.26.4 darwin/arm64.
+- No business table, API route/contract, legacy adapter, database import, Redis or other business capability. Existing HTTP/logging/config/lifecycle/abort tests are preserved; lifecycle tests now inject their database starter.
+
+### Actual verification
+
+Final applicable commands exited 0:
+
+| Command | Actual result |
+| --- | --- |
+| gofmt on all changed/new Go files; final gofmt -l | PASS; no unformatted paths |
+| `go mod tidy` | PASS |
+| `go mod verify` | PASS: all modules verified |
+| `go build ./...` | PASS |
+| `go test -count=1 ./...` | PASS |
+| `go test -count=1 -cover ./...` | PASS; default isolated suites |
+| `go test -race -count=1 ./...` | PASS; no race reports |
+| `go vet ./...` | PASS |
+| `make check-generated` | PASS: pinned sqlc v1.31.1 diff, no generated drift |
+| `go test -race -tags=integration -count=1 -cover ./...` with explicitly supplied TEST credentials and acknowledgment | PASS; real testing PostgreSQL, no race reports |
+| `git diff --check` plus supplementary new-file whitespace/fence checks | PASS |
+| Ignored/untracked-secret check and secret-value scan of changed/new repository text | PASS; .env ignored/untracked, no local secret values found in reviewable changes |
+
+Default suite statement coverage: API command 79.7%, config 99.3%, HTTP 97.8%, logging 96.2%, app errors/request metadata 100%, responses 98.9%, validation 97.3%, postgres 59.4%. With real integration/race enabled, postgres coverage is 81.2%. Standalone migration command, embedded source wrapper and generated bindings have no own unit tests and report 0% under per-package coverage; their production code is exercised by migration CLI/integration/startup runs outside those packages' own counters. No full-coverage claim is made. No load/performance benchmark was run.
+
+Real integration exercised migration fresh/up/down/up, duplicate Up, two concurrent direct migrations, transactional upgrade failure with no surviving table/version effect, runtime DDL/history denials, pool-size/acquisition backpressure and timeout, server-observed running-query cancellation and usable pool afterward, explicit transaction rollback, check constraints, parameterized int64 precision, and read-only rejected dev login with test credentials. All destructive tests and synthetic fixture DDL were confined to biho_live_test; cleanup left both app schemas empty of tables and migration version 1. Development received only initial upgrade and read-only startup/inspection; postgres received no destructive test.
+
+Real development smoke built an API binary outside the repository, supplied only runtime development credentials, initialized before binding a loopback listener, verified both health probes/status/request IDs, and exited 0 after SIGTERM. Migration CLI successfully upgraded development using its dedicated direct role. Final read-only inspection confirmed both targets at version 1 with zero app tables and TLS 1.3.
+
+Two fixture issues were caught after tightening environment isolation: a configuration lookup-count test used dev values with test environment, and the deliberate cross-database ACL test was rejected by client target validation before reaching PostgreSQL. Corrected fixture environments without weakening validation or permissions; the latter now intentionally uses a development connection configuration with test credentials and still receives database-side SQLSTATE 42501. Focused and final complete integration/race runs passed after fixes. Earlier successful runs remain distinct from final evidence.
+
+### Files and limits
+
+Added config/database.go and its tests; platform/postgres pool/migration/unit/integration code plus generated dbsql; database bootstrap/migration/query artifacts; sqlc.yaml, Makefile and cmd/migrate. Updated API startup/lifecycle tests, .env.example, module pins, README, runtime/database/HTTP/health/testing docs, roadmap and coverage matrix. Added POSTGRESQL_FOUNDATION.md and ADR 0006. The local .env is excluded from source changes and remains secret.
+
+FND-007 is implemented with local/real-test acceptance evidence, pending architectural review. No business/financial/compatibility rule changed. No PgBouncer was installed, configured or deployed. Future proxy requirements include cache/protocol/cancellation testing, schema-qualified/session-independent runtime operations, explicit transactions, independent frontend/backend/fleet connection budgets, TLS/auth on both legs and a permanently direct migration route for session locks. Present tests use direct PostgreSQL only and do not prove proxy behavior. Production verify-full enforcement is tested at configuration/constructor level, not deployed against a production certificate. Ongoing DB-outage readiness and populated production schema rollback/backup/restore remain outside this foundation. Pool Close requires consumers to release leases; no claim is made that arbitrary uncooperative code can be terminated.
+
+No commit, push or application/proxy deployment occurred. Stop after Step 6 for review. Later Redis/business/infrastructure steps require separate authorization.

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"github.com/Faysal9991/mega-backend/internal/platform/config"
 	"io"
 	"net"
 	"net/http"
@@ -36,12 +37,12 @@ func TestRunSuccessfulLifecycle(t *testing.T) {
 	ready := &readyListener{Listener: listener, ready: make(chan struct{})}
 	result := make(chan int, 1)
 	go func() {
-		result <- run(ctx, func(string) (string, bool) { return "", false }, &stdout, &stderr, func(network, address string) (net.Listener, error) {
+		result <- runWithDatabase(ctx, databaseTestLookup, &stdout, &stderr, func(network, address string) (net.Listener, error) {
 			if network != "tcp" || address != "127.0.0.1:8080" {
 				t.Error("bad listen arguments")
 			}
 			return ready, nil
-		})
+		}, fakeDatabaseStart)
 	}()
 	select {
 	case <-ready.ready:
@@ -103,7 +104,7 @@ func TestRunSuccessfulLifecycle(t *testing.T) {
 
 func TestRunListenerFailure(t *testing.T) {
 	var stdout, stderr bytes.Buffer
-	code := run(context.Background(), func(string) (string, bool) { return "", false }, &stdout, &stderr, func(string, string) (net.Listener, error) { return nil, errors.New("PRIVATE_SENTINEL") })
+	code := runWithDatabase(context.Background(), databaseTestLookup, &stdout, &stderr, func(string, string) (net.Listener, error) { return nil, errors.New("PRIVATE_SENTINEL") }, fakeDatabaseStart)
 	if code != 1 || !strings.Contains(stdout.String(), "http.listener_failed") || !strings.Contains(stderr.String(), "listener binding failed") || strings.Contains(stdout.String()+stderr.String(), "PRIVATE_SENTINEL") {
 		t.Fatal("unsafe or missing bind failure")
 	}
@@ -120,8 +121,60 @@ func TestRunUnexpectedServerFailure(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer listener.Close()
-	code := run(context.Background(), func(string) (string, bool) { return "", false }, &stdout, &stderr, func(string, string) (net.Listener, error) { return failedAcceptListener{listener}, nil })
+	code := runWithDatabase(context.Background(), databaseTestLookup, &stdout, &stderr, func(string, string) (net.Listener, error) { return failedAcceptListener{listener}, nil }, fakeDatabaseStart)
 	if code != 1 || !strings.Contains(stdout.String(), "http.server_failed") || strings.Contains(stdout.String()+stderr.String(), "PRIVATE_SENTINEL") {
 		t.Fatal("unexpected server error was not safely propagated")
+	}
+}
+
+func databaseTestLookup(key string) (string, bool) {
+	values := map[string]string{"DB_HOST": "127.0.0.1", "DB_NAME": "biho_live_dev", "DB_USER": "biho_live_dev_app", "DB_PASSWORD": "synthetic-test-only", "DB_SSLMODE": "require"}
+	v, ok := values[key]
+	return v, ok
+}
+func fakeDatabaseStart(context.Context, config.DatabaseConfig) (func(), error) { return func() {}, nil }
+
+func TestDatabaseStartupBoundary(t *testing.T) {
+	var out, stderr bytes.Buffer
+	bound, closed := false, false
+	code := runWithDatabase(context.Background(), databaseTestLookup, &out, &stderr, func(string, string) (net.Listener, error) { bound = true; return nil, errors.New("bind failed") }, func(context.Context, config.DatabaseConfig) (func(), error) {
+		return nil, errors.New("PRIVATE_SENTINEL")
+	})
+	if code != 1 || bound || strings.Contains(out.String()+stderr.String(), "PRIVATE_SENTINEL") {
+		t.Fatal("database startup failure bound listener or leaked cause")
+	}
+	out.Reset()
+	stderr.Reset()
+	code = runWithDatabase(context.Background(), databaseTestLookup, &out, &stderr, func(string, string) (net.Listener, error) { bound = true; return nil, errors.New("bind failed") }, func(context.Context, config.DatabaseConfig) (func(), error) { return func() { closed = true }, nil })
+	if code != 1 || !bound || !closed {
+		t.Fatal("database pool not closed on listener failure")
+	}
+	out.Reset()
+	stderr.Reset()
+	bound = false
+	code = runWithDatabase(context.Background(), func(key string) (string, bool) {
+		if key == "DB_SSLMODE" {
+			return "disable", true
+		}
+		return databaseTestLookup(key)
+	}, &out, &stderr, func(string, string) (net.Listener, error) { bound = true; return nil, nil }, fakeDatabaseStart)
+	if code != 1 || bound {
+		t.Fatal("invalid database TLS accepted at startup")
+	}
+}
+
+func TestDatabaseInitializationCancellation(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	var out, stderr bytes.Buffer
+	code := runWithDatabase(ctx, databaseTestLookup, &out, &stderr, func(string, string) (net.Listener, error) {
+		t.Fatal("canceled initialization bound a listener")
+		return nil, nil
+	}, func(context.Context, config.DatabaseConfig) (func(), error) {
+		cancel()
+		return nil, errors.New("PRIVATE_SENTINEL")
+	})
+	if code != 0 || stderr.Len() != 0 || strings.Contains(out.String(), "PRIVATE_SENTINEL") {
+		t.Fatal("canceled database startup was not graceful")
 	}
 }

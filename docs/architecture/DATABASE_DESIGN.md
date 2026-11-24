@@ -1,6 +1,6 @@
 # Fresh Database Design
 
-Status: Design principles and ownership proposal. No schema, table names, migrations or indexes are approved for implementation by this document.
+Status: Business schema remains a design/ownership proposal. Authorized Step 6 implements only app schema, private Goose migration history and the generated connection-identity/schema-access query; no business tables or indexes. See POSTGRESQL_FOUNDATION.md and ADR 0006.
 
 Start with an isolated empty PostgreSQL database and deterministic synthetic fixtures. Do not copy or alter Django tables. PostgreSQL is durable authority; Redis holds only explicitly temporary/cache state. Choose identifiers, physical schemas, currencies/units, range limits and retention after reviewing requirements and access patterns.
 
@@ -29,3 +29,7 @@ Goose owns versioned schema changes. Review lock duration, backward compatibilit
 Bound pgx pools across all processes/replicas and reserve capacity for migrations and recovery. Runtime credentials get least privilege; migration credentials are separate. Transaction code must propagate cancellation and never hold locks across external HTTP calls.
 
 Historical imports, old identifiers/hashes, existing-client compatibility and production cutover require separate owner-approved plans. No import or production connection is part of this foundation.
+
+## Step 6 foundation boundary
+
+Use separate isolated development/integration databases and runtime/migration roles. App uses bounded direct pgxpool; Goose uses explicit direct migration settings and session advisory locking. Destructive test guards verify biho_live_test and its migration identity before writes; no development/default database reset is provided. Existing Coolify testing server is owner-authorized; no local Compose or PgBouncer deployment is introduced. Schema-only rollback is non-CASCADE; populated production rollback and backup/restore remain separately reviewed future work.

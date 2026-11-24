@@ -1,0 +1,13 @@
+# ADR 0006: Direct pgxpool, isolated roles and migration connections
+
+Status: Step 6 implemented under explicit owner authorization; architectural review pending. The user-designated existing testing server replaces the roadmap's local Compose option; no infrastructure is provisioned.
+
+Use pgxpool directly for the API with bounded per-process sizes and no session state or named statement/description cache. Keep future transaction-pooling compatibility without implementing PgBouncer. Goose uses a separate direct, one-connection pgx/database/sql bridge with an advisory session lock; no runtime credential/endpoint fallback. sqlc owns explicit generated connection-identity/schema-access SQL. No business table/validator is invented.
+
+Separate dev/test databases each have dedicated app and migration roles. Runtime cannot migrate, create objects/temp state or access migration history; test roles cannot enter dev. Destructive integration testing requires exact test target, role, explicit opt-in and authenticated identity verification. Create/upgrade dev only; never reset it or postgres. Existing unrelated cluster privileges are unchanged.
+
+The owner explicitly allows require (encrypted, unverified server identity) only for temporary development/test. Reject insecure modes and require verify-full in staging/production, including constructor revalidation. No TLS downgrade fallback. Credentials are explicitly supplied from the ignored local file for setup/verification, never printed/committed or loaded automatically by API code.
+
+Pinned pgx v5.13.0 ([release history](https://github.com/jackc/pgx/blob/v5.13.0/CHANGELOG.md)), Goose v3.30.0 ([release](https://github.com/pressly/goose/releases/tag/v3.30.0)) and sqlc v1.31.1 ([release](https://github.com/sqlc-dev/sqlc/releases/tag/v1.31.1)). Exact go.mod metadata requires Go 1.25/1.26/1.26, supported by project Go 1.26.3 and compiled on 1.26.4. These implement the mandated stack; no unrelated dependency is added. sqlc remains a pinned build tool, not an application runtime module. Future updates require compatibility/security review and regeneration checks.
+
+Consequences: migration privileges and secrets stay separate from runtime; startup database/schema verification precedes HTTP readiness; ongoing dependency health is not polled. Pool/connection/role budgets and future proxy behavior need measured validation before deployment. See POSTGRESQL_FOUNDATION.md and FOUNDATION_VERIFICATION.md for actual evidence, operational limits and review status.

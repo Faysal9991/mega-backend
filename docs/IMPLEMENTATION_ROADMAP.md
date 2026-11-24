@@ -6,7 +6,7 @@ Date: 2026-11-24 (Asia/Dhaka)
 
 The owner's greenfield instruction and current `AGENTS.md` supersede the earlier migration framing. Approved requirements define new behavior; Django is optional read-only reference evidence. No legacy schema, API adapter, data import or Python runtime dependency is planned. `docs/migration/` contains superseded historical notes.
 
-Current authorized task: Step 5 Health & Readiness only. Step 4 scoped review is complete at c875d876e3782b9cd672bf092c6ce57febe645b5: the previous Step 4 baseline passed full checks; the completion-logging fix passed source review, focused TCP regression tests, HTTP/startup race tests, vet and formatting/diff checks. This is not production-performance approval. Step 6 onward remains unauthorized. Step 3 review status is not changed by this scoped approval.
+Current authorized task: Step 6 PostgreSQL foundation. Authentication and isolated dev/test database/role setup succeeded over TLS 1.3 using the owner's temporary require exception (encrypted, server identity not verified). Direct pgxpool, separate direct Goose connections and sqlc are implemented for review; no PgBouncer is deployed. Staging/production enforce verify-full. Earlier blockers below are historical. Step 7 onward remains unauthorized; Step 5 review approval is not inferred.
 
 ## Initial architecture inspection (historical)
 
@@ -20,7 +20,7 @@ Current authorized task: Step 5 Health & Readiness only. Step 4 scoped review is
 
 ## Execution sequence and gates
 
-Each row requires owner authorization before execution. Step 5 is authorized; later capabilities must not be bundled into it.
+Each row requires owner authorization before execution. Step 6 is authorized; later capabilities must not be bundled into it.
 
 | Step | Scope | Acceptance evidence |
 | --- | --- | --- |
@@ -29,8 +29,8 @@ Each row requires owner authorization before execution. Step 5 is authorized; la
 | 2 | Structured logging | Implemented; owner source-level architectural approval recorded against 7dc9d97. Reported tests and production behavior are separate evidence |
 | 3 | HTTP lifecycle and middleware | Implemented with Chi v5.5.0, constructor-injected transport, request IDs/logging/recovery, resource limits and bounded shutdown. Final verification recorded in FOUNDATION_VERIFICATION.md; stop for architectural review |
 | 4 | Response/error/validation foundation | Scoped owner review complete at c875d876; previous baseline full checks and fix-specific review evidence are distinguished in FOUNDATION_VERIFICATION.md; no production-performance approval |
-| 5 — current | Health & readiness | Implemented for review: explicit atomic lifecycle, operational GET/HEAD probes independent of ordinary admission, no-store/minimal JSON, startup/drain/error contracts and deterministic tests; final evidence in FOUNDATION_VERIFICATION.md |
-| 6 | PostgreSQL foundation | Pin pgx/Goose/sqlc versions after compatibility verification; isolated Compose DB, bounded pool, migration upgrade checks, generated-query consistency and cancellation tests |
+| 5 | Health & readiness | Implemented for review: explicit atomic lifecycle, operational GET/HEAD probes independent of ordinary admission, no-store/minimal JSON, startup/drain/error contracts and deterministic tests; final evidence in FOUNDATION_VERIFICATION.md |
+| 6 — current | PostgreSQL foundation | Implemented for review: owner testing-server bootstrap, isolated dev/test roles, bounded direct pgxpool, startup identity/schema checks, direct Goose migrations/locking and sqlc consistency. Actual checks in FOUNDATION_VERIFICATION.md; no proxy/deployment or production-performance approval |
 | 7 | Redis, when justified | Explicit use case, bounded clients/memory/TTLs, eviction separation, timeout and outage tests; no durable financial authority |
 | 8 | Identity | Approved login/session/verification requirements and permission policy before implementation; abuse, token revocation and recovery tests |
 | 9 | Profiles and permissions | Approved resource ownership/roles, contract fixtures and unauthorized-access tests |
@@ -88,3 +88,28 @@ Step 4 review follow-up at 5598a2b4ec2e8f89af2f2dd35c7c2fbeddfdef35: correct com
 5. Complete requested checks and documentation, then stop for Step 5 review. No Step 6 implementation is authorized.
 
 Step 5 baseline: c875d876e3782b9cd672bf092c6ce57febe645b5. Initial owner edits to this roadmap and the feature matrix were preserved. FND-006 is implemented pending architectural review. The next proposed capability is PostgreSQL foundation (Step 6), only after explicit authorization.
+
+
+## Step 6 secure-connectivity gate
+
+Owner authorization covers the existing Coolify PostgreSQL testing endpoint, separate biho_live_dev/biho_live_test databases and dedicated users/migration roles, with the bootstrap password read only from Git-ignored .env. Credentials must never traverse an unencrypted public connection. Destructive integration tests must never target postgres or development.
+
+At inspected HEAD e99d4fed2176ae3899eedd90e81e76823d98be86, a credential-free PostgreSQL SSLRequest received N (TLS refused). The .env ignore rule was confirmed; its password was not read or transmitted. No SQL, database/role creation, migrations or tests against the remote server were executed. Step 6 is blocked before implementation/version selection. Enable server-side PostgreSQL TLS and supply a trusted, identity-valid certificate (plus a trusted CA/DNS name if needed) before retrying with verification enabled. Do not weaken verification or alter server infrastructure as a workaround. Detailed evidence is in FOUNDATION_VERIFICATION.md; FND-007 remains blocked.
+
+
+## Step 6 resumption plan — encrypted testing exception
+
+The owner now permits sslmode=require without CA/identity verification only for the temporary development/testing environment. sslmode=disable remains forbidden; production must enforce verify-full. A credential-free probe now successfully negotiates TLS 1.3, so the earlier SSLRequest refusal is historical. Authentication must succeed before remote database/role bootstrap.
+
+Execution order: locate the designated Git-ignored secret file without exposing its contents; authenticate over TLS; inspect server version/capabilities and existing target names without destructive changes; create isolated biho_live_dev and biho_live_test with separate runtime and migration roles; pin compatible pgx v5/Goose/sqlc and implement bounded pool, startup initialization and migration/query foundation; verify upgrades, permissions, cancellation and generation consistency exclusively in the dedicated test database; run required Go checks, document actual results and stop at Step 6. No schema or business rule outside foundation is authorized.
+
+Current resumption preflight: TLS 1.3 passes with identity verification intentionally disabled under owner authorization. The workspace currently contains .env.example only; .env is absent and no Git-ignored environment file was found by the scoped filename inventory. No password has been read and authentication/database creation has not been attempted. The credential file path or creation is required before the next step.
+
+Credential-file follow-up: a local .env template was created with owner-only mode 0600, the approved bootstrap connection settings and an empty PGPASSWORD. Git ignores the file. The owner must populate the password locally before authentication can be attempted. No password is requested through chat.
+
+
+## Step 6 implementation gate and handoff
+
+Password availability resolved the historical authentication blocker. The owner additionally requires direct pgxpool now, future transaction-pool compatibility without deploying PgBouncer, and direct Goose connections. Authenticated PostgreSQL 18.7/TLS 1.3; target names absent; created two isolated databases/four roles without changing existing databases or administrator credentials. FND-007 is implemented with local/remote testing acceptance evidence, pending architectural review.
+
+Application startup loads explicit runtime settings, initializes a bounded pool and validates authenticated identity/app schema before binding; cleanup follows HTTP drain. Test environment selection and destructive migration guards reject default/development targets. Development migrations are upgrade-only; integration resets occur only on biho_live_test. Module/schema/API scope remains foundation only. See POSTGRESQL_FOUNDATION.md, ADR 0006 and verification evidence. Stop after Step 6; Redis or any business module requires separate authorization and justification.
