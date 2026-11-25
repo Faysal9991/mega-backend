@@ -6,7 +6,7 @@ Date: 2026-11-24 (Asia/Dhaka)
 
 The owner's greenfield instruction and current `AGENTS.md` supersede the earlier migration framing. Approved requirements define new behavior; Django is optional read-only reference evidence. No legacy schema, API adapter, data import or Python runtime dependency is planned. `docs/migration/` contains superseded historical notes.
 
-Current authorized task: only the two Step 6 follow-up gaps—an injected pgx transaction helper and ongoing bounded/coalesced PostgreSQL readiness. Preserve existing TLS, pool/migration isolation and earlier implementation/review status. No Step 7, business module or infrastructure change is authorized.
+Current authorized task: Step 7 Redis client and optional disposable-cache foundation only. Preserve the reviewed Step 6 behavior at 63992e4 and earlier scoped review evidence; no broader approval is inferred. Optional Redis must not affect PostgreSQL readiness/liveness. Real Redis tests require the existing local URL and explicit endpoint acknowledgment; missing credentials or failed TLS/auth are blocked, never passed. Step 8 onward remains unauthorized.
 
 ## Initial architecture inspection (historical)
 
@@ -20,7 +20,7 @@ Current authorized task: only the two Step 6 follow-up gaps—an injected pgx tr
 
 ## Execution sequence and gates
 
-Each row requires owner authorization before execution. Step 6 is authorized; later capabilities must not be bundled into it.
+Each row requires owner authorization before execution. Step 7 is authorized; later capabilities must not be bundled into it.
 
 | Step | Scope | Acceptance evidence |
 | --- | --- | --- |
@@ -30,8 +30,8 @@ Each row requires owner authorization before execution. Step 6 is authorized; la
 | 3 | HTTP lifecycle and middleware | Implemented with Chi v5.5.0, constructor-injected transport, request IDs/logging/recovery, resource limits and bounded shutdown. Final verification recorded in FOUNDATION_VERIFICATION.md; stop for architectural review |
 | 4 | Response/error/validation foundation | Scoped owner review complete at c875d876; previous baseline full checks and fix-specific review evidence are distinguished in FOUNDATION_VERIFICATION.md; no production-performance approval |
 | 5 | Health & readiness | Implemented for review: explicit atomic lifecycle, operational GET/HEAD probes independent of ordinary admission, no-store/minimal JSON, startup/drain/error contracts and deterministic tests; final evidence in FOUNDATION_VERIFICATION.md |
-| 6 — current | PostgreSQL foundation | Implemented for review: owner testing-server bootstrap, isolated dev/test roles, bounded direct pgxpool, startup identity/schema checks, direct Goose migrations/locking and sqlc consistency. Actual checks in FOUNDATION_VERIFICATION.md; no proxy/deployment or production-performance approval |
-| 7 | Redis, when justified | Explicit use case, bounded clients/memory/TTLs, eviction separation, timeout and outage tests; no durable financial authority |
+| 6 | PostgreSQL foundation | Implemented for review: owner testing-server bootstrap, isolated dev/test roles, bounded direct pgxpool, startup identity/schema checks, direct Goose migrations/locking and sqlc consistency. Actual checks in FOUNDATION_VERIFICATION.md; no proxy/deployment or production-performance approval |
+| 7 — current | Redis optional disposable cache | Implemented for review: typed TLS-only configuration, bounded shared client/workers/sockets, optional startup diagnostic, Get/Set/Delete with versioned namespaces/size/TTL bounds. Controlled TLS/race tests and real-test execution/blockers are recorded separately in FOUNDATION_VERIFICATION.md; no durable authority |
 | 8 | Identity | Approved login/session/verification requirements and permission policy before implementation; abuse, token revocation and recovery tests |
 | 9 | Profiles and permissions | Approved resource ownership/roles, contract fixtures and unauthorized-access tests |
 | 10 | Wallet | Approved units, limits, rounding, eligibility and accounting policies; reconciliation, concurrency, retry and crash-recovery acceptance |
@@ -118,3 +118,10 @@ Application startup loads explicit runtime settings, initializes a bounded pool 
 ## Step 6 two-gap follow-up plan and gate
 
 At cf296a9ff0f6d27042a4f961178a6ea4e5cfc9a8, the working tree was clean. Preserve existing behavior and approved temporary TLS rules. Add a small BeginTx consumer interface/helper with context propagation, one success-only commit, independent bounded rollback, error classification, panic propagation and no retry. Add one injected pool availability checker with timeout/cache/coalescing/waiter bounds; combine it with the running lifecycle without changing terminal shutdown state. Verify unit/HTTP/concurrent and isolated PostgreSQL transaction/outage/recovery/shutdown cases, execute full/race/integration checks, update evidence and stop for review. No schema, credentials, runtime TLS policy or infrastructure mutation is needed beyond named isolated test fixtures.
+
+
+## Step 7 implementation and acceptance gate
+
+Baseline 63992e40ae1ccf28dddc7dea1948ac1c65635a2d, initially clean. Inspect pinned stable go-redis semantics, add separate typed optional configuration and revalidation, enforce TLS/resource/retry/operation policy, wire one optional client after PostgreSQL initialization and before serving, close after HTTP drain, and provide only disposable Get/Set/Delete. Use local controlled TLS doubles for disruptive tests and unique tracked TTL keys on the authorized shared endpoint for explicitly opted-in real verification. Preserve previous review statuses, execute full required checks, and stop at Step 7. No business-data cache or future module is authorized.
+
+FND-008 tracks implementation with the real-integration gate visible. Saved .env had no REDIS_URL/REDIS_* settings at inspection; the missing local file setting was requested without asking for credentials through chat. A credential-free TLS preflight reached the server but default certificate/IP verification failed; no bypass/authentication was attempted. Real verification requires the owner-supplied URL plus verified trust/identity or an explicit development/test bypass setting. Do not infer that a missing/failed real test passed.

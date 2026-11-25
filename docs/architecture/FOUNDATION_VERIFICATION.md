@@ -436,3 +436,58 @@ Added transaction.go/transaction_test.go, availability.go/availability_test.go a
 Readiness caches snapshots: outage/recovery detection can lag by the remaining 1s TTL plus a next check of up to 2s, subject to scheduling/transport behavior. Overflow intentionally returns 503 even if PostgreSQL might be healthy. A detached shared check can outlive its disconnected owner but remains driver-timeout bounded; arbitrary injected code that ignores context cannot be forcibly terminated. A response already past its final running gate may overlap shutdown; no new-connection 503 is promised after listener closure. Cleanup on panic preserves the original panic even if rollback reports failure, and an ambiguous commit remains an operation-specific reconciliation concern. These limitations are documented, not represented as production availability or financial settlement guarantees.
 
 No Redis, business module, infrastructure/PgBouncer setup, commit, push or deployment. Stop after the two Step 6 fixes for review.
+
+## Step 7 — optional Redis/disposable cache implementation and real-test gate
+
+Date: 2026-11-25 (Asia/Dhaka). Initial HEAD 63992e40ae1ccf28dddc7dea1948ac1c65635a2d, working tree clean. The owner authorized Step 7 only and identified this as reviewed Step 6 behavior to preserve. Existing scoped approvals and pending review statuses were retained; no broader production/performance approval is inferred. FND-008 is implemented for review, with shared-endpoint acceptance explicitly blocked below.
+
+### Delivered scope and decisions
+
+- Added config.RedisConfig/LoadRedis, explicit disabled/no-URL/no-network path, redacted URL/config values, strict booleans and positive bounded timeouts. Enabled URLs require rediss, explicit port, password, database 0 and no query/fragment override. Empty ACL username normalizes to default. TLS verifies chain and host/IP by default, with explicit bypass allowed only in dev/test and rejected even while disabled in staging/production. Constructors revalidate the snapshot.
+- Pinned stable go-redis v9.23.0 after inspecting official release/pinned source and exact Go 1.26.0 module minimum (project 1.26.3; installed go1.26.4 darwin/arm64). Added only this client and required transitives/checksums. SDK semantics were verified: input MaxRetries=-1 disables command retries (zero would default to three); DialerRetries=1 is one attempt per sequence; zero/negative would default to five.
+- One private reusable standalone client per process, PoolSize/MaxActiveConns default 8, min idle 0, max concurrent dials 1, disabled dedicated pipeline pool/maintenance/identity features and RESP2. A shared TLS dial gate caps all physical connections, including auxiliary pools/probes; no parallel IPv4/IPv6 fast fallback. No Pub/Sub/pipeline/CSC/transaction/routing API is exposed. SDK built-in dial circuit probes may later recover under the same time/socket bounds; no custom reconnect framework.
+- Get/Set/Delete only, with versioned environment prefixes, ASCII suffix limit 128 bytes, Set values at most 64 KiB, whole-ms TTLs from 1ms through 24h, distinct misses/empty hits/disabled/unavailable/other safe errors, context classification and no raw server/transport causes in messages. Receive values are checked after go-redis allocation; this is not a hard wire/heap allocation cap. Server memory/eviction/ACL and fleet budgets are documented, not changed.
+- Each call has a bounded context and at most one of MaxConns operation workers, with immediate fail-closed overflow. This makes caller cancellation prompt even though pinned socket I/O honors deadlines rather than cancellation alone; residual work retains a slot until bounded completion. Close rejects new work, closes the driver once and joins workers. No unbounded waiting queue or application background loop. Timed-out writes may have executed, so this remains disposable/idempotent cache only.
+- Startup PING has its own bound, emits a static safe warning on connection/auth/TLS failure and retains the optional client. Invalid enabled config fails before PostgreSQL/network startup. API serving and PostgreSQL readiness/liveness continue after optional connection failure. Cancellation during cache startup closes dependencies and exits without binding. Client Close follows HTTP drain and precedes PostgreSQL closure. Step 6 pool/transaction/readiness/migration/TLS source is unchanged.
+- The SDK exposes only a process-scoped logger; installed a constant immutable discard logger via its atomic API before constructing clients, preventing raw SDK diagnostics. Application warnings use the existing injected safe logger/static codes. This SDK-global policy/tradeoff is explicit in ADR 0007; no global application client/sink was introduced.
+
+### Actual checks
+
+Final local applicable checks passed (exit 0):
+
+| Command/check | Actual result |
+| --- | --- |
+| gofmt on changed/new sources; final `gofmt -l cmd internal database` | PASS; no paths |
+| `go mod tidy` | PASS |
+| `go mod verify` | PASS: all modules verified |
+| `go build ./...` | PASS |
+| `go test -count=1 ./...` | PASS; full default suite |
+| `go test -race -count=1 ./...` | PASS; no race reports |
+| `go vet ./...` | PASS |
+| Focused cache/config/API race tests, including final in-flight Close and startup cancellation tests | PASS |
+| `go test -count=1 -cover ./...` | PASS snapshot: rediscache 91.7%, config 98.6%, API 71.6%; remaining baseline coverage reported in tool output, no coverage proof of real endpoint |
+| `git diff --check` and supplemental new-file text/secret scans | PASS |
+
+Tests use controlled local TLS RESP servers for cache hit/miss/empty values, TTL expiry via controlled clock, environment/version namespace, size/key/TTL policy, safe command-error classification, default self-signed-certificate rejection versus explicit test bypass, auth failure/recovery and dropped-connection recovery. A retryable LOADING reply was received exactly once, not replayed. Hard-dial gate tests reject extra connections and release the slot once; normalized client options verify retry/pool/auxiliary semantics. Concurrent blocked commands demonstrate bounded worker/connection use and immediate cancellation with context classification; client Close interrupts in-flight socket work and is idempotent. Earlier deadlines are not extended. API tests show optional Redis outage warning while live/ready remain 200, exactly one Close after HTTP stop, preserved PostgreSQL cleanup, no bind on invalid configuration and graceful cleanup on startup cancellation. No disruptive test touched the shared server.
+
+An initial test detected that startup checked only the outer execution error, overlooking a returned PING command error; this prevented the expected safe startup diagnostic. Corrected Open to inspect both error levels; the TLS/auth diagnostic and recovery cases then passed. No tests were weakened or removed.
+
+### Real endpoint verification — BLOCKED, not passed
+
+The saved Git-ignored .env contained no REDIS_URL or other REDIS_* setting at inspection and repeated checks. Requested that the owner save the supplied URL locally or identify its ignored file path, without sending credentials through chat. No Redis secret was printed or added to source, and no empty/guessed password was used.
+
+Credential-free preflight: TCP 169.58.127.58:7200 was reachable, but standard TLS certificate/IP identity verification failed. No Redis authentication/commands were sent during preflight and no verification bypass was attempted. Actual chain/IP diagnostics were suppressed. The testing exception requires an explicit REDIS_TLS_INSECURE_SKIP_VERIFY=true setting from the owner in development/test, or suitable trust/identity; it is not enabled automatically.
+
+Explicit real suite execution: `go test -race -tags=redis_integration -run TestRedisIntegrationDisposableCache -count=1 -v ./internal/platform/rediscache`, with only local REDIS_* values supplied and BIHO_REDIS_INTEGRATION_ACK=169.58.127.58:7200/0 plus REDIS_ENABLED=true. Result: nonzero/FAIL with `BLOCKED: enabled Redis integration configuration unavailable or invalid; credentials suppressed`, before any client or key was created. This is missing-credential acceptance evidence, not a successful connectivity/auth/Get/Set/Delete/expiry test. An earlier invocation without acknowledgment also correctly refused execution; it is not counted as endpoint verification.
+
+The real-test implementation enforces the exact endpoint/default ACL/database, creates crypto-random per-run suffixes within the test/version namespace, tracks all planned keys before writes, uses 30s-or-shorter TTLs, and cleans up only tracked keys with an independent 10s context while the client remains open. It tests Get/Set/Delete, empty/missing values, short TTL expiry, concurrent bounds and cancellation. These endpoint cases remain UNEXECUTED until credentials/TLS policy are supplied. Missing/failed cleanup will be reported, not hidden. No real Redis key was written during this blocked run; no global enumeration or server control command was issued.
+
+Required next condition: save REDIS_URL in the existing ignored file (or identify its actual ignored path), and provide verified trust/IP identity or explicitly set the allowed dev/test bypass flag. Then rerun the existing real integration suite under the same acknowledgment. Do not paste the URL/password into chat or downgrade to plaintext. Step 7 acceptance remains blocked pending that real run.
+
+### Files and limits
+
+Added internal/platform/config/redis.go and tests, internal/platform/rediscache implementation/unit/opt-in real tests, cmd/api/cache_test.go, REDIS_CACHE.md and ADR 0007. Updated API optional-service wiring, .env.example placeholders, module pins/checksums, README, runtime/HTTP/health/testing docs, roadmap, feature matrix and this report. Corrected HEALTH_READINESS.md's stale “No external call” sentence to distinguish independent liveness from existing bounded PostgreSQL readiness. No health/API wire contract or Step 6 runtime source was changed.
+
+No performance/load/production availability claim. The process-scoped SDK logger suppresses other SDK clients' diagnostics; all clients must use this ownership boundary. Hard client limits do not replace a server maxmemory/eviction policy or fleet budget. Receive allocation is only bounded after decoding. Canceled Set/Delete may have executed; credentials/config are static and changed local credentials require appropriate restart/reconfiguration, not a new hot-reload mechanism.
+
+No authentication/session/rate-limit/wallet/job/PubSub/LiveKit business implementation, infrastructure/ACL/server mutation, FLUSHDB/FLUSHALL/KEYS/CONFIG SET, shared-server stop, commit, push or deployment. Stop at Step 7 review/real-test gate.

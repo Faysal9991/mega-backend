@@ -1,0 +1,119 @@
+//go:build redis_integration
+
+package rediscache
+
+import (
+	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"errors"
+	"io"
+	"log/slog"
+	"os"
+	"sync"
+	"sync/atomic"
+	"testing"
+	"time"
+
+	"github.com/Faysal9991/mega-backend/internal/platform/config"
+)
+
+func TestRedisIntegrationDisposableCache(t *testing.T) {
+	if os.Getenv("BIHO_REDIS_INTEGRATION_ACK") != "169.58.127.58:7200/0" {
+		t.Fatal("BLOCKED: explicit acknowledgment of the authorized Redis test endpoint required")
+	}
+	cfg, err := config.LoadRedis(os.LookupEnv, config.Test)
+	if err != nil || !cfg.Enabled {
+		t.Fatal("BLOCKED: enabled Redis integration configuration unavailable or invalid; credentials suppressed")
+	}
+	endpoint, err := config.RedisEndpoint(cfg.URL.Value())
+	if err != nil || endpoint.Hostname() != "169.58.127.58" || endpoint.Port() != "7200" || endpoint.User.Username() != "default" {
+		t.Fatal("BLOCKED: integration may use only the authorized rediss endpoint/ACL/database")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	cache, err := Open(ctx, cfg, slog.New(slog.NewJSONHandler(io.Discard, nil)))
+	if err != nil {
+		t.Fatal("BLOCKED: Redis integration client configuration failed")
+	}
+	defer func() {
+		if err := cache.Close(); err != nil {
+			t.Error("Redis integration close failed")
+		}
+	}()
+	var random [16]byte
+	if _, err := rand.Read(random[:]); err != nil {
+		t.Fatal("unique prefix generation failed")
+	}
+	prefix := "integration:" + hex.EncodeToString(random[:]) + ":"
+	keys := []string{prefix + "value", prefix + "empty", prefix + "expiry"}
+	// Track every planned key before any SET, including ambiguous write outcomes.
+	// No enumeration/global deletion; even failed tests leave only short-lived data.
+	defer func() {
+		cleanup, stop := context.WithTimeout(context.Background(), 10*time.Second)
+		defer stop()
+		for _, key := range keys {
+			if err := cache.Delete(cleanup, key); err != nil {
+				t.Error("tracked Redis test-key cleanup unavailable; keys retain short TTL")
+			}
+		}
+	}()
+	if err := cache.Set(ctx, keys[0], []byte("synthetic-cache-value"), 30*time.Second); err != nil {
+		t.Fatal("BLOCKED: Redis integration SET unavailable (connectivity/auth/TLS/ACL); raw error suppressed")
+	}
+	if value, hit, err := cache.Get(ctx, keys[0]); err != nil || !hit || string(value) != "synthetic-cache-value" {
+		t.Fatal("real Redis cache hit contract failed")
+	}
+	if err := cache.Set(ctx, keys[1], nil, 30*time.Second); err != nil {
+		t.Fatal("real Redis empty value SET failed")
+	}
+	if value, hit, err := cache.Get(ctx, keys[1]); err != nil || !hit || len(value) != 0 {
+		t.Fatal("real Redis empty value confused with miss")
+	}
+	var wg sync.WaitGroup
+	var hits, unavailable atomic.Int64
+	for range 16 {
+		wg.Go(func() {
+			value, hit, err := cache.Get(ctx, keys[0])
+			if errors.Is(err, ErrUnavailable) {
+				unavailable.Add(1)
+				return
+			}
+			if err != nil || !hit || string(value) != "synthetic-cache-value" {
+				t.Error("real Redis concurrent cache result invalid")
+				return
+			}
+			hits.Add(1)
+		})
+	}
+	wg.Wait()
+	if hits.Load() == 0 || cache.client.PoolStats().TotalConns > uint32(cfg.MaxConns) {
+		t.Fatal("real Redis concurrency/cap contract failed")
+	}
+	canceled, stop := context.WithCancel(ctx)
+	stop()
+	if _, _, err := cache.Get(canceled, keys[0]); !errors.Is(err, context.Canceled) {
+		t.Fatal("real client canceled-operation contract")
+	}
+	if err := cache.Delete(ctx, keys[0]); err != nil {
+		t.Fatal("real Redis delete failed")
+	}
+	if _, hit, err := cache.Get(ctx, keys[0]); err != nil || hit {
+		t.Fatal("real Redis miss after delete failed")
+	}
+	if err := cache.Set(ctx, keys[2], []byte("expires"), 100*time.Millisecond); err != nil {
+		t.Fatal("real Redis short TTL SET failed")
+	}
+	expiry := time.NewTimer(200 * time.Millisecond) // Derived from the 100ms TTL; no busy polling or server-wide command.
+	defer expiry.Stop()
+	select {
+	case <-expiry.C:
+	case <-ctx.Done():
+		t.Fatal("expiry wait canceled")
+	}
+	if _, hit, err := cache.Get(ctx, keys[2]); err != nil || hit {
+		t.Fatal("real Redis short TTL expiry failed")
+	}
+
+	t.Log("PASS: real rediss PING/Get/Set/Delete, short TTL, unique tracked keys, concurrent cap and cancellation; identity verification bypass:", cfg.TLSInsecureSkipVerify)
+}

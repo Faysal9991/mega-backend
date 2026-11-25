@@ -15,6 +15,7 @@ import (
 	"github.com/Faysal9991/mega-backend/internal/platform/httpserver"
 	"github.com/Faysal9991/mega-backend/internal/platform/logging"
 	"github.com/Faysal9991/mega-backend/internal/platform/postgres"
+	"github.com/Faysal9991/mega-backend/internal/platform/rediscache"
 )
 
 func main() {
@@ -46,6 +47,12 @@ type databaseRuntime struct {
 
 // The injected starter isolates lifecycle tests from external database access.
 func runWithDatabase(ctx context.Context, lookup config.LookupEnv, stdout, stderr io.Writer, listen func(string, string) (net.Listener, error), start func(context.Context, config.DatabaseConfig) (databaseRuntime, error)) int {
+	return runWithServices(ctx, lookup, stdout, stderr, listen, start, func(ctx context.Context, cfg config.RedisConfig, logger *slog.Logger) (io.Closer, error) {
+		return rediscache.Open(ctx, cfg, logger)
+	})
+}
+
+func runWithServices(ctx context.Context, lookup config.LookupEnv, stdout, stderr io.Writer, listen func(string, string) (net.Listener, error), start func(context.Context, config.DatabaseConfig) (databaseRuntime, error), startCache func(context.Context, config.RedisConfig, *slog.Logger) (io.Closer, error)) int {
 	// Load once at the composition root and inject the validated snapshot.
 	cfg, err := config.Load(lookup)
 	if err != nil {
@@ -63,6 +70,11 @@ func runWithDatabase(ctx context.Context, lookup config.LookupEnv, stdout, stder
 	}
 	if ctx.Err() != nil {
 		return 0
+	}
+	cacheConfig, err := config.LoadRedis(lookup, cfg.Environment)
+	if err != nil {
+		fmt.Fprintln(stderr, err)
+		return 1
 	}
 	database, err := config.LoadDatabase(lookup, cfg.Environment)
 	if err != nil {
@@ -86,6 +98,19 @@ func runWithDatabase(ctx context.Context, lookup config.LookupEnv, stdout, stder
 		return 1
 	}
 	defer runtimeDatabase.close()
+	cache, err := startCache(ctx, cacheConfig, logger)
+	if err != nil || cache == nil {
+		fmt.Fprintln(stderr, "cache: invalid client configuration")
+		return 1
+	}
+	defer func() {
+		if err := cache.Close(); err != nil {
+			logger.Warn("cache.close_failed", slog.String("failure_code", "CACHE_UNAVAILABLE"))
+		}
+	}()
+	if ctx.Err() != nil {
+		return 0
+	}
 	lifecycle := httpserver.NewLifecycle(runtimeDatabase.available)
 	router, err := httpserver.NewRouter(cfg.HTTP, logger, lifecycle)
 	if err != nil {

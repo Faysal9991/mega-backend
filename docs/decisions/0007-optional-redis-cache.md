@@ -1,0 +1,13 @@
+# ADR 0007: Optional TLS Redis and disposable cache ownership
+
+Status: authorized Step 7 implementation, architectural review pending. Preserve Step 6 behavior at 63992e4; no broader review approval or production-performance claim is inferred.
+
+Use one explicitly injected standalone go-redis client and a small versioned/environment-scoped Get/Set/Delete adapter. Disabled mode does not construct a network client. Optional bounded startup PING failure is diagnostic only; later calls can recover without changing PostgreSQL readiness/liveness. Close once after HTTP drain. No business caching or authoritative/durable coordination is included.
+
+Pin stable [go-redis v9.23.0](https://github.com/redis/go-redis/releases/tag/v9.23.0), which requires Go 1.26; project 1.26.3 is compatible with locally installed 1.26.4. [Pinned options](https://github.com/redis/go-redis/blob/v9.23.0/options.go) and [pool implementation](https://github.com/redis/go-redis/blob/v9.23.0/internal/pool/pool.go) establish MaxRetries=-1, DialerRetries=1 and auxiliary pipeline pool behavior. Explicitly cap all physical connections, disable the pipeline pool/unused auxiliary features, and cap operation workers so cancellation cannot build unbounded pending work. No custom reconnect framework or new library beyond the mandated Redis client/transitives.
+
+Require rediss, reject URL query overrides, impose validated pool/timeouts and use TLS 1.2+. Verification bypass defaults off and is allowed only by explicit development/test settings; staging/production enforce certificate-chain/host verification. No downgrade fallback. All credentials use existing Secret redaction/explicit environment supply.
+
+The SDK's logger is process-scoped and can print raw connection/server errors. Configure its atomic logger to one immutable discard sink before construction; emit only injected slog/static application diagnostics. This unavoidable SDK-global policy affects all SDK clients and is documented rather than adding a global application client or formatting unreviewed errors. No per-client raw logger option exists in the inspected pin.
+
+Receive sizes are checked after go-redis decodes, so the adapter's value budget is not a network-allocation limit. Require controlled writers, bounded values/TTLs, finite server memory/eviction budgets, and treat every cache loss as safe. A canceled write can have executed; never use this adapter as a financial/session/authorization/coordination source of truth. See REDIS_CACHE.md and actual verification evidence, including any real-test blockers.
