@@ -6,6 +6,9 @@ import (
 	"errors"
 	"github.com/Faysal9991/mega-backend/internal/modules/identity"
 	"github.com/Faysal9991/mega-backend/internal/modules/identity/postgres/identitysql"
+	"github.com/Faysal9991/mega-backend/internal/modules/profiles"
+	profilepg "github.com/Faysal9991/mega-backend/internal/modules/profiles/postgres"
+	"github.com/Faysal9991/mega-backend/internal/platform/apperror"
 	platform "github.com/Faysal9991/mega-backend/internal/platform/postgres"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -13,7 +16,10 @@ import (
 	"time"
 )
 
-type store struct{ q *identitysql.Queries }
+type store struct {
+	q        *identitysql.Queries
+	profiles profiles.Initializer
+}
 type Repository struct {
 	*store
 	tx *platform.Transactions
@@ -27,7 +33,7 @@ func New(pool *pgxpool.Pool) (*Repository, error) {
 	if err != nil {
 		return nil, identity.ErrStorage
 	}
-	return &Repository{&store{identitysql.New(pool)}, tx}, nil
+	return &Repository{&store{q: identitysql.New(pool)}, tx}, nil
 }
 func mapped(err error) error {
 	if err == nil {
@@ -43,7 +49,9 @@ func mapped(err error) error {
 	return identity.ErrStorage
 }
 func (r *Repository) Within(ctx context.Context, fn func(identity.Store) error) error {
-	err := r.tx.Within(ctx, pgx.TxOptions{}, func(ctx context.Context, tx pgx.Tx) error { return fn(&store{identitysql.New(tx)}) })
+	err := r.tx.Within(ctx, pgx.TxOptions{}, func(ctx context.Context, tx pgx.Tx) error {
+		return fn(&store{q: identitysql.New(tx), profiles: profilepg.Bind(tx)})
+	})
 	// Transactions wrap callback errors safely; preserve their application codes.
 	if err == nil {
 		return nil
@@ -66,10 +74,20 @@ func (s *store) GoogleAccount(ctx context.Context, sub string) (identity.Account
 	return identity.Account{ID: v.ID, Status: v.Status, DisplayName: v.DisplayName, Email: v.ContactEmail, Avatar: v.AvatarUrl}, mapped(e)
 }
 func (s *store) CreateGoogle(ctx context.Context, a identity.Account, sub string) error {
-	if err := s.q.CreateAccount(ctx, identitysql.CreateAccountParams{ID: a.ID, DisplayName: a.DisplayName, ContactEmail: a.Email, AvatarUrl: a.Avatar}); err != nil {
+	// Signup writes are available only on the transaction-bound adapter.
+	if s.profiles == nil {
+		return identity.ErrStorage
+	}
+	if s.profiles == nil {
+		return identity.ErrStorage
+	} // Creation requires the transaction-scoped profile writer.
+	if err := s.q.CreateAccount(ctx, identitysql.CreateAccountParams{ID: a.ID, ContactEmail: a.Email}); err != nil {
 		return mapped(err)
 	}
-	return mapped(s.q.LinkGoogle(ctx, identitysql.LinkGoogleParams{Subject: sub, AccountID: a.ID}))
+	if err := s.q.LinkGoogle(ctx, identitysql.LinkGoogleParams{Subject: sub, AccountID: a.ID}); err != nil {
+		return mapped(err)
+	}
+	return mapped(s.profiles.Initialize(ctx, a.ID, a.DisplayName, a.Avatar))
 }
 func (s *store) LockAccount(ctx context.Context, id string) (identity.Account, error) {
 	v, e := s.q.LockAccount(ctx, id)
@@ -175,7 +193,7 @@ func (s *store) Cleanup(ctx context.Context) error {
 	return mapped(s.q.CleanupSessions(ctx))
 }
 
-// Internal management interfaces only. Admin permissions/workflows are deferred.
+// Internal management interface; HTTP callers must use scoped administration services.
 func (r *Repository) RestrictAccount(ctx context.Context, id string) error {
 	return r.Within(ctx, func(tx identity.Store) error {
 		if _, err := tx.LockAccount(ctx, id); err != nil {
@@ -204,6 +222,39 @@ func (r *Repository) Ready(ctx context.Context) error {
 	ready, err := r.q.SchemaReady(ctx)
 	if err != nil || !ready {
 		return identity.ErrStorage
+	}
+	return nil
+}
+
+// Security binds Identity-owned account/session operations to a caller transaction.
+// Lock installation before lexically ordered accounts, matching identity flows.
+type Security struct{ s *store }
+
+func BindSecurity(tx pgx.Tx) *Security {
+	return &Security{s: &store{q: identitysql.New(tx), profiles: profilepg.Bind(tx)}}
+}
+func (s *Security) Installation(ctx context.Context, id string) error {
+	restricted, e := s.s.EnsureInstallation(ctx, id)
+	if e != nil {
+		return e
+	}
+	if restricted {
+		return apperror.New(apperror.Forbidden, nil)
+	}
+	return nil
+}
+func (s *Security) Account(ctx context.Context, id string) (identity.Account, error) {
+	return s.s.LockAccount(ctx, id)
+}
+func (s *Security) Access(ctx context.Context, hash, installation string) (identity.Principal, error) {
+	return s.s.Access(ctx, hash, installation)
+}
+func (s *Security) SetRestriction(ctx context.Context, id string, restricted bool) error {
+	if e := s.s.q.SetRestriction(ctx, identitysql.SetRestrictionParams{ID: id, Column2: restricted}); e != nil {
+		return e
+	}
+	if restricted {
+		return s.s.RevokeAll(ctx, id)
 	}
 	return nil
 }

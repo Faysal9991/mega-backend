@@ -11,6 +11,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Faysal9991/mega-backend/internal/modules/access"
+	accesshttp "github.com/Faysal9991/mega-backend/internal/modules/access/httpapi"
+	accesspg "github.com/Faysal9991/mega-backend/internal/modules/access/postgres"
 	"github.com/Faysal9991/mega-backend/internal/modules/identity"
 	"github.com/Faysal9991/mega-backend/internal/modules/identity/httpapi"
 	identitypg "github.com/Faysal9991/mega-backend/internal/modules/identity/postgres"
@@ -63,6 +66,19 @@ func run(ctx context.Context, lookup config.LookupEnv, stdout, stderr io.Writer,
 				return err
 			}
 			handler.Mount(router)
+			ar, err := accesspg.New(pool)
+			if err != nil {
+				return err
+			}
+			as, err := access.New(ar)
+			if err != nil {
+				return err
+			}
+			ah, err := accesshttp.New(as, logger)
+			if err != nil {
+				return err
+			}
+			ah.Mount(router)
 			return nil
 		}}, nil
 	})

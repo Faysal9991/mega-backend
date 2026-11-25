@@ -101,3 +101,7 @@ Before feature implementation, approve identifier/wire amount types, role polici
 ## Step 8 implementation boundary
 
 Identity is the first business module: HTTP DTOs -> identity application services/rules -> small Store/Repository/GoogleVerifier/PasswordHasher boundaries -> generated PostgreSQL repository and bounded Google/Argon2 adapters. API composition injects one repository/service and registers only authorized identity routes using the existing router extension. Authentication has no Redis dependency; no in-memory revocation/rate state. Existing HTTP drain closes optional cache then PostgreSQL. Schema checks are read-only; migrations remain explicit. See IDENTITY_AUTH.md and ADR 0008. Other module boundaries remain proposed/deferred.
+
+## Step 9 profile and authorization modules
+
+Profiles owns app.profiles and its editable fields. Identity owns authentication, aliases, contact email, restrictions and sessions; its generated profile read projection preserves /identity/me without duplicate writable profile columns. Transaction-scoped profile initialization is composed by Identity's infrastructure on signup only. Access owns protected authority, custom staff roles/assignments and append-only audit. Its application service coordinates module-owned profile and Identity security adapters in one bounded PostgreSQL transaction. See PROFILES_AUTHORIZATION.md and ADR 0009 for concrete dependencies, locking, scope and limitations. Redis has no authorization role.

@@ -59,7 +59,7 @@ func TestIntegrationIdentitySecurity(t *testing.T) {
 	if err := migrator.Up(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if v, err := migrator.Version(ctx); err != nil || v != 2 {
+	if v, err := migrator.Version(ctx); err != nil || v != 3 {
 		t.Fatal("identity migration version")
 	}
 	pool, err := platform.Open(ctx, app)
@@ -203,7 +203,7 @@ func TestIntegrationIdentitySecurity(t *testing.T) {
 		t.Fatal("challenge replay accepted")
 	}
 	// Preserve EVERY existing profile field, including intentionally empty ones.
-	if _, err := pool.Exec(ctx, "UPDATE app.identity_accounts SET display_name='',contact_email='owner@example.invalid',avatar_url='' WHERE id=$1", account); err != nil {
+	if _, err := pool.Exec(ctx, "WITH updated AS (UPDATE app.identity_accounts SET contact_email='owner@example.invalid' WHERE id=$1) UPDATE app.profiles SET display_name='',avatar_url='' WHERE account_id=$1", account); err != nil {
 		t.Fatal("profile fixture")
 	}
 	login := exchange(service, installation, "login", subject).Tokens
@@ -445,5 +445,5 @@ func TestIntegrationIdentitySecurity(t *testing.T) {
 	if _, err := service2.Authenticate(ctx, second.Access, installation2); apperror.Public(err).Code() != apperror.ServiceUnavailable {
 		t.Fatal("security-state failure opened access")
 	}
-	t.Log("PASS: migration 2, generated queries/constraints, two-instance signup/refresh/revocation, profiles, aliases, password setup/change/recovery, restrictions and safe DB failure; no Redis authority")
+	t.Log("PASS: migration 3, generated queries/constraints, two-instance signup/refresh/revocation, profiles, aliases, password setup/change/recovery, restrictions and safe DB failure; no Redis authority")
 }

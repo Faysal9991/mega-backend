@@ -145,3 +145,17 @@ Step 8 implementation and checks completed for review: full uncached/race/build/
 ### Step 8 scoped review corrections — baseline 55ead83f
 
 Bound post-Open identity schema checks with existing DB_CONNECT_TIMEOUT, propagate identity response write failures through the existing abort pattern, and correct OpenAPI password byte assertions without changing runtime policy. Add deterministic startup/response and shared Unicode contract regressions; correct PostgreSQL version/integration serialization guidance. Targeted repeated race, full uncached tests/race/build/vet/OpenAPI/sqlc/format/diff and a read-only isolated startup integration check passed; evidence is appended to STEP8_VERIFICATION.md. No auth/session/route/Step 7 behavior change; architectural review remains pending and no later phase is authorized.
+
+
+### Step 9 authorized plan and gate
+
+Inspection baseline: `069175538e11575d5c5b23f97b6541cc3ca4e7c7`; working tree initially clean. Owner explicitly authorizes Step 9 and supplies scoped Step 8 architectural/code-review acceptance against that baseline. This supersedes the pending source-review status only; live Google mobile E2E and production verification remain pending, and all other review statuses are preserved.
+
+1. Specify profile ownership, populated schema evolution, exact permission matrix, minimal routes and operator bootstrap in PROFILES_AUTHORIZATION.md / ADR 0009.
+2. Implement profile-owned transaction initialization/projections, generated SQL, scoped PostgreSQL authority, protected owner bootstrap, owner-only roles/assignments and audited Identity-owned restriction changes.
+3. Verify Unicode/strict HTTP/contracts; isolated populated upgrades/rollback and concurrent bootstrap; permission revocation/mutation ordering across instances, audit/session rollback, identity regressions and Redis modes.
+4. Record actual checks in STEP9_VERIFICATION.md and stop at Step 9 implemented/review pending. No Wallet/later modules, infrastructure, deployment, commit or push.
+
+PRO-001, ADM-001 and ADM-002 cover this bounded Step 9 scope. Avatar upload and broader support/admin operations remain deferred. No production performance measurement or acceptance is inferred. Independent Step 9 review is the next gate; Step 10 is not authorized.
+
+Step 9 implementation and actual verification are complete for independent review: all local build/default/race/vet/sqlc/OpenAPI checks and guarded populated migration, identity/authorization, real API Redis-mode and startup timeout suites passed. See docs/architecture/STEP9_VERIFICATION.md for commands, initial fixture corrections, final results and limitations. PRO-001/ADM-001/ADM-002 remain implemented, review pending. No later phase is authorized.

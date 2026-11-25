@@ -8,12 +8,40 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type AppAccessAssignment struct {
+	AccountID string
+	RoleID    string
+}
+
+type AppAccessAudit struct {
+	ID          string
+	Actor       string
+	Target      string
+	Action      string
+	Fields      []string
+	Reason      string
+	Correlation string
+	OccurredAt  pgtype.Timestamptz
+}
+
+type AppAccessOwner struct {
+	AccountID string
+}
+
+type AppAccessRole struct {
+	ID   string
+	Name string
+}
+
+type AppAccessRolePermission struct {
+	RoleID     string
+	Permission string
+}
+
 type AppIdentityAccount struct {
 	ID           string
 	Status       string
-	DisplayName  string
 	ContactEmail string
-	AvatarUrl    string
 	CreatedAt    pgtype.Timestamptz
 }
 
@@ -78,4 +106,11 @@ type AppIdentitySession struct {
 	ExpiresAt       pgtype.Timestamptz
 	AuthenticatedAt pgtype.Timestamptz
 	Revoked         bool
+}
+
+type AppProfile struct {
+	AccountID   string
+	DisplayName string
+	Bio         string
+	AvatarUrl   string
 }

@@ -1,0 +1,28 @@
+[
+  {
+    "schema": "PROFILE_FETCHEDResponse",
+    "body": {
+      "success": true,
+      "code": "PROFILE_FETCHED",
+      "data": {
+        "account_id": "dddddddddddddddddddddddddddddddd",
+        "display_name": "নাম",
+        "bio": "",
+        "avatar_url": ""
+      },
+      "request_id": "fixture-request"
+    }
+  },
+  {
+    "schema": "PERMISSIONS_FETCHEDResponse",
+    "body": {
+      "success": true,
+      "code": "PERMISSIONS_FETCHED",
+      "data": {
+        "permissions": [],
+        "protected_owner": false
+      },
+      "request_id": "fixture-request"
+    }
+  }
+]

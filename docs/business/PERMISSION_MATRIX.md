@@ -14,3 +14,20 @@
 | Restriction management | Internal repository interface only | No HTTP route; scoped staff permissions/workflows deferred |
 
 Account restriction status, future staff grants and business classifications are distinct. No universal user_type. No protected request relies on Redis or a client actor/device ID as authentication.
+
+## Step 9 approved scope
+
+| Action | Required authority | Boundary |
+| --- | --- | --- |
+| Own profile read/PATCH | Live bound session | Own account from server identity; display_name/bio only |
+| Public profile by ID | Live bound session | Four public fields only |
+| Own effective permissions | Live bound session | Current PostgreSQL state; no Redis |
+| Admin directory/basic user | users.read | Bounded ID cursor / status + public fields |
+| Private contact/aliases | users.private.read AND users.read | Separate projection; no secrets/session/device/staff data |
+| Admin profile PATCH | users.profile.update | Same field allowlist + atomic audit/reason |
+| Restrict/lift | users.restrict | Protected owner forbidden; Identity owns write/session revocation; atomic audit |
+| List/create/edit/delete staff roles | Protected owner | Four fixed permissions; role name irrelevant; bounded lists |
+| Read/replace assignments | Protected owner | Self and protected-owner assignment changes denied; atomic audit |
+| Bootstrap | Explicit operator + dedicated migration credential | Selected active existing Google-linked account; serialized single winner; no HTTP |
+
+Earlier Step 8 restriction/admin deferrals describe that phase; this explicit Step 9 authorization supersedes only the rows above. Agency audio/video host classifications, premium entitlements and other business permissions remain separate/deferred. No universal user_type.

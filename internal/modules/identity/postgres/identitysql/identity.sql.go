@@ -12,7 +12,7 @@ import (
 )
 
 const access = `-- name: Access :one
-SELECT s.id AS session_id,a.id AS account_id,a.display_name,a.contact_email,a.avatar_url FROM app.identity_sessions s JOIN app.identity_accounts a ON a.id=s.account_id JOIN app.identity_installations i ON i.id=s.installation_id WHERE s.access_hash=$1 AND s.installation_id=$2 AND NOT s.revoked AND s.access_expires_at>clock_timestamp() AND s.expires_at>clock_timestamp() AND a.status='active' AND NOT i.restricted
+SELECT s.id AS session_id,a.id AS account_id,p.display_name,a.contact_email,p.avatar_url FROM app.identity_sessions s JOIN app.identity_accounts a ON a.id=s.account_id JOIN app.identity_installations i ON i.id=s.installation_id JOIN app.profiles p ON p.account_id=a.id WHERE s.access_hash=$1 AND s.installation_id=$2 AND NOT s.revoked AND s.access_expires_at>clock_timestamp() AND s.expires_at>clock_timestamp() AND a.status='active' AND NOT i.restricted
 `
 
 type AccessParams struct {
@@ -171,23 +171,16 @@ func (q *Queries) ConsumeRefresh(ctx context.Context, tokenHash string) (string,
 }
 
 const createAccount = `-- name: CreateAccount :exec
-INSERT INTO app.identity_accounts(id,display_name,contact_email,avatar_url) VALUES($1,$2,$3,$4)
+INSERT INTO app.identity_accounts(id,contact_email) VALUES($1,$2)
 `
 
 type CreateAccountParams struct {
 	ID           string
-	DisplayName  string
 	ContactEmail string
-	AvatarUrl    string
 }
 
 func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) error {
-	_, err := q.db.Exec(ctx, createAccount,
-		arg.ID,
-		arg.DisplayName,
-		arg.ContactEmail,
-		arg.AvatarUrl,
-	)
+	_, err := q.db.Exec(ctx, createAccount, arg.ID, arg.ContactEmail)
 	return err
 }
 
@@ -276,7 +269,7 @@ func (q *Queries) FindIdentifier(ctx context.Context, arg FindIdentifierParams) 
 }
 
 const googleAccount = `-- name: GoogleAccount :one
-SELECT a.id,a.status,a.display_name,a.contact_email,a.avatar_url FROM app.identity_accounts a JOIN app.identity_google g ON g.account_id=a.id WHERE g.provider='google' AND g.subject=$1
+SELECT a.id,a.status,p.display_name,a.contact_email,p.avatar_url FROM app.identity_accounts a JOIN app.identity_google g ON g.account_id=a.id JOIN app.profiles p ON p.account_id=a.id WHERE g.provider='google' AND g.subject=$1
 `
 
 type GoogleAccountRow struct {
@@ -344,7 +337,7 @@ func (q *Queries) LinkGoogle(ctx context.Context, arg LinkGoogleParams) error {
 }
 
 const lockAccount = `-- name: LockAccount :one
-SELECT id,status,display_name,contact_email,avatar_url FROM app.identity_accounts WHERE id=$1 FOR UPDATE
+SELECT a.id,a.status,p.display_name,a.contact_email,p.avatar_url FROM app.identity_accounts a JOIN app.profiles p ON p.account_id=a.id WHERE a.id=$1 FOR UPDATE OF a
 `
 
 type LockAccountRow struct {
@@ -532,7 +525,7 @@ func (q *Queries) RotateSession(ctx context.Context, arg RotateSessionParams) er
 }
 
 const schemaReady = `-- name: SchemaReady :one
-SELECT count(*)=10 AS ready FROM unnest(ARRAY['app.identity_accounts','app.identity_google','app.identity_passwords','app.identity_identifiers','app.identity_installations','app.identity_sessions','app.identity_refresh_tokens','app.identity_challenges','app.identity_proofs','app.identity_rate_limits']) AS names(name) WHERE to_regclass(name) IS NOT NULL
+SELECT count(*)=16 AS ready FROM unnest(ARRAY['app.identity_accounts','app.identity_google','app.identity_passwords','app.identity_identifiers','app.identity_installations','app.identity_sessions','app.identity_refresh_tokens','app.identity_challenges','app.identity_proofs','app.identity_rate_limits','app.profiles','app.access_owners','app.access_roles','app.access_role_permissions','app.access_assignments','app.access_audit']) AS names(name) WHERE to_regclass(name) IS NOT NULL
 `
 
 func (q *Queries) SchemaReady(ctx context.Context) (bool, error) {
@@ -540,4 +533,18 @@ func (q *Queries) SchemaReady(ctx context.Context) (bool, error) {
 	var ready bool
 	err := row.Scan(&ready)
 	return ready, err
+}
+
+const setRestriction = `-- name: SetRestriction :exec
+UPDATE app.identity_accounts SET status=CASE WHEN $2::boolean THEN 'restricted' ELSE 'active' END WHERE id=$1
+`
+
+type SetRestrictionParams struct {
+	ID      string
+	Column2 bool
+}
+
+func (q *Queries) SetRestriction(ctx context.Context, arg SetRestrictionParams) error {
+	_, err := q.db.Exec(ctx, setRestriction, arg.ID, arg.Column2)
+	return err
 }

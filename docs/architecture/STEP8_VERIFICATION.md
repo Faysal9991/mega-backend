@@ -72,3 +72,7 @@ Relevant real integration only: `go test -race -tags=integration -p=1 -run '^Tes
 The initial response test harness also needed explicit LOG_FORMAT=json to inspect production event records; the startup harness was corrected to compare the propagated deadline/remaining budget instead of a timestamp captured before context construction. All intended assertions remain active; no tests were removed or weakened.
 
 Unexecuted checks: schema-mutating migration/identity integration packages and real Redis/Google end-to-end were not rerun because those behaviors are unchanged; prior evidence remains historical. Live Google verification and production/load/OS-signal testing remain outside this scoped correction. No unavailable requested check was silently passed. No secrets printed, infrastructure/schema changes, new features, commit, push or deployment. Stop at the pending Step 8 review gate.
+
+## Owner-supplied scoped acceptance — Step 9 baseline
+
+At 069175538e11575d5c5b23f97b6541cc3ca4e7c7 the owner supplies scoped Step 8 architectural/code-review acceptance and explicitly authorizes Step 9. Earlier pending architectural-review statements above are historical checkpoints. Live Google mobile E2E and production verification remain pending. No approval of unrelated foundation reviews or production performance is inferred. Step 9 identity regression/ownership-evolution evidence is recorded separately in STEP9_VERIFICATION.md.

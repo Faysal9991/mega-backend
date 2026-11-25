@@ -62,7 +62,7 @@ func TestIntegrationFoundation(t *testing.T) {
 	if err := migrator.Up(ctx); err != nil {
 		t.Fatal("idempotent migration", err)
 	}
-	if v, err := migrator.Version(ctx); err != nil || v != 2 {
+	if v, err := migrator.Version(ctx); err != nil || v != 3 {
 		t.Fatal("migration version")
 	}
 	if err := migrator.DownTest(ctx); err != nil {
@@ -70,6 +70,34 @@ func TestIntegrationFoundation(t *testing.T) {
 	}
 	if v, err := migrator.Version(ctx); err != nil || v != 0 {
 		t.Fatal("rollback version")
+	}
+
+	// Upgrade populated Step 8 data rather than resetting around the backfill.
+	if _, err := migrator.provider.UpTo(ctx, 2); err != nil {
+		t.Fatal("upgrade to identity", err)
+	}
+	fixtureID := "1234567890abcdef1234567890abcdef"
+	if _, err := migrator.db.ExecContext(ctx, "INSERT INTO app.identity_accounts(id,display_name,avatar_url) VALUES($1,'বাংলা','https://example.invalid/old')", fixtureID); err != nil {
+		t.Fatal(err)
+	}
+	if err := migrator.Up(ctx); err != nil {
+		t.Fatal("backfill upgrade", err)
+	}
+	var name, avatar string
+	if err := migrator.db.QueryRowContext(ctx, "SELECT display_name,avatar_url FROM app.profiles WHERE account_id=$1", fixtureID).Scan(&name, &avatar); err != nil || name != "বাংলা" || avatar != "https://example.invalid/old" {
+		t.Fatal("backfill lost profile")
+	}
+	if _, err := migrator.db.ExecContext(ctx, "UPDATE app.profiles SET display_name='' WHERE account_id=$1", fixtureID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := migrator.provider.DownTo(ctx, 2); err != nil {
+		t.Fatal("profile rollback", err)
+	}
+	if err := migrator.db.QueryRowContext(ctx, "SELECT display_name,avatar_url FROM app.identity_accounts WHERE id=$1", fixtureID).Scan(&name, &avatar); err != nil || name != "" || avatar != "https://example.invalid/old" {
+		t.Fatal("rollback lost current profile")
+	}
+	if _, err := migrator.db.ExecContext(ctx, "DELETE FROM app.identity_accounts WHERE id=$1", fixtureID); err != nil {
+		t.Fatal(err)
 	}
 	secondMigrator, err := NewMigrator(migration)
 	if err != nil {
@@ -86,7 +114,7 @@ func TestIntegrationFoundation(t *testing.T) {
 	if err := secondMigrator.Close(); err != nil {
 		t.Fatal(err)
 	}
-	// A failed transactional upgrade must leave neither its DDL nor version 3.
+	// A failed transactional upgrade must leave neither its DDL nor version 4.
 	initial, err := fs.ReadFile(migrations.Source(), "00001_application_schema.sql")
 	if err != nil {
 		t.Fatal(err)
@@ -95,10 +123,15 @@ func TestIntegrationFoundation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	profileMigration, err := fs.ReadFile(migrations.Source(), "00003_profiles_access.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
 	failingFS := fstest.MapFS{
+		"00003_profiles_access.sql":    &fstest.MapFile{Data: profileMigration},
 		"00001_application_schema.sql": &fstest.MapFile{Data: initial},
 		"00002_identity.sql":           &fstest.MapFile{Data: identityMigration},
-		"00003_failure.sql":            &fstest.MapFile{Data: []byte("-- +goose Up\nCREATE TABLE app.failed_upgrade_fixture(id bigint);\nSELECT 1/0;\n-- +goose Down\nDROP TABLE app.failed_upgrade_fixture;\n")},
+		"00004_failure.sql":            &fstest.MapFile{Data: []byte("-- +goose Up\nCREATE TABLE app.failed_upgrade_fixture(id bigint);\nSELECT 1/0;\n-- +goose Down\nDROP TABLE app.failed_upgrade_fixture;\n")},
 	}
 	locker, err := lock.NewPostgresSessionLocker(lock.WithLockTimeout(1, 10))
 	if err != nil {
@@ -115,7 +148,7 @@ func TestIntegrationFoundation(t *testing.T) {
 	if err := migrator.db.QueryRowContext(ctx, "SELECT to_regclass('app.failed_upgrade_fixture') IS NULL").Scan(&rolledBack); err != nil || !rolledBack {
 		t.Fatal("failed upgrade retained DDL")
 	}
-	if v, err := migrator.Version(ctx); err != nil || v != 2 {
+	if v, err := migrator.Version(ctx); err != nil || v != 3 {
 		t.Fatal("failed upgrade changed version")
 	}
 

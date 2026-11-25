@@ -3,13 +3,13 @@ INSERT INTO app.identity_installations(id) VALUES ($1) ON CONFLICT(id) DO UPDATE
 -- name: LockSubject :exec
 SELECT pg_advisory_xact_lock(hashtextextended('google:' || $1::text,0));
 -- name: GoogleAccount :one
-SELECT a.id,a.status,a.display_name,a.contact_email,a.avatar_url FROM app.identity_accounts a JOIN app.identity_google g ON g.account_id=a.id WHERE g.provider='google' AND g.subject=$1;
+SELECT a.id,a.status,p.display_name,a.contact_email,p.avatar_url FROM app.identity_accounts a JOIN app.identity_google g ON g.account_id=a.id JOIN app.profiles p ON p.account_id=a.id WHERE g.provider='google' AND g.subject=$1;
 -- name: CreateAccount :exec
-INSERT INTO app.identity_accounts(id,display_name,contact_email,avatar_url) VALUES($1,$2,$3,$4);
+INSERT INTO app.identity_accounts(id,contact_email) VALUES($1,$2);
 -- name: LinkGoogle :exec
 INSERT INTO app.identity_google(subject,account_id) VALUES($1,$2);
 -- name: LockAccount :one
-SELECT id,status,display_name,contact_email,avatar_url FROM app.identity_accounts WHERE id=$1 FOR UPDATE;
+SELECT a.id,a.status,p.display_name,a.contact_email,p.avatar_url FROM app.identity_accounts a JOIN app.profiles p ON p.account_id=a.id WHERE a.id=$1 FOR UPDATE OF a;
 -- name: Password :one
 SELECT credential FROM app.identity_passwords WHERE account_id=$1;
 -- name: PutPassword :exec
@@ -45,7 +45,7 @@ UPDATE app.identity_refresh_tokens SET consumed=true WHERE token_hash=$1 AND NOT
 -- name: RotateSession :exec
 UPDATE app.identity_sessions SET access_hash=$2,access_expires_at=LEAST(clock_timestamp()+interval '15 minutes',expires_at) WHERE id=$1;
 -- name: Access :one
-SELECT s.id AS session_id,a.id AS account_id,a.display_name,a.contact_email,a.avatar_url FROM app.identity_sessions s JOIN app.identity_accounts a ON a.id=s.account_id JOIN app.identity_installations i ON i.id=s.installation_id WHERE s.access_hash=$1 AND s.installation_id=$2 AND NOT s.revoked AND s.access_expires_at>clock_timestamp() AND s.expires_at>clock_timestamp() AND a.status='active' AND NOT i.restricted;
+SELECT s.id AS session_id,a.id AS account_id,p.display_name,a.contact_email,p.avatar_url FROM app.identity_sessions s JOIN app.identity_accounts a ON a.id=s.account_id JOIN app.identity_installations i ON i.id=s.installation_id JOIN app.profiles p ON p.account_id=a.id WHERE s.access_hash=$1 AND s.installation_id=$2 AND NOT s.revoked AND s.access_expires_at>clock_timestamp() AND s.expires_at>clock_timestamp() AND a.status='active' AND NOT i.restricted;
 -- name: RevokeSession :exec
 UPDATE app.identity_sessions SET revoked=true WHERE id=$1;
 -- name: RevokeAll :exec
@@ -63,8 +63,11 @@ DELETE FROM app.identity_challenges WHERE token_hash IN (SELECT token_hash FROM 
 -- name: CleanupProofs :exec
 DELETE FROM app.identity_proofs WHERE token_hash IN (SELECT token_hash FROM app.identity_proofs WHERE expires_at<statement_timestamp() LIMIT 100);
 -- name: SchemaReady :one
-SELECT count(*)=10 AS ready FROM unnest(ARRAY['app.identity_accounts','app.identity_google','app.identity_passwords','app.identity_identifiers','app.identity_installations','app.identity_sessions','app.identity_refresh_tokens','app.identity_challenges','app.identity_proofs','app.identity_rate_limits']) AS names(name) WHERE to_regclass(name) IS NOT NULL;
+SELECT count(*)=16 AS ready FROM unnest(ARRAY['app.identity_accounts','app.identity_google','app.identity_passwords','app.identity_identifiers','app.identity_installations','app.identity_sessions','app.identity_refresh_tokens','app.identity_challenges','app.identity_proofs','app.identity_rate_limits','app.profiles','app.access_owners','app.access_roles','app.access_role_permissions','app.access_assignments','app.access_audit']) AS names(name) WHERE to_regclass(name) IS NOT NULL;
 -- name: CleanupRefreshes :exec
 DELETE FROM app.identity_refresh_tokens WHERE token_hash IN (SELECT t.token_hash FROM app.identity_refresh_tokens t JOIN app.identity_sessions s ON s.id=t.session_id WHERE s.expires_at<statement_timestamp() LIMIT 100);
 -- name: CleanupSessions :exec
 DELETE FROM app.identity_sessions WHERE id IN (SELECT s.id FROM app.identity_sessions s WHERE s.expires_at<statement_timestamp() AND NOT EXISTS (SELECT 1 FROM app.identity_refresh_tokens t WHERE t.session_id=s.id) LIMIT 100);
+
+-- name: SetRestriction :exec
+UPDATE app.identity_accounts SET status=CASE WHEN $2::boolean THEN 'restricted' ELSE 'active' END WHERE id=$1;

@@ -37,7 +37,7 @@ func TestIntegrationIdentitySchemaStartupBound(t *testing.T) {
 	ready, stop := context.WithTimeout(ctx, cfg.ConnectTimeout)
 	if err := repository.Ready(ready); err != nil {
 		stop()
-		t.Fatal("identity schema unavailable; apply migration 2 explicitly")
+		t.Fatal("identity schema unavailable; apply migration 3 explicitly")
 	}
 	stop()
 	closes := 0
@@ -53,5 +53,5 @@ func TestIntegrationIdentitySchemaStartupBound(t *testing.T) {
 	if err := pool.Ping(ctx); err == nil {
 		t.Fatal("failed initialization retained an open pool")
 	}
-	t.Log("PASS: isolated migration-2 schema read; timed read canceled; failed initialization closed only its own pool")
+	t.Log("PASS: isolated migration-3 schema read; timed read canceled; failed initialization closed only its own pool")
 }

@@ -18,3 +18,21 @@ sql:
         out: internal/modules/identity/postgres/identitysql
         sql_package: pgx/v5
         emit_empty_slices: true
+  - engine: postgresql
+    schema: database/migrations
+    queries: database/queries/profiles
+    gen:
+      go:
+        package: profilessql
+        out: internal/modules/profiles/postgres/profilessql
+        sql_package: pgx/v5
+        emit_empty_slices: true
+  - engine: postgresql
+    schema: database/migrations
+    queries: database/queries/access
+    gen:
+      go:
+        package: accesssql
+        out: internal/modules/access/postgres/accesssql
+        sql_package: pgx/v5
+        emit_empty_slices: true

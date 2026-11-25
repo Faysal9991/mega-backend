@@ -5,6 +5,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"io"
 	"net"
 	"net/http"
@@ -30,6 +31,7 @@ func TestRedisIntegrationAPILifecycle(t *testing.T) {
 	if err != nil || endpoint.Hostname() != "169.58.127.58" || endpoint.Port() != "7200" || endpoint.User.Username() != "default" {
 		t.Fatal("unauthorized integration target")
 	}
+	credentials, account, assign := step9RedisFixture(t)
 	for _, mode := range []string{"enabled", "disabled", "unavailable"} {
 		t.Run(mode, func(t *testing.T) {
 			values := map[string]string{"APP_ENV": "test", "LOG_FORMAT": "json"}
@@ -97,6 +99,37 @@ func TestRedisIntegrationAPILifecycle(t *testing.T) {
 				t.Fatal("API did not reach HTTP serving")
 			}
 			client := &http.Client{Timeout: 5 * time.Second}
+			request := func(path string, want int) {
+				t.Helper()
+				req, e := http.NewRequest("GET", "http://"+listener.Addr().String()+path, nil)
+				if e != nil {
+					t.Fatal(e)
+				}
+				req.Header.Set("Authorization", "Bearer "+credentials.Access)
+				req.Header.Set("X-Installation-ID", credentials.Installation)
+				res, e := client.Do(req)
+				if e != nil {
+					t.Fatal("authenticated request failed")
+				}
+				defer res.Body.Close()
+				var envelope map[string]any
+				if e := json.NewDecoder(res.Body).Decode(&envelope); e != nil || res.StatusCode != want {
+					t.Fatalf("profile/admin HTTP status %d want %d", res.StatusCode, want)
+				}
+				if path == "/api/v1/profiles/me" && want == 200 {
+					data := envelope["data"].(map[string]any)
+					if len(data) != 4 || data["account_id"] != account {
+						t.Fatal("public profile private leak or ownership mismatch")
+					}
+				}
+			}
+			request("/api/v1/profiles/me", 200)
+			request("/api/v1/admin/users?limit=1", 200)
+			assign(false)
+			request("/api/v1/admin/users?limit=1", 403)
+			assign(true)
+			request("/api/v1/admin/users?limit=1", 200)
+
 			defer client.CloseIdleConnections()
 			for _, probe := range []struct {
 				path   string
