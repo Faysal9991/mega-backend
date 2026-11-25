@@ -28,10 +28,6 @@ SELECT config FROM app.economy_policies WHERE id>$1 ORDER BY id LIMIT $2;
 SELECT id,account_id,agency_id,classification,effective_from,effective_until FROM app.agency_host_associations WHERE account_id=$1 AND effective_from<=clock_timestamp() AND (effective_until IS NULL OR effective_until>clock_timestamp()) ORDER BY effective_from DESC,id DESC LIMIT 1;
 -- name: AssociationHistory :many
 SELECT id,account_id,agency_id,classification,effective_from,effective_until FROM app.agency_host_associations WHERE account_id=$1 AND id>$2 ORDER BY id LIMIT $3;
--- name: CloseAssociation :exec
-UPDATE app.agency_host_associations SET effective_until=$2 WHERE account_id=$1 AND effective_until IS NULL;
--- name: InsertAssociation :exec
-INSERT INTO app.agency_host_associations(id,account_id,agency_id,classification,effective_from,effective_until) VALUES($1,$2,$3,$4,$5,$6);
 -- name: InsertWithdrawal :exec
 INSERT INTO app.wallet_withdrawals(id,account_id,reserve_operation_id,amount,fee,reserved,policy_id,eligibility_snapshot,state) VALUES(sqlc.arg(id),sqlc.arg(account_id),sqlc.arg(reserve_operation_id),sqlc.arg(amount),sqlc.arg(fee),sqlc.arg(reserved),sqlc.arg(policy_id),sqlc.arg(eligibility_snapshot)::text::jsonb,'pending');
 -- name: Withdrawal :one

@@ -110,3 +110,7 @@ Profiles owns app.profiles and its editable fields. Identity owns authentication
 ## Financial modules
 
 Wallet is the single diamond write owner; its PostgreSQL adapter reuses Access's existing authoritative transaction/advisory lock and Identity-owned account checks. A narrow Wallet-owned transaction initializer supports atomic Google signup without a circular import. Pure agency activity calculation accepts only an injected trusted source, collected before financial locks and revalidated against current policy/association/period before reservation. Runtime collection and payout providers remain unavailable; no LiveKit, Redis authority, new background service or second balance writer is introduced. See FINANCIAL_ENGINE.md / AGENCY_ACTIVITY.md and wallet.openapi.json.
+
+## Authorized LiveKit / agency batch (2026-11-25)
+
+Owner request at baseline 645c75c authorizes live-room management, agency workflows and verified activity. Detailed boundaries, safe recovery and limits are in [LIVE_AGENCY.md](LIVE_AGENCY.md) and ADR 0012. The live application uses provider interfaces and PostgreSQL-backed state; the existing pure agency calculator and single Wallet Engine remain owners of eligibility calculation and financial writes. LiveKit performs media transport. Clustering/provisioning, frontend/UI and unrelated business modules remain deferred. Review and real provider E2E remain separate gates.

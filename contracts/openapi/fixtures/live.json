@@ -1,0 +1,84 @@
+[
+  {
+    "schema": "AgencyCreate",
+    "body": {
+      "name": "Synthetic agency"
+    }
+  },
+  {
+    "schema": "HostApply",
+    "body": {
+      "classification": "audio_host"
+    }
+  },
+  {
+    "schema": "RoomCreate",
+    "body": {
+      "title": "Synthetic room",
+      "room_type": "audio",
+      "capacity": 20,
+      "seats": 5
+    }
+  },
+  {
+    "schema": "PolicyPublish",
+    "body": {
+      "previous_policy_id": "",
+      "capacity": 20,
+      "seats": 5,
+      "compatibility": {
+        "audio_host_audio": true,
+        "video_host_video": true,
+        "audio_host_video": false,
+        "video_host_audio": false
+      },
+      "reason": "Owner configured explicit policy"
+    }
+  },
+  {
+    "schema": "MemberMute",
+    "body": {
+      "muted": true,
+      "reason": "Moderation"
+    }
+  },
+  {
+    "schema": "TokenEnvelope",
+    "body": {
+      "success": true,
+      "code": "LIVE_TOKEN_ISSUED",
+      "request_id": "fixture",
+      "data": {
+        "token": "synthetic-token",
+        "url": "wss://provider.invalid",
+        "expires_in_seconds": 60,
+        "session_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    }
+  },
+  {
+    "schema": "room_createEnvelope",
+    "body": {
+      "success": true,
+      "code": "LIVE_COMMAND_ACCEPTED",
+      "request_id": "fixture",
+      "data": {
+        "data": {
+          "room_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "session_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "owner_id": "cccccccccccccccccccccccccccccccc",
+          "room_type": "audio",
+          "title": "Synthetic room",
+          "state": "opening",
+          "capacity": 20,
+          "seats": 5,
+          "created_at": "2026-11-25T00:00:00Z",
+          "closed_at": null
+        },
+        "room_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "operation_id": "dddddddddddddddddddddddddddddddd",
+        "provider_state": "pending"
+      }
+    }
+  }
+]

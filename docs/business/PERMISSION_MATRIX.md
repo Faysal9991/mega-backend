@@ -47,3 +47,21 @@ Earlier Step 8 restriction/admin deferrals describe that phase; this explicit St
 | Manage minimum host association | agency.hosts.manage + protected owner | Existing distinct active account/agency beneficiary; nonoverlapping effective dates, history and audit |
 
 The fixed catalog is now the four Step 9 user permissions plus these six financial permissions. Editable role names never grant authority; only protected owner manages grants. Financial critical writes still require protected owner even if the permission name appears in a staff role. Account status, host classification, premium entitlements and wallet ownership remain separate. No new generic staff or universal user_type privilege is introduced.
+
+## Live / agency batch permissions
+
+| Permission / authority | Supported scope |
+| --- | --- |
+| agencies.manage | Inspect agency directory, approve/reject/restrict/update agency profiles, delegate managers |
+| agency.hosts.manage (existing) | Inspect host association history, approve/reject host applications globally, change classification; does not grant financial writes |
+| live.rooms.moderate | Admin room list/detail/close, room moderation and explicit provider reconciliation; protected account rules remain in Access |
+| live.activity.read | Bounded account/SID inspection with association/classification and verified/open/invalidated timestamps |
+| live.policies.manage | Read/publish immutable live capacity/seat/host-type compatibility policy with predecessor CAS and audit |
+| Agency owner / delegated manager | Own agency application list/decisions; only owner or agency staff delegates managers |
+| Room host | Own room close/roles/seats/moderation; never client-asserted ownership |
+| Co-host / room moderator | Audience moderation and seats; cannot appoint roles, change host or moderate peer co-hosts/moderators |
+| Active authenticated audience | Join/leave/token; microphone only after eligible audio-seat invitation/acceptance |
+
+All staff grants use Step 9 authoritative persisted assignment/revocation. Privileged and ordinary domain mutations persist audit in the same transaction as state/idempotency/provider intent. Financial activity thresholds still require existing Wallet policy permissions/protected-owner boundary; the new policy permission does not bypass that authority. No admin UI is implemented.
+
+Agency profile administration does not itself confer global host-application approval: that requires agency.hosts.manage or the target agency's intrinsic owner/delegated manager authority. Staff self-delegation, host self-approval and self-classification are denied. Account restriction atomically revokes sessions, ends local room membership/seats and records an immutable activity ceiling plus pending provider-removal intent. Unrestriction cannot revive prior sessions/activity; physical media convergence remains explicit provider work.

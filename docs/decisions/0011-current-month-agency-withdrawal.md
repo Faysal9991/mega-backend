@@ -11,3 +11,5 @@ Every new withdrawal command obtains fresh authoritative activity independently 
 Publish a new immutable current_calendar_month policy version to activate the corrected selector. Existing previous-period configurations fail closed; do not silently reinterpret them. Historical activity and accepted withdrawal/policy snapshots remain unchanged. All other approved wallet, fees, caps, review/reservation and provider-settlement gates remain unchanged. No migration, live collector, payout integration or active commercial policy is introduced by this change.
 
 Implementation: internal/modules/agency/activity.go and the existing Wallet transaction eligibility boundary. Contracts: wallet.openapi.json. Checks and remaining limitations: FINANCIAL_VERIFICATION.md.
+
+Collector follow-up: the owner-authorized LiveKit/agency batch at baseline 645c75c supplies a PostgreSQL trusted source when provider configuration is enabled (ADR 0012). This does not change this decision's period, policy/association/month recheck or financial approval gates. Disabled/unverified collection remains fail closed; real LiveKit E2E and independent review remain pending.

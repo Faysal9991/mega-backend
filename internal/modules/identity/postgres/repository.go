@@ -6,6 +6,7 @@ import (
 	"errors"
 	"github.com/Faysal9991/mega-backend/internal/modules/identity"
 	"github.com/Faysal9991/mega-backend/internal/modules/identity/postgres/identitysql"
+	liveeffects "github.com/Faysal9991/mega-backend/internal/modules/live/postgres/restrictions"
 	"github.com/Faysal9991/mega-backend/internal/modules/profiles"
 	profilepg "github.com/Faysal9991/mega-backend/internal/modules/profiles/postgres"
 	walletaccounts "github.com/Faysal9991/mega-backend/internal/modules/wallet/postgres/accounts"
@@ -18,9 +19,10 @@ import (
 )
 
 type store struct {
-	q        *identitysql.Queries
-	profiles profiles.Initializer
-	wallets  interface {
+	transaction pgx.Tx
+	q           *identitysql.Queries
+	profiles    profiles.Initializer
+	wallets     interface {
 		Initialize(context.Context, string) error
 	}
 }
@@ -54,7 +56,7 @@ func mapped(err error) error {
 }
 func (r *Repository) Within(ctx context.Context, fn func(identity.Store) error) error {
 	err := r.tx.Within(ctx, pgx.TxOptions{}, func(ctx context.Context, tx pgx.Tx) error {
-		return fn(&store{q: identitysql.New(tx), profiles: profilepg.Bind(tx), wallets: walletaccounts.Bind(tx)})
+		return fn(&store{transaction: tx, q: identitysql.New(tx), profiles: profilepg.Bind(tx), wallets: walletaccounts.Bind(tx)})
 	})
 	// Transactions wrap callback errors safely; preserve their application codes.
 	if err == nil {
@@ -207,6 +209,9 @@ func (r *Repository) RestrictAccount(ctx context.Context, id string) error {
 		if err := st.q.RestrictAccount(ctx, id); err != nil {
 			return mapped(err)
 		}
+		if err := liveeffects.Apply(ctx, st.transaction, id); err != nil {
+			return mapped(err)
+		}
 		return tx.RevokeAll(ctx, id)
 	})
 }
@@ -235,7 +240,7 @@ func (r *Repository) Ready(ctx context.Context) error {
 type Security struct{ s *store }
 
 func BindSecurity(tx pgx.Tx) *Security {
-	return &Security{s: &store{q: identitysql.New(tx), profiles: profilepg.Bind(tx), wallets: walletaccounts.Bind(tx)}}
+	return &Security{s: &store{transaction: tx, q: identitysql.New(tx), profiles: profilepg.Bind(tx), wallets: walletaccounts.Bind(tx)}}
 }
 func (s *Security) Installation(ctx context.Context, id string) error {
 	restricted, e := s.s.EnsureInstallation(ctx, id)
@@ -258,6 +263,9 @@ func (s *Security) SetRestriction(ctx context.Context, id string, restricted boo
 		return e
 	}
 	if restricted {
+		if e := liveeffects.Apply(ctx, s.s.transaction, id); e != nil {
+			return e
+		}
 		return s.s.RevokeAll(ctx, id)
 	}
 	return nil

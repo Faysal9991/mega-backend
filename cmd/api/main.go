@@ -14,9 +14,14 @@ import (
 	"github.com/Faysal9991/mega-backend/internal/modules/access"
 	accesshttp "github.com/Faysal9991/mega-backend/internal/modules/access/httpapi"
 	accesspg "github.com/Faysal9991/mega-backend/internal/modules/access/postgres"
+	"github.com/Faysal9991/mega-backend/internal/modules/agency"
 	"github.com/Faysal9991/mega-backend/internal/modules/identity"
 	"github.com/Faysal9991/mega-backend/internal/modules/identity/httpapi"
 	identitypg "github.com/Faysal9991/mega-backend/internal/modules/identity/postgres"
+	"github.com/Faysal9991/mega-backend/internal/modules/live"
+	livehttp "github.com/Faysal9991/mega-backend/internal/modules/live/httpapi"
+	livepg "github.com/Faysal9991/mega-backend/internal/modules/live/postgres"
+	liveprovider "github.com/Faysal9991/mega-backend/internal/modules/live/provider"
 	"github.com/Faysal9991/mega-backend/internal/modules/wallet"
 	wallethttp "github.com/Faysal9991/mega-backend/internal/modules/wallet/httpapi"
 	walletpg "github.com/Faysal9991/mega-backend/internal/modules/wallet/postgres"
@@ -41,6 +46,10 @@ func run(ctx context.Context, lookup config.LookupEnv, stdout, stderr io.Writer,
 		if err != nil {
 			return databaseRuntime{}, err
 		}
+		liveConfig, err := config.LoadLive(lookup)
+		if err != nil {
+			return databaseRuntime{}, err
+		}
 		pool, err := postgres.Open(ctx, cfg)
 		if err != nil {
 			return databaseRuntime{}, err
@@ -55,7 +64,29 @@ func run(ctx context.Context, lookup config.LookupEnv, stdout, stderr io.Writer,
 			pool.Close()
 			return databaseRuntime{}, err
 		}
-		financial, err := walletpg.New(pool, nil)
+
+		var source agency.ActivitySource
+		limits := live.Limits{DatabaseTimeout: liveConfig.Limits.DatabaseTimeout, Capacity: liveConfig.Limits.Capacity, Seats: liveConfig.Limits.Seats, TokenTTL: liveConfig.Limits.TokenTTL, ProviderTimeout: liveConfig.Limits.ProviderTimeout, EventAge: liveConfig.Limits.EventAge, Compatibility: live.Compatibility(liveConfig.Limits.Compatibility)}
+		liveRepo, err := livepg.New(pool, limits)
+		if err != nil {
+			pool.Close()
+			return databaseRuntime{}, err
+		}
+		var provider live.Provider = liveprovider.Unavailable{}
+		var verifier livehttp.Verifier = liveprovider.Unavailable{}.Verify
+		if liveConfig.Enabled {
+			client := liveprovider.New(liveConfig.URL, liveConfig.Key, liveConfig.Secret)
+			provider = client
+			verifier = client.Verify
+			source = liveRepo
+		}
+		liveService, err := live.New(liveRepo, provider, limits, liveConfig.URL)
+		if err != nil {
+			pool.Close()
+			return databaseRuntime{}, err
+		}
+
+		financial, err := walletpg.New(pool, source)
 		if err != nil {
 			pool.Close()
 			return databaseRuntime{}, err
@@ -64,7 +95,10 @@ func run(ctx context.Context, lookup config.LookupEnv, stdout, stderr io.Writer,
 			if err := repository.Ready(check); err != nil {
 				return err
 			}
-			return financial.Ready(check)
+			if err := financial.Ready(check); err != nil {
+				return err
+			}
+			return liveRepo.Ready(check)
 		}, pool.Close); err != nil {
 			return databaseRuntime{}, err
 		}
@@ -97,6 +131,13 @@ func run(ctx context.Context, lookup config.LookupEnv, stdout, stderr io.Writer,
 				return err
 			}
 			wh.Mount(router)
+			if liveService != nil {
+				lh, err := livehttp.New(liveService, verifier, logger)
+				if err != nil {
+					return err
+				}
+				lh.Mount(router)
+			}
 			return nil
 		}}, nil
 	})

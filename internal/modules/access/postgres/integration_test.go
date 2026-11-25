@@ -99,7 +99,7 @@ func TestIntegrationProfilesAuthorization(t *testing.T) {
 		for _, statement := range []string{
 			"DELETE FROM app.access_audit WHERE actor=ANY($1::text[])", "DELETE FROM app.access_owners WHERE account_id=ANY($1::text[])", "DELETE FROM app.access_assignments WHERE account_id=ANY($1::text[])",
 			"DELETE FROM app.identity_refresh_tokens WHERE session_id IN (SELECT id FROM app.identity_sessions WHERE account_id=ANY($1::text[]))",
-			"DELETE FROM app.identity_sessions WHERE account_id=ANY($1::text[])", "DELETE FROM app.identity_proofs WHERE account_id=ANY($1::text[])", "DELETE FROM app.identity_google WHERE account_id=ANY($1::text[])", "DELETE FROM app.identity_accounts WHERE id=ANY($1::text[])"} {
+			"DELETE FROM app.identity_sessions WHERE account_id=ANY($1::text[])", "DELETE FROM app.identity_proofs WHERE account_id=ANY($1::text[])", "DELETE FROM app.identity_google WHERE account_id=ANY($1::text[])", "DELETE FROM app.live_account_restrictions WHERE account_id=ANY($1::text[])", "DELETE FROM app.agency_activity_contexts WHERE account_id=ANY($1::text[]) OR agency_id=ANY($1::text[])", "DELETE FROM app.identity_accounts WHERE id=ANY($1::text[])"} {
 			if _, e := operator.Exec(cleanup, statement, accounts); e != nil {
 				t.Error("tracked account cleanup failed")
 			}

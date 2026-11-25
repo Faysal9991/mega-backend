@@ -1,4 +1,4 @@
-//go:build redis_integration
+//go:build integration || redis_integration
 
 package main
 
@@ -18,7 +18,7 @@ import (
 )
 
 // Only synthetic accounts in the acknowledged isolated database; no live Google exchange.
-func step9RedisFixture(t *testing.T) (access.Credentials, string, func(bool)) {
+func step9RedisFixture(t *testing.T, extra ...string) (access.Credentials, string, func(bool)) {
 	t.Helper()
 	if os.Getenv("BIHO_INTEGRATION_ACK") != "biho_live_test" {
 		t.Fatal("isolated DB acknowledgment required")
@@ -63,7 +63,7 @@ func step9RedisFixture(t *testing.T) (access.Credentials, string, func(bool)) {
 	t.Cleanup(func() {
 		cleanup, stop := context.WithTimeout(context.Background(), 20*time.Second)
 		defer stop()
-		for _, sql := range []string{"DELETE FROM app.access_audit WHERE actor=ANY($1::text[])", "DELETE FROM app.access_owners WHERE account_id=ANY($1::text[])", "DELETE FROM app.access_assignments WHERE account_id=ANY($1::text[])", "DELETE FROM app.identity_sessions WHERE account_id=ANY($1::text[])", "DELETE FROM app.identity_google WHERE account_id=ANY($1::text[])", "DELETE FROM app.identity_accounts WHERE id=ANY($1::text[])"} {
+		for _, sql := range []string{"DELETE FROM app.access_audit WHERE actor=ANY($1::text[])", "DELETE FROM app.access_owners WHERE account_id=ANY($1::text[])", "DELETE FROM app.access_assignments WHERE account_id=ANY($1::text[])", "DELETE FROM app.identity_sessions WHERE account_id=ANY($1::text[])", "DELETE FROM app.identity_google WHERE account_id=ANY($1::text[])", "DELETE FROM app.live_account_restrictions WHERE account_id=ANY($1::text[])", "DELETE FROM app.agency_activity_contexts WHERE account_id=ANY($1::text[]) OR agency_id=ANY($1::text[])", "DELETE FROM app.identity_accounts WHERE id=ANY($1::text[])"} {
 			if _, e := operator.Exec(cleanup, sql, ids); e != nil {
 				t.Error("tracked Redis-mode account cleanup")
 			}
@@ -118,7 +118,7 @@ func step9RedisFixture(t *testing.T) (access.Credentials, string, func(bool)) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	r, e := service.PutRole(ctx, oc, "", "redis-fixture-"+owner, []string{access.UsersRead, wallet.ReviewPermission}, true, "fixture", "redis-role")
+	r, e := service.PutRole(ctx, oc, "", "redis-fixture-"+owner, append([]string{access.UsersRead, wallet.ReviewPermission}, extra...), true, "fixture", "redis-role")
 	if e != nil {
 		t.Fatal(e)
 	}

@@ -23,7 +23,7 @@ const (
 )
 
 func Catalog() []string {
-	return []string{UsersRead, PrivateRead, ProfileUpdate, Restrict, "economy.policies.read", "economy.policies.write", "wallet.operations.read", "wallet.adjust", "withdrawals.review", "agency.hosts.manage"}
+	return []string{UsersRead, PrivateRead, ProfileUpdate, Restrict, "economy.policies.read", "economy.policies.write", "wallet.operations.read", "wallet.adjust", "withdrawals.review", "agency.hosts.manage", "agencies.manage", "live.rooms.moderate", "live.activity.read", "live.policies.manage"}
 }
 func ID() string {
 	var b [16]byte

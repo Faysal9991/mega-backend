@@ -369,3 +369,9 @@ func (u *unit) require(permissions ...string) error {
 func (r *Repository) Financial(ctx context.Context, c access.Credentials, permission string, owner bool, target string, fn func(context.Context, pgx.Tx, access.Unit) error) error {
 	return r.Within(ctx, c, permission, owner, target, func(u access.Unit) error { return fn(ctx, u.(*unit).transaction, u) })
 }
+
+// Authorized exposes the existing transaction boundary to business modules;
+// authorization and immutable audit remain owned by Access.
+func (r *Repository) Authorized(ctx context.Context, c access.Credentials, permission string, owner bool, target string, fn func(context.Context, pgx.Tx, access.Unit) error) error {
+	return r.Within(ctx, c, permission, owner, target, func(u access.Unit) error { return fn(ctx, u.(*unit).transaction, u) })
+}

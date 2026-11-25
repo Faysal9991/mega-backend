@@ -91,20 +91,6 @@ func (q *Queries) Clock(ctx context.Context) (pgtype.Timestamptz, error) {
 	return now, err
 }
 
-const closeAssociation = `-- name: CloseAssociation :exec
-UPDATE app.agency_host_associations SET effective_until=$2 WHERE account_id=$1 AND effective_until IS NULL
-`
-
-type CloseAssociationParams struct {
-	AccountID      string
-	EffectiveUntil pgtype.Timestamptz
-}
-
-func (q *Queries) CloseAssociation(ctx context.Context, arg CloseAssociationParams) error {
-	_, err := q.db.Exec(ctx, closeAssociation, arg.AccountID, arg.EffectiveUntil)
-	return err
-}
-
 const currentAssociation = `-- name: CurrentAssociation :one
 SELECT id,account_id,agency_id,classification,effective_from,effective_until FROM app.agency_host_associations WHERE account_id=$1 AND effective_from<=clock_timestamp() AND (effective_until IS NULL OR effective_until>clock_timestamp()) ORDER BY effective_from DESC,id DESC LIMIT 1
 `
@@ -238,31 +224,6 @@ INSERT INTO app.wallet_accounts(id,owner_id,kind) VALUES('user:'||$1::text,$1,'u
 
 func (q *Queries) Initialize(ctx context.Context, accountID pgtype.Text) error {
 	_, err := q.db.Exec(ctx, initialize, accountID)
-	return err
-}
-
-const insertAssociation = `-- name: InsertAssociation :exec
-INSERT INTO app.agency_host_associations(id,account_id,agency_id,classification,effective_from,effective_until) VALUES($1,$2,$3,$4,$5,$6)
-`
-
-type InsertAssociationParams struct {
-	ID             string
-	AccountID      string
-	AgencyID       string
-	Classification string
-	EffectiveFrom  pgtype.Timestamptz
-	EffectiveUntil pgtype.Timestamptz
-}
-
-func (q *Queries) InsertAssociation(ctx context.Context, arg InsertAssociationParams) error {
-	_, err := q.db.Exec(ctx, insertAssociation,
-		arg.ID,
-		arg.AccountID,
-		arg.AgencyID,
-		arg.Classification,
-		arg.EffectiveFrom,
-		arg.EffectiveUntil,
-	)
 	return err
 }
 

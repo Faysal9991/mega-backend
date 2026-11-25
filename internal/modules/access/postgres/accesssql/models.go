@@ -38,6 +38,22 @@ type AppAccessRolePermission struct {
 	Permission string
 }
 
+type AppAgency struct {
+	ID        string
+	Name      string
+	Status    string
+	CreatedAt pgtype.Timestamptz
+}
+
+type AppAgencyActivityContext struct {
+	ID         string
+	Revision   pgtype.Int8
+	AccountID  string
+	AgencyID   pgtype.Text
+	StartedAt  pgtype.Timestamptz
+	RecordedAt pgtype.Timestamptz
+}
+
 type AppAgencyHostAssociation struct {
 	ID             string
 	AccountID      string
@@ -45,6 +61,11 @@ type AppAgencyHostAssociation struct {
 	Classification string
 	EffectiveFrom  pgtype.Timestamptz
 	EffectiveUntil pgtype.Timestamptz
+}
+
+type AppAgencyManager struct {
+	AgencyID  string
+	AccountID string
 }
 
 type AppEconomyCommand struct {
@@ -65,6 +86,16 @@ type AppEconomyPolicy struct {
 	CreatedAt   pgtype.Timestamptz
 	ActorID     string
 	Config      []byte
+}
+
+type AppHostApplication struct {
+	ID             string
+	AgencyID       string
+	AccountID      string
+	Classification string
+	State          string
+	CreatedAt      pgtype.Timestamptz
+	DecidedAt      pgtype.Timestamptz
 }
 
 type AppIdentityAccount struct {
@@ -135,6 +166,88 @@ type AppIdentitySession struct {
 	ExpiresAt       pgtype.Timestamptz
 	AuthenticatedAt pgtype.Timestamptz
 	Revoked         bool
+}
+
+type AppLiveAccountRestriction struct {
+	ID           string
+	AccountID    string
+	RestrictedAt pgtype.Timestamptz
+}
+
+type AppLiveCommand struct {
+	ActorID     string
+	Kind        string
+	Key         string
+	Fingerprint string
+	Result      []byte
+}
+
+type AppLiveEvent struct {
+	ID             string
+	Fingerprint    string
+	EventType      string
+	RoomID         string
+	ParticipantSid string
+	ProviderAt     pgtype.Timestamptz
+	ReceivedAt     pgtype.Timestamptz
+}
+
+type AppLiveMember struct {
+	RoomID      string
+	AccountID   string
+	Role        string
+	State       string
+	Muted       bool
+	Seat        pgtype.Int4
+	InvitedSeat pgtype.Int4
+	UpdatedAt   pgtype.Timestamptz
+}
+
+type AppLiveOperation struct {
+	ID         string
+	Sequence   pgtype.Int8
+	RoomID     string
+	Kind       string
+	Target     string
+	State      string
+	LeaseUntil pgtype.Timestamptz
+	Attempts   int32
+	CreatedAt  pgtype.Timestamptz
+}
+
+type AppLivePolicy struct {
+	ID         string
+	PreviousID string
+	ActorID    string
+	Revision   pgtype.Int8
+	Config     []byte
+	CreatedAt  pgtype.Timestamptz
+}
+
+type AppLivePresence struct {
+	ParticipantSid string
+	RoomID         string
+	AccountID      string
+	AssociationID  pgtype.Text
+	Classification string
+	StartedAt      pgtype.Timestamptz
+	EndedAt        pgtype.Timestamptz
+	Qualifying     bool
+	ValidUntil     pgtype.Timestamptz
+}
+
+type AppLiveRoom struct {
+	ID          string
+	SessionID   string
+	ProviderSid string
+	OwnerID     string
+	Kind        string
+	Title       string
+	State       string
+	Capacity    int32
+	Seats       int32
+	CreatedAt   pgtype.Timestamptz
+	ClosedAt    pgtype.Timestamptz
 }
 
 type AppProfile struct {

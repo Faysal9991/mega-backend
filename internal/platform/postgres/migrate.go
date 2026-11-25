@@ -35,7 +35,7 @@ func NewMigrator(cfg config.DatabaseConfig) (*Migrator, error) {
 	db := stdlib.OpenDB(*conn)
 	db.SetMaxOpenConns(1)
 	db.SetMaxIdleConns(1)
-	locker, err := lock.NewPostgresSessionLocker(lock.WithLockTimeout(1, 10), lock.WithUnlockTimeout(1, 5))
+	locker, err := lock.NewPostgresSessionLocker(lock.WithLockTimeout(1, 60), lock.WithUnlockTimeout(1, 5))
 	if err != nil {
 		_ = db.Close()
 		return nil, errors.New("postgres: migration lock configuration failed")

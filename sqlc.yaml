@@ -45,3 +45,21 @@ sql:
         out: internal/modules/wallet/postgres/walletsql
         sql_package: pgx/v5
         emit_empty_slices: true
+  - engine: postgresql
+    schema: database/migrations
+    queries: database/queries/live
+    gen:
+      go:
+        package: livesql
+        out: internal/modules/live/postgres/livesql
+        sql_package: pgx/v5
+        emit_empty_slices: true
+  - engine: postgresql
+    schema: database/migrations
+    queries: database/queries/agency
+    gen:
+      go:
+        package: agencysql
+        out: internal/modules/agency/postgres/agencysql
+        sql_package: pgx/v5
+        emit_empty_slices: true

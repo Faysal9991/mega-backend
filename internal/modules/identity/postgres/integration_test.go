@@ -18,6 +18,7 @@ import (
 	"github.com/Faysal9991/mega-backend/internal/platform/apperror"
 	"github.com/Faysal9991/mega-backend/internal/platform/config"
 	platform "github.com/Faysal9991/mega-backend/internal/platform/postgres"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
@@ -59,7 +60,7 @@ func TestIntegrationIdentitySecurity(t *testing.T) {
 	if err := migrator.Up(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if v, err := migrator.Version(ctx); err != nil || v != 4 {
+	if v, err := migrator.Version(ctx); err != nil || v != 8 {
 		t.Fatal("identity migration version")
 	}
 	pool, err := platform.Open(ctx, app)
@@ -75,6 +76,19 @@ func TestIntegrationIdentitySecurity(t *testing.T) {
 	var database, role string
 	if err := pool.QueryRow(ctx, "SELECT current_database(),current_user").Scan(&database, &role); err != nil || database != "biho_live_test" || role != "biho_live_test_app" {
 		t.Fatal("authenticated test target mismatch")
+	}
+	operatorConfig, err := platform.ConnectionConfig(migration)
+	if err != nil {
+		t.Fatal("isolated operator configuration")
+	}
+	operator, err := pgx.ConnectConfig(ctx, operatorConfig)
+	if err != nil {
+		t.Fatal("isolated operator connection")
+	}
+	defer operator.Close(context.Background())
+	var operatorDB, operatorRole string
+	if err := operator.QueryRow(ctx, "SELECT current_database(),current_user").Scan(&operatorDB, &operatorRole); err != nil || operatorDB != "biho_live_test" || operatorRole != "biho_live_test_migrator" {
+		t.Fatal("isolated operator identity")
 	}
 	repo, err := New(pool)
 	if err != nil {
@@ -129,6 +143,12 @@ func TestIntegrationIdentitySecurity(t *testing.T) {
 			rows.Close()
 		}
 		// Only random tracked accounts/installations from this run, no global reset.
+		if _, err := operator.Exec(cleanup, "DELETE FROM app.agency_activity_contexts WHERE account_id=ANY($1::text[]) OR agency_id=ANY($1::text[])", accountIDs); err != nil {
+			t.Error("tracked activity context cleanup failed")
+		}
+		if _, err := operator.Exec(cleanup, "DELETE FROM app.live_account_restrictions WHERE account_id=ANY($1::text[])", accountIDs); err != nil {
+			t.Error("tracked restriction history cleanup failed")
+		}
 		for _, statement := range []string{
 			"DELETE FROM app.identity_refresh_tokens WHERE session_id IN (SELECT id FROM app.identity_sessions WHERE account_id=ANY($1::text[]))",
 			"DELETE FROM app.identity_sessions WHERE account_id=ANY($1::text[])",

@@ -7,12 +7,12 @@ import (
 
 	"github.com/Faysal9991/mega-backend/internal/modules/access"
 	"github.com/Faysal9991/mega-backend/internal/modules/agency"
+	agencypg "github.com/Faysal9991/mega-backend/internal/modules/agency/postgres"
 	"github.com/Faysal9991/mega-backend/internal/modules/wallet"
 	"github.com/Faysal9991/mega-backend/internal/modules/wallet/postgres/accounts"
 	"github.com/Faysal9991/mega-backend/internal/modules/wallet/postgres/walletsql"
 	"github.com/Faysal9991/mega-backend/internal/platform/apperror"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 func (r *Repository) Execute(ctx context.Context, c access.Credentials, in wallet.Command) (out any, err error) {
@@ -122,8 +122,15 @@ func (r *Repository) Execute(ctx context.Context, c access.Credentials, in walle
 				if a.EffectiveUntil != nil && (current.AgencyID != a.AgencyID || current.Classification != a.Classification || !current.EffectiveFrom.Time.Equal(a.EffectiveFrom)) {
 					return wallet.Error(apperror.Conflict)
 				}
-				if e := q.CloseAssociation(ctx, walletsql.CloseAssociationParams{AccountID: a.AccountID, EffectiveUntil: timestamp(closeAt)}); e != nil {
-					return e
+				writer := agencypg.Bind(tx)
+				if a.EffectiveUntil != nil {
+					if e := writer.LeaveAt(ctx, a.AccountID, closeAt); e != nil {
+						return e
+					}
+				} else {
+					if e := writer.CloseAt(ctx, a.AccountID, closeAt); e != nil {
+						return e
+					}
 				}
 				if a.EffectiveUntil != nil {
 					a.ID = current.ID
@@ -134,11 +141,7 @@ func (r *Repository) Execute(ctx context.Context, c access.Credentials, in walle
 				return e
 			}
 			a.ID = access.ID()
-			var until pgtype.Timestamptz
-			if a.EffectiveUntil != nil {
-				until = timestamp(*a.EffectiveUntil)
-			}
-			if e := q.InsertAssociation(ctx, walletsql.InsertAssociationParams{ID: a.ID, AccountID: a.AccountID, AgencyID: a.AgencyID, Classification: a.Classification, EffectiveFrom: timestamp(a.EffectiveFrom), EffectiveUntil: until}); e != nil {
+			if e := agencypg.Bind(tx).InsertAt(ctx, agencypg.Record{ID: a.ID, AccountID: a.AccountID, AgencyID: a.AgencyID, Classification: a.Classification, From: a.EffectiveFrom, Until: a.EffectiveUntil}); e != nil {
 				return e
 			}
 			out = a

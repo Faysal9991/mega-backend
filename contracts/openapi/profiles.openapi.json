@@ -4903,7 +4903,7 @@
         "properties": {
           "permissions": {
             "type": "array",
-            "maxItems": 10,
+            "maxItems": 14,
             "uniqueItems": true,
             "items": {
               "enum": [
@@ -4916,7 +4916,11 @@
                 "wallet.operations.read",
                 "wallet.adjust",
                 "withdrawals.review",
-                "agency.hosts.manage"
+                "agency.hosts.manage",
+                "agencies.manage",
+                "live.rooms.moderate",
+                "live.activity.read",
+                "live.policies.manage"
               ]
             }
           },
@@ -4946,7 +4950,7 @@
           },
           "permissions": {
             "type": "array",
-            "maxItems": 10,
+            "maxItems": 14,
             "uniqueItems": true,
             "items": {
               "enum": [
@@ -4959,7 +4963,11 @@
                 "wallet.operations.read",
                 "wallet.adjust",
                 "withdrawals.review",
-                "agency.hosts.manage"
+                "agency.hosts.manage",
+                "agencies.manage",
+                "live.rooms.moderate",
+                "live.activity.read",
+                "live.policies.manage"
               ]
             }
           }
@@ -4985,7 +4993,7 @@
           },
           "permissions": {
             "type": "array",
-            "maxItems": 10,
+            "maxItems": 14,
             "uniqueItems": true,
             "items": {
               "enum": [
@@ -4998,7 +5006,11 @@
                 "wallet.operations.read",
                 "wallet.adjust",
                 "withdrawals.review",
-                "agency.hosts.manage"
+                "agency.hosts.manage",
+                "agencies.manage",
+                "live.rooms.moderate",
+                "live.activity.read",
+                "live.policies.manage"
               ]
             }
           },

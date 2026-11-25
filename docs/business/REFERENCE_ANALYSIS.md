@@ -1,0 +1,5 @@
+# Reference evidence for the authorized backend batch
+
+No legacy source checkout, recorded legacy commit or production/mobile evidence is available in this workspace. No legacy endpoint, host policy, commission, conversion rate or schema is inferred. Owner-approved requirements remain the implementation authority.
+
+For the 2026-11-25 LiveKit/agency batch, the inspected greenfield baseline is main 645c75c. Relevant evidence is its existing agency calculator/current-month ADR 0011, Wallet transactional activity snapshot and association references, Step 9 scoped security/audit boundary, typed configuration, SQL/query generation and isolated fixture guards. This is fresh backend extension, not a Python port or compatibility bridge. Current behavior and deliberate restrictive defaults are specified in ADR 0012 and architecture/LIVE_AGENCY.md; actual checks and unresolved policies are recorded in architecture/LIVE_AGENCY_VERIFICATION.md. Real LiveKit/mobile E2E and independent reviews are separate evidence gates.
