@@ -3,7 +3,11 @@ package postgres
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
+	"github.com/Faysal9991/mega-backend/internal/modules/delivery/postgres/bindings"
+	"github.com/Faysal9991/mega-backend/internal/modules/delivery/postgres/intents"
 	"github.com/Faysal9991/mega-backend/internal/modules/identity"
 	"github.com/Faysal9991/mega-backend/internal/modules/identity/postgres/identitysql"
 	liveeffects "github.com/Faysal9991/mega-backend/internal/modules/live/postgres/restrictions"
@@ -150,10 +154,19 @@ func (s *store) ConsumeProof(ctx context.Context, hash string, p identity.Proof)
 	return mapped(e)
 }
 func (s *store) CreateSession(ctx context.Context, v identity.Session, access string) error {
+	if e := bindings.OwnInstallation(ctx, s.transaction, v.Installation, v.Account); e != nil {
+		return mapped(e)
+	}
 	if err := s.q.PruneSessions(ctx, v.Account); err != nil {
 		return mapped(err)
 	}
-	return mapped(s.q.CreateSession(ctx, identitysql.CreateSessionParams{ID: v.ID, AccountID: v.Account, InstallationID: v.Installation, AccessHash: access}))
+	if e := bindings.Prune(ctx, s.transaction, v.Account); e != nil {
+		return mapped(e)
+	}
+	if e := s.q.CreateSession(ctx, identitysql.CreateSessionParams{ID: v.ID, AccountID: v.Account, InstallationID: v.Installation, AccessHash: access}); e != nil {
+		return mapped(e)
+	}
+	return mapped(intents.Notify(ctx, s.transaction, v.Account, "account_event", newEventID()))
 }
 func (s *store) AddRefresh(ctx context.Context, hash, id string) error {
 	return mapped(s.q.AddRefresh(ctx, identitysql.AddRefreshParams{TokenHash: hash, SessionID: id}))
@@ -174,10 +187,19 @@ func (s *store) Access(ctx context.Context, hash, installation string) (identity
 	return identity.Principal{SessionID: v.SessionID, Account: identity.Account{ID: v.AccountID, Status: "active", DisplayName: v.DisplayName, Email: v.ContactEmail, Avatar: v.AvatarUrl}}, mapped(e)
 }
 func (s *store) RevokeSession(ctx context.Context, id string) error {
-	return mapped(s.q.RevokeSession(ctx, id))
+	if e := s.q.RevokeSession(ctx, id); e != nil {
+		return mapped(e)
+	}
+	return mapped(bindings.Session(ctx, s.transaction, id))
 }
 func (s *store) RevokeAll(ctx context.Context, id string) error {
-	return mapped(s.q.RevokeAll(ctx, id))
+	if e := s.q.RevokeAll(ctx, id); e != nil {
+		return mapped(e)
+	}
+	if e := bindings.Account(ctx, s.transaction, id); e != nil {
+		return mapped(e)
+	}
+	return mapped(intents.Notify(ctx, s.transaction, id, "account_event", newEventID()))
 }
 func (s *store) Rate(ctx context.Context, scope string) (int32, error) {
 	v, e := s.q.Rate(ctx, scope)
@@ -220,7 +242,11 @@ func (r *Repository) RestrictInstallation(ctx context.Context, id string) error 
 		if _, err := tx.EnsureInstallation(ctx, id); err != nil {
 			return err
 		}
-		return mapped(tx.(*store).q.RestrictInstallation(ctx, id))
+		st := tx.(*store)
+		if e := st.q.RestrictInstallation(ctx, id); e != nil {
+			return mapped(e)
+		}
+		return mapped(bindings.Installation(ctx, st.transaction, id))
 	})
 }
 
@@ -269,4 +295,12 @@ func (s *Security) SetRestriction(ctx context.Context, id string, restricted boo
 		return s.s.RevokeAll(ctx, id)
 	}
 	return nil
+}
+
+func newEventID() string {
+	var b [16]byte
+	if _, e := rand.Read(b[:]); e != nil {
+		panic("identity: entropy unavailable")
+	}
+	return hex.EncodeToString(b[:])
 }

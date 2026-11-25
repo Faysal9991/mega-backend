@@ -114,3 +114,7 @@ Wallet is the single diamond write owner; its PostgreSQL adapter reuses Access's
 ## Authorized LiveKit / agency batch (2026-11-25)
 
 Owner request at baseline 645c75c authorizes live-room management, agency workflows and verified activity. Detailed boundaries, safe recovery and limits are in [LIVE_AGENCY.md](LIVE_AGENCY.md) and ADR 0012. The live application uses provider interfaces and PostgreSQL-backed state; the existing pure agency calculator and single Wallet Engine remain owners of eligibility calculation and financial writes. LiveKit performs media transport. Clustering/provisioning, frontend/UI and unrelated business modules remain deferred. Review and real provider E2E remain separate gates.
+
+## Authorized delivery extension
+
+The c749cec owner batch adds delivery contracts/application adapters and a separately owned cmd/worker for gift data, push and asset GC outboxes. Wallet alone posts finances; Live resolves room eligibility; Profile alone attaches avatar URLs; Identity owns sessions/restrictions and atomically invokes binding/notification effects. The API imports only S3 provider code; Firebase initializes in the worker. No network/image work holds financial or authority transactions. See ADR 0014 / DELIVERY_BATCH.md for ordering, leases, bounds, private-media configuration and explicit real-provider/review gates.

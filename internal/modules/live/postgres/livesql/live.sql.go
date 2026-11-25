@@ -668,6 +668,36 @@ func (q *Queries) Existing(ctx context.Context, arg ExistingParams) (ExistingRow
 	return i, err
 }
 
+const giftPresence = `-- name: GiftPresence :many
+SELECT DISTINCT p.account_id FROM app.live_presence p WHERE p.room_id=$1 AND p.started_at IS NOT NULL AND p.ended_at IS NULL AND p.valid_until IS NULL AND (p.account_id=$2::text OR p.account_id=$3::text AND p.qualifying AND p.association_id=(SELECT id FROM app.agency_host_associations WHERE account_id=$3::text AND effective_until IS NULL AND effective_from<=clock_timestamp())) LIMIT 2
+`
+
+type GiftPresenceParams struct {
+	RoomID    string
+	Sender    string
+	Recipient string
+}
+
+func (q *Queries) GiftPresence(ctx context.Context, arg GiftPresenceParams) ([]string, error) {
+	rows, err := q.db.Query(ctx, giftPresence, arg.RoomID, arg.Sender, arg.Recipient)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var account_id string
+		if err := rows.Scan(&account_id); err != nil {
+			return nil, err
+		}
+		items = append(items, account_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const historicalAssociation = `-- name: HistoricalAssociation :one
 SELECT id,account_id,agency_id,classification,effective_from,effective_until FROM app.agency_host_associations WHERE id=$1
 `

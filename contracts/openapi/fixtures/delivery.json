@@ -1,0 +1,77 @@
+[
+  {
+    "schema": "GiftRequest",
+    "body": {
+      "code": "rose",
+      "name": "Rose",
+      "description": "Synthetic",
+      "diamond_price": 100,
+      "category": "standard",
+      "thumbnail_asset_id": "",
+      "animation_url": "",
+      "active": true,
+      "display_order": 1,
+      "previous_version_id": "",
+      "reason": "Synthetic catalog"
+    }
+  },
+  {
+    "schema": "SendGiftRequest",
+    "body": {
+      "session_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "recipient_id": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "gift_id": "cccccccccccccccccccccccccccccccc",
+      "quantity": 2
+    }
+  },
+  {
+    "schema": "UploadRequest",
+    "body": {
+      "purpose": "avatar",
+      "content_type": "image/png",
+      "size_bytes": 100,
+      "sha256": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    }
+  },
+  {
+    "schema": "Preferences",
+    "body": {
+      "gift_received": false,
+      "agency_decision": false,
+      "account_event": false,
+      "room_invitation": false,
+      "admin_announcement": false
+    }
+  },
+  {
+    "schema": "AttachRequest",
+    "body": {
+      "expected_asset_id": ""
+    }
+  },
+  {
+    "schema": "DeviceRequest",
+    "body": {
+      "platform": "android",
+      "token": "synthetic-registration-token"
+    }
+  },
+  {
+    "schema": "AnnouncementRequest",
+    "body": {
+      "account_ids": [
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      ],
+      "template": "maintenance",
+      "reason": "Synthetic maintenance"
+    }
+  },
+  {
+    "schema": "RecipientPolicyRequest",
+    "body": {
+      "previous_policy_id": "",
+      "mode": "active_publishers",
+      "reason": "Synthetic policy"
+    }
+  }
+]

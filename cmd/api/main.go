@@ -15,6 +15,10 @@ import (
 	accesshttp "github.com/Faysal9991/mega-backend/internal/modules/access/httpapi"
 	accesspg "github.com/Faysal9991/mega-backend/internal/modules/access/postgres"
 	"github.com/Faysal9991/mega-backend/internal/modules/agency"
+	"github.com/Faysal9991/mega-backend/internal/modules/delivery"
+	deliveryhttp "github.com/Faysal9991/mega-backend/internal/modules/delivery/httpapi"
+	deliverypg "github.com/Faysal9991/mega-backend/internal/modules/delivery/postgres"
+	"github.com/Faysal9991/mega-backend/internal/modules/delivery/providers/objectstore"
 	"github.com/Faysal9991/mega-backend/internal/modules/identity"
 	"github.com/Faysal9991/mega-backend/internal/modules/identity/httpapi"
 	identitypg "github.com/Faysal9991/mega-backend/internal/modules/identity/postgres"
@@ -47,6 +51,10 @@ func run(ctx context.Context, lookup config.LookupEnv, stdout, stderr io.Writer,
 			return databaseRuntime{}, err
 		}
 		liveConfig, err := config.LoadLive(lookup)
+		if err != nil {
+			return databaseRuntime{}, err
+		}
+		deliveryConfig, err := config.LoadDelivery(lookup, cfg.Environment)
 		if err != nil {
 			return databaseRuntime{}, err
 		}
@@ -91,6 +99,20 @@ func run(ctx context.Context, lookup config.LookupEnv, stdout, stderr io.Writer,
 			pool.Close()
 			return databaseRuntime{}, err
 		}
+		var objects delivery.ObjectStore = delivery.UnavailableStore{}
+		var closeObjects func()
+		if deliveryConfig.MediaEnabled {
+			client := objectstore.NewS3(deliveryConfig.Endpoint, deliveryConfig.Region, deliveryConfig.Bucket, deliveryConfig.AccessKey, deliveryConfig.SecretKey.Value(), deliveryConfig.PathStyle)
+			objects = client
+			closeObjects = func() { _ = client.Close() }
+		}
+		deliveryRepo, err := deliverypg.New(pool, liveRepo, objects, deliveryConfig)
+		if err != nil {
+			pool.Close()
+			return databaseRuntime{}, err
+		}
+		financial.WithRoomGifts(deliveryRepo)
+
 		if err := checkIdentitySchema(ctx, cfg.ConnectTimeout, func(check context.Context) error {
 			if err := repository.Ready(check); err != nil {
 				return err
@@ -98,7 +120,10 @@ func run(ctx context.Context, lookup config.LookupEnv, stdout, stderr io.Writer,
 			if err := financial.Ready(check); err != nil {
 				return err
 			}
-			return liveRepo.Ready(check)
+			if err := liveRepo.Ready(check); err != nil {
+				return err
+			}
+			return deliveryRepo.Ready(check)
 		}, pool.Close); err != nil {
 			return databaseRuntime{}, err
 		}
@@ -107,7 +132,12 @@ func run(ctx context.Context, lookup config.LookupEnv, stdout, stderr io.Writer,
 			pool.Close()
 			return databaseRuntime{}, err
 		}
-		return databaseRuntime{close: pool.Close, available: availability.Available, register: func(router chi.Router, logger *slog.Logger) error {
+		return databaseRuntime{close: func() {
+			if closeObjects != nil {
+				closeObjects()
+			}
+			pool.Close()
+		}, available: availability.Available, register: func(router chi.Router, logger *slog.Logger) error {
 			handler, err := httpapi.New(service, logger)
 			if err != nil {
 				return err
@@ -138,6 +168,11 @@ func run(ctx context.Context, lookup config.LookupEnv, stdout, stderr io.Writer,
 				}
 				lh.Mount(router)
 			}
+			dh, err := deliveryhttp.New(deliveryRepo, wallet.New(financial), logger)
+			if err != nil {
+				return err
+			}
+			dh.Mount(router)
 			return nil
 		}}, nil
 	})

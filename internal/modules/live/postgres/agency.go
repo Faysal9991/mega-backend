@@ -9,6 +9,7 @@ import (
 	"github.com/Faysal9991/mega-backend/internal/modules/access"
 	"github.com/Faysal9991/mega-backend/internal/modules/access/postgres/accesssql"
 	agencypg "github.com/Faysal9991/mega-backend/internal/modules/agency/postgres"
+	"github.com/Faysal9991/mega-backend/internal/modules/delivery/postgres/intents"
 	identitypg "github.com/Faysal9991/mega-backend/internal/modules/identity/postgres"
 	"github.com/Faysal9991/mega-backend/internal/modules/live"
 	"github.com/Faysal9991/mega-backend/internal/modules/live/postgres/livesql"
@@ -164,6 +165,9 @@ func (r *Repository) agencyCommand(ctx context.Context, tx pgx.Tx, q *livesql.Qu
 		}
 		decided, e := q.Decide(ctx, livesql.DecideParams{ID: in.ID, State: in.Status})
 		out.Data = application(decided)
+		if e == nil {
+			e = intents.Notify(ctx, tx, v.AccountID, "agency_decision", v.ID)
+		}
 		return out, e
 	case "host.leave":
 		a, e := q.Association(ctx, u.Actor())

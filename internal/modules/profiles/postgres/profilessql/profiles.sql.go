@@ -9,6 +9,20 @@ import (
 	"context"
 )
 
+const attachAvatar = `-- name: AttachAvatar :exec
+UPDATE app.profiles SET avatar_url=$2 WHERE account_id=$1
+`
+
+type AttachAvatarParams struct {
+	AccountID string
+	AvatarUrl string
+}
+
+func (q *Queries) AttachAvatar(ctx context.Context, arg AttachAvatarParams) error {
+	_, err := q.db.Exec(ctx, attachAvatar, arg.AccountID, arg.AvatarUrl)
+	return err
+}
+
 const initialize = `-- name: Initialize :exec
 INSERT INTO app.profiles(account_id,display_name,avatar_url) VALUES($1,$2,$3)
 `

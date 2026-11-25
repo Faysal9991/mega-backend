@@ -1,0 +1,33 @@
+[
+  {
+    "schema": "gifts_listEnvelope",
+    "body": {
+      "success": true,
+      "code": "DELIVERY_REQUEST_COMPLETED",
+      "data": [],
+      "request_id": "delivery-test",
+      "meta": {
+        "pagination": {
+          "limit": 20,
+          "next_cursor": null,
+          "has_more": false
+        }
+      }
+    }
+  },
+  {
+    "schema": "preferences_getEnvelope",
+    "body": {
+      "success": true,
+      "code": "DELIVERY_REQUEST_COMPLETED",
+      "data": {
+        "gift_received": false,
+        "agency_decision": false,
+        "account_event": false,
+        "room_invitation": false,
+        "admin_announcement": false
+      },
+      "request_id": "delivery-test"
+    }
+  }
+]

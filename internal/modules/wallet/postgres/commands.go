@@ -72,6 +72,7 @@ func (r *Repository) Execute(ctx context.Context, c access.Credentials, in walle
 		var total, fee int64
 		var operationID string
 		var approvedEligibility wallet.Eligibility
+		var catalogSnapshot GiftCatalogSnapshot
 		audit := false
 		fields := []string{}
 		action := in.Kind
@@ -243,6 +244,15 @@ func (r *Repository) Execute(ctx context.Context, c access.Credentials, in walle
 						return e
 					}
 				}
+				if in.RoomID != "" {
+					if r.gifts == nil {
+						return wallet.Error(wallet.ConfigurationRequired)
+					}
+					catalogSnapshot, e = r.gifts.Resolve(ctx, tx, actor, in)
+					if e != nil {
+						return e
+					}
+				}
 				p, e = policy(ctx, q, "gift", scope)
 				if e != nil {
 					if errors.Is(e, pgx.ErrNoRows) {
@@ -254,6 +264,10 @@ func (r *Repository) Execute(ctx context.Context, c access.Credentials, in walle
 					return wallet.Error(wallet.ConfigurationRequired)
 				}
 				price, ok := p.Catalog[in.GiftID]
+				if in.RoomID != "" {
+					price = catalogSnapshot.Price
+					ok = price > 0
+				}
 				if !ok {
 					return wallet.Error(apperror.NotFound)
 				}
@@ -360,6 +374,11 @@ func (r *Repository) Execute(ctx context.Context, c access.Credentials, in walle
 			}
 			if e := post(ctx, q, operation, deltas); e != nil {
 				return e
+			}
+			if in.Kind == "gift" && in.RoomID != "" {
+				if e := r.gifts.Record(ctx, tx, operationID, actor, in, total, catalogSnapshot); e != nil {
+					return e
+				}
 			}
 			if in.Kind == "withdrawal" {
 				snapshotRaw, e := json.Marshal(approvedEligibility)

@@ -1,0 +1,5176 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Biho gifting, media and notification delivery",
+    "version": "0.1.0",
+    "description": "Owner-authorized batch at c749cec; independent Wallet/LiveKit reviews pending. int64 diamonds/quantities are exact JSON integer tokens. All timestamps UTC RFC3339. Missing providers fail closed; delivery is at least once, event IDs must be deduplicated. Display-order/ID catalog cursor follows current catalog ordering; edits between pages may change results. Other lists use ascending immutable IDs. Nullable optional description/asset/animation references clear those values; upload target omitted/null means authenticated actor. Originals private; provider/CDN configuration requires separate verification. Preferences explicitly opt in, default false. Real Garage, FCM and LiveKit data E2E NOT TESTED."
+  },
+  "servers": [
+    {
+      "url": "/api/v1"
+    }
+  ],
+  "paths": {
+    "/gifts": {
+      "get": {
+        "operationId": "gifts_list",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Installation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "x-integer-json-token": true,
+              "default": 20
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Invalid JSON or request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated or revoked binding",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version/state/idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported media type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation or financial configuration/funds failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate/admission/quota limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Bounded safe response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/gifts_listEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/gifts/{id}": {
+      "get": {
+        "operationId": "gift_get",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Installation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Invalid JSON or request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated or revoked binding",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version/state/idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported media type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation or financial configuration/funds failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate/admission/quota limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Bounded safe response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/gift_getEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rooms/{id}/gifts": {
+      "post": {
+        "operationId": "gift_send",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Installation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9_.:-]+(?![\\s\\S])"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Invalid JSON or request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated or revoked binding",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version/state/idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported media type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation or financial configuration/funds failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate/admission/quota limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Committed financial operation and independent delivery status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/gift_sendEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendGiftRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/gift-history": {
+      "get": {
+        "operationId": "gift_history",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Installation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "x-integer-json-token": true,
+              "default": 20
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Invalid JSON or request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated or revoked binding",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version/state/idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported media type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation or financial configuration/funds failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate/admission/quota limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Bounded safe response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/gift_historyEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/gifts": {
+      "get": {
+        "operationId": "admin_gifts_list",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Installation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "x-integer-json-token": true,
+              "default": 20
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Invalid JSON or request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated or revoked binding",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version/state/idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported media type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation or financial configuration/funds failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate/admission/quota limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Bounded safe response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/admin_gifts_listEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "gift_create",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Installation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9_-]+(?![\\s\\S])"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Invalid JSON or request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated or revoked binding",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version/state/idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported media type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation or financial configuration/funds failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate/admission/quota limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Bounded safe response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/gift_createEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GiftRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/gifts/{id}": {
+      "put": {
+        "operationId": "gift_update",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Installation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9_-]+(?![\\s\\S])"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Invalid JSON or request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated or revoked binding",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version/state/idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported media type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation or financial configuration/funds failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate/admission/quota limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Bounded safe response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/gift_updateEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GiftRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/gift-recipient-policies": {
+      "post": {
+        "operationId": "recipient_policy",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Installation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9_-]+(?![\\s\\S])"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Invalid JSON or request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated or revoked binding",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version/state/idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported media type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation or financial configuration/funds failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate/admission/quota limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Bounded safe response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/recipient_policyEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecipientPolicyRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/gift-history": {
+      "get": {
+        "operationId": "admin_gift_history",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Installation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "x-integer-json-token": true,
+              "default": 20
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Invalid JSON or request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated or revoked binding",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version/state/idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported media type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation or financial configuration/funds failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate/admission/quota limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Bounded safe response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/admin_gift_historyEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/media/upload-intents": {
+      "post": {
+        "operationId": "upload_intent",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Installation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9_-]+(?![\\s\\S])"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Invalid JSON or request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated or revoked binding",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version/state/idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported media type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation or financial configuration/funds failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate/admission/quota limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Bounded safe response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/upload_intentEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/media/assets/{id}": {
+      "get": {
+        "operationId": "asset_get",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Installation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Invalid JSON or request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated or revoked binding",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version/state/idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported media type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation or financial configuration/funds failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate/admission/quota limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Bounded safe response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/asset_getEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/media/assets/{id}/complete": {
+      "post": {
+        "operationId": "asset_complete",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Installation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Invalid JSON or request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated or revoked binding",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version/state/idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported media type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation or financial configuration/funds failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate/admission/quota limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Bounded safe response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/asset_completeEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Empty"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/media/assets/{id}/attachment": {
+      "put": {
+        "operationId": "asset_attach",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Installation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9_-]+(?![\\s\\S])"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Invalid JSON or request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated or revoked binding",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version/state/idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported media type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation or financial configuration/funds failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate/admission/quota limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Bounded safe response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/asset_attachEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttachRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/media/attachments/{purpose}/{target}": {
+      "get": {
+        "operationId": "attachment_get",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Installation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "purpose",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "avatar",
+                "agency_logo"
+              ]
+            }
+          },
+          {
+            "name": "target",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Invalid JSON or request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated or revoked binding",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version/state/idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported media type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation or financial configuration/funds failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate/admission/quota limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Bounded safe response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/attachment_getEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/push/device": {
+      "put": {
+        "operationId": "device_register",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Installation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Invalid JSON or request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated or revoked binding",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version/state/idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported media type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation or financial configuration/funds failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate/admission/quota limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Bounded safe response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/device_registerEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "device_remove",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Installation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Invalid JSON or request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated or revoked binding",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version/state/idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported media type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation or financial configuration/funds failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate/admission/quota limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Bounded safe response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/device_removeEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notification-preferences": {
+      "get": {
+        "operationId": "preferences_get",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Installation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Invalid JSON or request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated or revoked binding",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version/state/idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported media type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation or financial configuration/funds failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate/admission/quota limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Bounded safe response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/preferences_getEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "preferences_put",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Installation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Invalid JSON or request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated or revoked binding",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version/state/idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported media type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation or financial configuration/funds failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate/admission/quota limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Bounded safe response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/preferences_putEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Preferences"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notifications": {
+      "get": {
+        "operationId": "notifications_list",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Installation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "x-integer-json-token": true,
+              "default": 20
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Invalid JSON or request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated or revoked binding",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version/state/idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported media type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation or financial configuration/funds failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate/admission/quota limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Bounded safe response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/notifications_listEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/announcements": {
+      "post": {
+        "operationId": "announcement_create",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Installation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9_-]+(?![\\s\\S])"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Invalid JSON or request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated or revoked binding",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version/state/idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported media type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation or financial configuration/funds failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate/admission/quota limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Bounded safe response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/announcement_createEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnnouncementRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/deliveries": {
+      "get": {
+        "operationId": "delivery_list",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Installation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "x-integer-json-token": true,
+              "default": 20
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Invalid JSON or request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated or revoked binding",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version/state/idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported media type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation or financial configuration/funds failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate/admission/quota limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Bounded safe response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/delivery_listEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/deliveries/{id}/retry": {
+      "post": {
+        "operationId": "delivery_retry",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Installation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 128
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[A-Za-z0-9_-]+(?![\\s\\S])"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Invalid JSON or request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated or revoked binding",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Version/state/idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Body too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported media type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation or financial configuration/funds failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate/admission/quota limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Dependency unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Bounded safe response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/delivery_retryEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RetryRequest"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "Bearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "schemas": {
+      "Empty": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      },
+      "GiftRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{0,31}(?![\\s\\S])"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "x-utf8-byte-length": {
+              "min": 1,
+              "max": 128
+            },
+            "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 1024,
+                "x-utf8-byte-length": {
+                  "min": 0,
+                  "max": 1024
+                },
+                "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "diamond_price": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9223372036854775807,
+            "x-integer-json-token": true
+          },
+          "category": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "x-utf8-byte-length": {
+              "min": 1,
+              "max": 64
+            },
+            "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])"
+          },
+          "thumbnail_asset_id": {
+            "oneOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+              },
+              {
+                "const": ""
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "animation_url": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 512,
+                "x-utf8-byte-length": {
+                  "min": 0,
+                  "max": 512
+                },
+                "pattern": "^(?:|https://[^/:?#@\\s]+/[^?#\\s]*\\.(?:json|webm|gif))(?![\\s\\S])"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "display_order": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000000,
+            "x-integer-json-token": true
+          },
+          "previous_version_id": {
+            "oneOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+              },
+              {
+                "const": ""
+              }
+            ]
+          },
+          "reason": {
+            "$ref": "live.openapi.json#/components/schemas/Reason/properties/reason"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "diamond_price",
+          "category",
+          "active",
+          "display_order",
+          "previous_version_id",
+          "reason"
+        ]
+      },
+      "RecipientPolicyRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "previous_policy_id": {
+            "oneOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+              },
+              {
+                "const": ""
+              }
+            ]
+          },
+          "mode": {
+            "const": "active_publishers"
+          },
+          "reason": {
+            "$ref": "live.openapi.json#/components/schemas/Reason/properties/reason"
+          }
+        },
+        "required": [
+          "previous_policy_id",
+          "mode",
+          "reason"
+        ]
+      },
+      "SendGiftRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+          },
+          "recipient_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+          },
+          "gift_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9223372036854775807,
+            "x-integer-json-token": true
+          }
+        },
+        "required": [
+          "session_id",
+          "recipient_id",
+          "gift_id",
+          "quantity"
+        ]
+      },
+      "UploadRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "purpose": {
+            "enum": [
+              "avatar",
+              "agency_logo",
+              "gift_thumbnail"
+            ]
+          },
+          "target_id": {
+            "oneOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+              },
+              {
+                "const": ""
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "content_type": {
+            "enum": [
+              "image/png",
+              "image/jpeg"
+            ]
+          },
+          "size_bytes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2097152,
+            "x-integer-json-token": true
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9+/]{43}=(?![\\s\\S])"
+          }
+        },
+        "required": [
+          "purpose",
+          "content_type",
+          "size_bytes",
+          "sha256"
+        ]
+      },
+      "AttachRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "expected_asset_id": {
+            "oneOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+              },
+              {
+                "const": ""
+              }
+            ]
+          }
+        },
+        "required": [
+          "expected_asset_id"
+        ]
+      },
+      "DeviceRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "platform": {
+            "enum": [
+              "android",
+              "ios"
+            ]
+          },
+          "token": {
+            "type": "string",
+            "minLength": 16,
+            "maxLength": 4096,
+            "x-utf8-byte-length": {
+              "min": 16,
+              "max": 4096
+            },
+            "pattern": "^[^\\s\\u0000-\\u001f\\u007f]{16,4096}(?![\\s\\S])"
+          },
+          "previous_access_token": {
+            "oneOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]{43}(?![\\s\\S])"
+              },
+              {
+                "const": ""
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Only for an explicit account switch: valid access proof for the currently bound session on the same installation. Not persisted or returned. Ordinary logout clears the prior binding; an installation ID alone never permits cross-account overwrite."
+          }
+        },
+        "required": [
+          "platform",
+          "token"
+        ]
+      },
+      "Preferences": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "gift_received": {
+            "type": "boolean"
+          },
+          "agency_decision": {
+            "type": "boolean"
+          },
+          "account_event": {
+            "type": "boolean"
+          },
+          "room_invitation": {
+            "type": "boolean"
+          },
+          "admin_announcement": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "gift_received",
+          "agency_decision",
+          "account_event",
+          "room_invitation",
+          "admin_announcement"
+        ]
+      },
+      "AnnouncementRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "account_ids": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 100,
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+            }
+          },
+          "template": {
+            "enum": [
+              "maintenance",
+              "service_update",
+              "community_update"
+            ]
+          },
+          "reason": {
+            "$ref": "live.openapi.json#/components/schemas/Reason/properties/reason"
+          }
+        },
+        "required": [
+          "account_ids",
+          "template",
+          "reason"
+        ]
+      },
+      "RetryRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "$ref": "live.openapi.json#/components/schemas/Reason/properties/reason"
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
+      "Gift": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "gift_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+          },
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32,
+            "x-utf8-byte-length": {
+              "min": 1,
+              "max": 32
+            },
+            "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])"
+          },
+          "version_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "x-utf8-byte-length": {
+              "min": 1,
+              "max": 128
+            },
+            "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 1024,
+            "x-utf8-byte-length": {
+              "min": 0,
+              "max": 1024
+            },
+            "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])"
+          },
+          "diamond_price": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9223372036854775807,
+            "x-integer-json-token": true
+          },
+          "category": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "x-utf8-byte-length": {
+              "min": 1,
+              "max": 64
+            },
+            "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])"
+          },
+          "thumbnail_asset_id": {
+            "oneOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+              },
+              {
+                "const": ""
+              }
+            ]
+          },
+          "thumbnail_url": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 640,
+            "x-utf8-byte-length": {
+              "min": 0,
+              "max": 640
+            },
+            "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])"
+          },
+          "animation_url": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 512,
+            "x-utf8-byte-length": {
+              "min": 0,
+              "max": 512
+            },
+            "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "display_order": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000000,
+            "x-integer-json-token": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "gift_id",
+          "code",
+          "version_id",
+          "name",
+          "description",
+          "diamond_price",
+          "category",
+          "thumbnail_asset_id",
+          "thumbnail_url",
+          "animation_url",
+          "active",
+          "display_order",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      "Asset": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "asset_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+          },
+          "purpose": {
+            "enum": [
+              "avatar",
+              "agency_logo",
+              "gift_thumbnail"
+            ]
+          },
+          "state": {
+            "enum": [
+              "pending",
+              "processing",
+              "ready",
+              "failed",
+              "retiring",
+              "deleted"
+            ]
+          },
+          "url": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 640,
+            "x-utf8-byte-length": {
+              "min": 0,
+              "max": 640
+            },
+            "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])"
+          },
+          "thumbnail_url": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 640,
+            "x-utf8-byte-length": {
+              "min": 0,
+              "max": 640
+            },
+            "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])"
+          },
+          "width": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4096,
+            "x-integer-json-token": true
+          },
+          "height": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4096,
+            "x-integer-json-token": true
+          },
+          "size_bytes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 8388608,
+            "x-integer-json-token": true
+          },
+          "error_code": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 64,
+            "x-utf8-byte-length": {
+              "min": 0,
+              "max": 64
+            },
+            "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "asset_id",
+          "purpose",
+          "state",
+          "url",
+          "thumbnail_url",
+          "width",
+          "height",
+          "size_bytes",
+          "error_code",
+          "expires_at"
+        ]
+      },
+      "Upload": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "asset": {
+            "$ref": "#/components/schemas/Asset"
+          },
+          "upload_url": {
+            "type": "string"
+          },
+          "required_headers": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "upload_expires_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "asset",
+          "upload_url",
+          "required_headers",
+          "upload_expires_at"
+        ]
+      },
+      "Attachment": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "asset_id": {
+            "oneOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+              },
+              {
+                "const": ""
+              }
+            ]
+          },
+          "url": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 640,
+            "x-utf8-byte-length": {
+              "min": 0,
+              "max": 640
+            },
+            "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])"
+          },
+          "thumbnail_url": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 640,
+            "x-utf8-byte-length": {
+              "min": 0,
+              "max": 640
+            },
+            "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])"
+          }
+        },
+        "required": [
+          "asset_id",
+          "url",
+          "thumbnail_url"
+        ]
+      },
+      "SendGift": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "financial_operation": {
+            "$ref": "wallet.openapi.json#/components/schemas/Detail"
+          },
+          "financial_status": {
+            "const": "committed"
+          },
+          "delivery_status": {
+            "const": "not_confirmed"
+          }
+        },
+        "required": [
+          "financial_operation",
+          "financial_status",
+          "delivery_status"
+        ]
+      },
+      "Policy": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "policy_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+          },
+          "mode": {
+            "const": "active_publishers"
+          }
+        },
+        "required": [
+          "policy_id",
+          "mode"
+        ]
+      },
+      "Registered": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "registered": {
+            "const": true
+          }
+        },
+        "required": [
+          "registered"
+        ]
+      },
+      "Removed": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "removed": {
+            "const": true
+          }
+        },
+        "required": [
+          "removed"
+        ]
+      },
+      "Announcement": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "announcement_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+          },
+          "accepted_accounts": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100,
+            "x-integer-json-token": true
+          },
+          "delivery_status": {
+            "const": "pending"
+          }
+        },
+        "required": [
+          "announcement_id",
+          "accepted_accounts",
+          "delivery_status"
+        ]
+      },
+      "Retried": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "delivery_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+          },
+          "state": {
+            "const": "pending"
+          }
+        },
+        "required": [
+          "delivery_id",
+          "state"
+        ]
+      },
+      "Event": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+          },
+          "type": {
+            "const": "room.gift.v1"
+          },
+          "operation_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+          },
+          "room_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+          },
+          "session_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+          },
+          "sender": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "account_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+              },
+              "display_name": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 256,
+                "x-utf8-byte-length": {
+                  "min": 0,
+                  "max": 256
+                },
+                "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])"
+              }
+            },
+            "required": [
+              "account_id",
+              "display_name"
+            ]
+          },
+          "recipient": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "account_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+              },
+              "display_name": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 256,
+                "x-utf8-byte-length": {
+                  "min": 0,
+                  "max": 256
+                },
+                "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])"
+              }
+            },
+            "required": [
+              "account_id",
+              "display_name"
+            ]
+          },
+          "gift_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+          },
+          "gift_version_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9223372036854775807,
+            "x-integer-json-token": true
+          },
+          "committed_diamonds": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9223372036854775807,
+            "x-integer-json-token": true
+          },
+          "animation_url": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 512,
+            "x-utf8-byte-length": {
+              "min": 0,
+              "max": 512
+            },
+            "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "event_id",
+          "type",
+          "operation_id",
+          "room_id",
+          "session_id",
+          "sender",
+          "recipient",
+          "gift_id",
+          "gift_version_id",
+          "quantity",
+          "committed_diamonds",
+          "animation_url",
+          "created_at"
+        ]
+      },
+      "GiftHistory": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "event": {
+            "$ref": "#/components/schemas/Event"
+          },
+          "financial_status": {
+            "const": "committed"
+          },
+          "delivery_status": {
+            "enum": [
+              "pending",
+              "running",
+              "delivered",
+              "skipped",
+              "failed"
+            ],
+            "description": "delivered means provider accepted the data request; no per-participant animation receipt is asserted."
+          }
+        },
+        "required": [
+          "event",
+          "financial_status",
+          "delivery_status"
+        ]
+      },
+      "Notification": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "notification_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+          },
+          "type": {
+            "enum": [
+              "gift_received",
+              "agency_decision",
+              "account_event",
+              "room_invitation",
+              "admin_announcement"
+            ]
+          },
+          "reference": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "x-utf8-byte-length": {
+              "min": 1,
+              "max": 64
+            },
+            "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])"
+          },
+          "template": {
+            "enum": [
+              "",
+              "maintenance",
+              "service_update",
+              "community_update"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "notification_id",
+          "type",
+          "reference",
+          "template",
+          "created_at"
+        ]
+      },
+      "Delivery": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "delivery_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+          },
+          "topic": {
+            "enum": [
+              "gift",
+              "push",
+              "media_gc"
+            ]
+          },
+          "aggregate_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "x-utf8-byte-length": {
+              "min": 1,
+              "max": 128
+            },
+            "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])"
+          },
+          "state": {
+            "enum": [
+              "pending",
+              "running",
+              "delivered",
+              "skipped",
+              "failed"
+            ]
+          },
+          "attempts": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10,
+            "x-integer-json-token": true
+          },
+          "error_code": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 64,
+            "x-utf8-byte-length": {
+              "min": 0,
+              "max": 64
+            },
+            "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "delivery_id",
+          "topic",
+          "aggregate_id",
+          "state",
+          "attempts",
+          "error_code",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      "gifts_listEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "DELIVERY_REQUEST_COMPLETED"
+          },
+          "data": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/Gift"
+            }
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          },
+          "meta": {
+            "$ref": "common.openapi.json#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id",
+          "meta"
+        ]
+      },
+      "gift_getEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "DELIVERY_REQUEST_COMPLETED"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Gift"
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      },
+      "gift_sendEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "DELIVERY_REQUEST_COMPLETED"
+          },
+          "data": {
+            "$ref": "#/components/schemas/SendGift"
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      },
+      "gift_historyEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "DELIVERY_REQUEST_COMPLETED"
+          },
+          "data": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/GiftHistory"
+            }
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          },
+          "meta": {
+            "$ref": "common.openapi.json#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id",
+          "meta"
+        ]
+      },
+      "admin_gifts_listEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "DELIVERY_REQUEST_COMPLETED"
+          },
+          "data": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/Gift"
+            }
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          },
+          "meta": {
+            "$ref": "common.openapi.json#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id",
+          "meta"
+        ]
+      },
+      "gift_createEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "DELIVERY_REQUEST_COMPLETED"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Gift"
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      },
+      "gift_updateEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "DELIVERY_REQUEST_COMPLETED"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Gift"
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      },
+      "recipient_policyEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "DELIVERY_REQUEST_COMPLETED"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Policy"
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      },
+      "admin_gift_historyEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "DELIVERY_REQUEST_COMPLETED"
+          },
+          "data": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/GiftHistory"
+            }
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          },
+          "meta": {
+            "$ref": "common.openapi.json#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id",
+          "meta"
+        ]
+      },
+      "upload_intentEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "DELIVERY_REQUEST_COMPLETED"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Upload"
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      },
+      "asset_getEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "DELIVERY_REQUEST_COMPLETED"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Asset"
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      },
+      "asset_completeEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "DELIVERY_REQUEST_COMPLETED"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Asset"
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      },
+      "asset_attachEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "DELIVERY_REQUEST_COMPLETED"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Asset"
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      },
+      "attachment_getEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "DELIVERY_REQUEST_COMPLETED"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Attachment"
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      },
+      "device_registerEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "DELIVERY_REQUEST_COMPLETED"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Registered"
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      },
+      "device_removeEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "DELIVERY_REQUEST_COMPLETED"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Removed"
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      },
+      "preferences_getEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "DELIVERY_REQUEST_COMPLETED"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Preferences"
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      },
+      "preferences_putEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "DELIVERY_REQUEST_COMPLETED"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Preferences"
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      },
+      "notifications_listEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "DELIVERY_REQUEST_COMPLETED"
+          },
+          "data": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/Notification"
+            }
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          },
+          "meta": {
+            "$ref": "common.openapi.json#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id",
+          "meta"
+        ]
+      },
+      "announcement_createEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "DELIVERY_REQUEST_COMPLETED"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Announcement"
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      },
+      "delivery_listEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "DELIVERY_REQUEST_COMPLETED"
+          },
+          "data": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/Delivery"
+            }
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          },
+          "meta": {
+            "$ref": "common.openapi.json#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id",
+          "meta"
+        ]
+      },
+      "delivery_retryEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "DELIVERY_REQUEST_COMPLETED"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Retried"
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      }
+    }
+  }
+}

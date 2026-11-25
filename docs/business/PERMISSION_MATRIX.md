@@ -65,3 +65,18 @@ The fixed catalog is now the four Step 9 user permissions plus these six financi
 All staff grants use Step 9 authoritative persisted assignment/revocation. Privileged and ordinary domain mutations persist audit in the same transaction as state/idempotency/provider intent. Financial activity thresholds still require existing Wallet policy permissions/protected-owner boundary; the new policy permission does not bypass that authority. No admin UI is implemented.
 
 Agency profile administration does not itself confer global host-application approval: that requires agency.hosts.manage or the target agency's intrinsic owner/delegated manager authority. Staff self-delegation, host self-approval and self-classification are denied. Account restriction atomically revokes sessions, ends local room membership/seats and records an immutable activity ceiling plus pending provider-removal intent. Unrestriction cannot revive prior sessions/activity; physical media convergence remains explicit provider work.
+
+## Delivery batch at c749cec (ADR 0014)
+
+| Action | Authority |
+| --- | --- |
+| List current active catalog, send to eligible verified publisher, own gift history | Current authenticated account; room/recipient authority additionally rechecked by Live under Wallet transaction |
+| Catalog create/version/deactivate/order/category and explicit recipient mode | gifts.manage; reason, actor/operation idempotency, previous-version CAS and audit |
+| Own avatar intent/completion/attachment | Current session/account, own asset/target; approved state and expected previous asset ID |
+| Agency/gift upload purposes | media.manage; agency logo target additionally agencies.manage; ordinary agency ownership alone is insufficient |
+| Agency logo attachment | media.manage + agencies.manage, matching asset target; audit |
+| Device registration/removal and preferences/history | Own current authenticated installation/session/account; no client actor/installation override |
+| Fixed-template announcement (max100 explicit accounts) | notifications.announce + atomic audit/idempotency |
+| Safe delivery inspection / failed-intent replay | deliveries.read / deliveries.retry respectively; replay additionally reason/audit/idempotency, never money posting |
+
+Protected owner inherits the fixed 19-permission catalog through existing authorization; this is not independent review acceptance. Business roles and premium/room roles never grant these scopes. Worker credentials perform only trusted persisted intent processing; network calls hold no authority transaction. Tokens, credentials and raw provider errors have no response projection.

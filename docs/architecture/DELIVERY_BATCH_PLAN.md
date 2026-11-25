@@ -1,0 +1,12 @@
+# Authorized gifting/media/push batch
+
+Baseline main c749cec, clean worktree, 2026-11-25. Owner explicitly authorizes this batch beyond previous deferrals. Wallet and LiveKit independent reviews remain pending.
+
+1. Add catalog/version, room-gift snapshot/outbox, private media intent/attachment and encrypted push binding/preference/delivery schema with indexed bounded SQL.
+2. Keep Wallet the only financial writer: narrow transaction-bound live-gift resolution/committed-intent hooks; retain allocation, policy validation, idempotency, ledger, locks and rounding. Live owns room eligibility; Profiles owns avatar updates.
+3. Add optional official S3/FCM adapters, bounded image processing, strict mobile/admin APIs, and an explicitly owned outbox worker with fenced leases, backoff, bounded concurrency and graceful shutdown.
+4. Add pure/provider/HTTP/race and guarded serial PostgreSQL checks; one final complete local verification chain; report actual outcomes in DELIVERY_BATCH_VERIFICATION.md.
+
+No provider provisioning, production access, deployment, commit, push or UI. Banner uploads remain unsupported because the existing Profile has no banner. Animation references are explicitly permitted administrative HTTPS references; image uploads accept only JPEG/PNG. Live gifting requires explicitly configured recipient mode and existing financial distribution/VAT policy. No rates are seeded. Ordinary wallet non-room gift operations retain their earlier contract and do not emit live-room animations. Media/push remain optional at startup. Runtime secrets and object/push credentials never enter public projections or logs. Stop at implemented/review pending with real-provider E2E and operational/load acceptance separate.
+
+Implementation complete for review. Final local/default/race/build/vet/sqlc/all-five-OpenAPI/format/diff checks passed. Final-source delivery/worker recovery, Wallet, Live, Access, Identity and actual API PostgreSQL/race checks passed. The initial schema9 cycle passed, but the final predicate-index cycle failed at startup identity verification and its retry exceeded the unchanged fixture deadline. Schema9 completion, exact fixture cleanup and both partial indexes are separately verified; full final rollback-cycle acceptance remains pending. Exact outcomes/corrections are in the consolidated report. No review approval, live-provider delivery or deployment is implied.

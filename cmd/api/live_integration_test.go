@@ -21,8 +21,8 @@ import (
 // fixture. No real Redis/LiveKit credentials or remote cache acknowledgement is
 // needed, and no server shared with another application is stopped.
 func TestIntegrationLiveAPIUnavailableCache(t *testing.T) {
-	credentials, _, assign := step9RedisFixture(t, live.RoomModerate, live.AgencyManage, live.PolicyManage)
-	values := map[string]string{"APP_ENV": "test", "LOG_FORMAT": "json", "LIVEKIT_ENABLED": "false", "REDIS_ENABLED": "true", "REDIS_STARTUP_TIMEOUT": "100ms", "REDIS_DIAL_TIMEOUT": "50ms", "HTTP_REQUEST_TIMEOUT": "30s", "LIVE_DATABASE_TIMEOUT": "30s"}
+	credentials, _, assign := step9RedisFixture(t, live.RoomModerate, live.AgencyManage, live.PolicyManage, "gifts.manage", "deliveries.read")
+	values := map[string]string{"APP_ENV": "test", "LOG_FORMAT": "json", "LIVEKIT_ENABLED": "false", "REDIS_ENABLED": "true", "REDIS_STARTUP_TIMEOUT": "100ms", "REDIS_DIAL_TIMEOUT": "50ms", "HTTP_REQUEST_TIMEOUT": "30s", "LIVE_DATABASE_TIMEOUT": "30s", "DELIVERY_DATABASE_TIMEOUT": "30s"}
 	for _, key := range []string{"HOST", "PORT", "NAME", "USER", "PASSWORD", "SSLMODE", "SSLROOTCERT", "MAX_CONNS", "CONNECT_TIMEOUT"} {
 		if v, ok := os.LookupEnv("TEST_DB_" + key); ok {
 			values["DB_"+key] = v
@@ -92,12 +92,14 @@ func TestIntegrationLiveAPIUnavailableCache(t *testing.T) {
 			t.Fatalf("actual API %s status=%d wanted=%d", path, res.StatusCode, want)
 		}
 	}
-	for _, path := range []string{"/api/v1/rooms?limit=1", "/api/v1/agency-membership/history?limit=1", "/api/v1/admin/rooms?limit=1", "/api/v1/admin/agencies?limit=1", "/api/v1/admin/live-policies", "/api/v1/wallet", "/health/ready"} {
+	for _, path := range []string{"/api/v1/rooms?limit=1", "/api/v1/agency-membership/history?limit=1", "/api/v1/admin/rooms?limit=1", "/api/v1/admin/agencies?limit=1", "/api/v1/admin/live-policies", "/api/v1/wallet", "/api/v1/gifts?limit=1", "/api/v1/admin/gifts?limit=1", "/api/v1/notification-preferences", "/api/v1/notifications?limit=1", "/api/v1/admin/deliveries?limit=1", "/health/ready"} {
 		request(path, 200)
 	}
 	assign(false)
 	request("/api/v1/admin/rooms?limit=1", 403)
 	request("/api/v1/admin/agencies?limit=1", 403)
+	request("/api/v1/admin/gifts?limit=1", 403)
+	request("/api/v1/admin/deliveries?limit=1", 403)
 	request("/api/v1/rooms?limit=1", 200)
 	assign(true)
 	request("/api/v1/admin/rooms?limit=1", 200)

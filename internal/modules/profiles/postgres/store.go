@@ -31,3 +31,9 @@ func (s *Store) Update(ctx context.Context, id string, p profiles.Patch) (profil
 	v, e := s.q.Update(ctx, in)
 	return profiles.Profile{AccountID: v.AccountID, DisplayName: v.DisplayName, Bio: v.Bio, AvatarURL: v.AvatarUrl}, e
 }
+
+// AttachAvatar accepts only a server-validated approved asset URL supplied by the
+// media application in the same authorized attachment transaction.
+func (s *Store) AttachAvatar(ctx context.Context, id, url string) error {
+	return s.q.AttachAvatar(ctx, profilessql.AttachAvatarParams{AccountID: id, AvatarUrl: url})
+}

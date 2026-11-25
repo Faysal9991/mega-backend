@@ -240,7 +240,11 @@ func TestIntegrationFinancialEngine(t *testing.T) {
 			t.Error("tracked role cleanup")
 			return
 		}
-		if _, e := tx.Exec(cleanup, "DELETE FROM app.agency_activity_contexts WHERE account_id=ANY($1::text[]) OR agency_id=ANY($1::text[])", "DELETE FROM app.identity_accounts WHERE id=ANY($1::text[])", accountIDs); e != nil {
+		if _, e := tx.Exec(cleanup, "DELETE FROM app.agency_activity_contexts WHERE account_id=ANY($1::text[]) OR agency_id=ANY($1::text[])", accountIDs); e != nil {
+			t.Error("tracked identity cleanup")
+			return
+		}
+		if _, e := tx.Exec(cleanup, "DELETE FROM app.identity_accounts WHERE id=ANY($1::text[])", accountIDs); e != nil {
 			t.Error("tracked identity cleanup")
 			return
 		}

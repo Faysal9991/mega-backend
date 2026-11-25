@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/Faysal9991/mega-backend/internal/modules/access"
+	"github.com/Faysal9991/mega-backend/internal/modules/delivery/postgres/intents"
 	"github.com/Faysal9991/mega-backend/internal/modules/live"
 	"github.com/Faysal9991/mega-backend/internal/modules/live/postgres/livesql"
 	"github.com/Faysal9991/mega-backend/internal/platform/apperror"
@@ -206,6 +207,11 @@ func (r *Repository) roomCommand(ctx context.Context, tx pgx.Tx, q *livesql.Quer
 	}
 	if !live.CanPublish(room(v), next) {
 		if e := q.InvalidatePresence(ctx, livesql.InvalidatePresenceParams{RoomID: in.ID, AccountID: target}); e != nil {
+			return out, e
+		}
+	}
+	if in.Kind == "seat.invite" {
+		if e := intents.Notify(ctx, tx, target, "room_invitation", in.Key); e != nil {
 			return out, e
 		}
 	}

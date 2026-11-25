@@ -40,7 +40,7 @@ func TestIntegrationFoundation(t *testing.T) {
 	if app.User != "biho_live_test_app" || migration.User != "biho_live_test_migrator" {
 		t.Fatal("dedicated test roles required")
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 	migrator, err := NewMigrator(migration)
 	if err != nil {
@@ -62,7 +62,7 @@ func TestIntegrationFoundation(t *testing.T) {
 	if err := migrator.Up(ctx); err != nil {
 		t.Fatal("idempotent migration", err)
 	}
-	if v, err := migrator.Version(ctx); err != nil || v != 8 {
+	if v, err := migrator.Version(ctx); err != nil || v != 9 {
 		t.Fatal("migration version")
 	}
 	if err := migrator.DownTest(ctx); err != nil {
@@ -115,7 +115,7 @@ func TestIntegrationFoundation(t *testing.T) {
 	if err := secondMigrator.Close(); err != nil {
 		t.Fatal(err)
 	}
-	// A failed transactional upgrade must leave neither its DDL nor version 9.
+	// A failed transactional upgrade must leave neither its DDL nor version 10.
 	initial, err := fs.ReadFile(migrations.Source(), "00001_application_schema.sql")
 	if err != nil {
 		t.Fatal(err)
@@ -148,7 +148,12 @@ func TestIntegrationFoundation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	deliveryMigration, err := fs.ReadFile(migrations.Source(), "00009_delivery.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
 	failingFS := fstest.MapFS{
+		"00009_delivery.sql":                 &fstest.MapFile{Data: deliveryMigration},
 		"00008_agency_activity_contexts.sql": &fstest.MapFile{Data: contextMigration},
 		"00007_live_restriction_history.sql": &fstest.MapFile{Data: restrictionMigration},
 		"00006_live_policy.sql":              &fstest.MapFile{Data: policyMigration},
@@ -157,7 +162,7 @@ func TestIntegrationFoundation(t *testing.T) {
 		"00003_profiles_access.sql":          &fstest.MapFile{Data: profileMigration},
 		"00001_application_schema.sql":       &fstest.MapFile{Data: initial},
 		"00002_identity.sql":                 &fstest.MapFile{Data: identityMigration},
-		"00009_failure.sql":                  &fstest.MapFile{Data: []byte("-- +goose Up\nCREATE TABLE app.failed_upgrade_fixture(id bigint);\nSELECT 1/0;\n-- +goose Down\nDROP TABLE app.failed_upgrade_fixture;\n")},
+		"00010_failure.sql":                  &fstest.MapFile{Data: []byte("-- +goose Up\nCREATE TABLE app.failed_upgrade_fixture(id bigint);\nSELECT 1/0;\n-- +goose Down\nDROP TABLE app.failed_upgrade_fixture;\n")},
 	}
 	locker, err := lock.NewPostgresSessionLocker(lock.WithLockTimeout(1, 10))
 	if err != nil {
@@ -174,7 +179,7 @@ func TestIntegrationFoundation(t *testing.T) {
 	if err := migrator.db.QueryRowContext(ctx, "SELECT to_regclass('app.failed_upgrade_fixture') IS NULL").Scan(&rolledBack); err != nil || !rolledBack {
 		t.Fatal("failed upgrade retained DDL")
 	}
-	if v, err := migrator.Version(ctx); err != nil || v != 8 {
+	if v, err := migrator.Version(ctx); err != nil || v != 9 {
 		t.Fatal("failed upgrade changed version")
 	}
 

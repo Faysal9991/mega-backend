@@ -467,3 +467,19 @@ func TestFinancialEffectiveTimestampPrecision(t *testing.T) {
 		t.Fatal("association timestamp precision or caller mutation")
 	}
 }
+
+// Golden from c749cec's Command projection: adding live-room fields must not
+// invalidate previously committed non-room idempotency fingerprints.
+func TestPreDeliveryCommandFingerprintPreserved(t *testing.T) {
+	c := Command{Kind: "gift", Target: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", GiftID: "rose", Quantity: 2}
+	sum, e := Fingerprint(CanonicalCommand(c))
+	if e != nil || sum != "18dd3ac96f68bdbbf6d73b8429cd43ddbaacd9ca8a117dcb18c9bacd71ad5d6a" {
+		t.Fatal("baseline idempotency fingerprint changed", e)
+	}
+	c.RoomID = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+	c.SessionID = "cccccccccccccccccccccccccccccccc"
+	live, e := Fingerprint(CanonicalCommand(c))
+	if e != nil || live == sum {
+		t.Fatal("live gift fingerprint lacks room binding")
+	}
+}

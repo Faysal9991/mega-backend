@@ -132,6 +132,8 @@ type ReadResult struct {
 
 // Command is server-constructed by strict transport DTOs, never decoded directly.
 type Command struct {
+	RoomID                                                                           string `json:"RoomID,omitempty"`
+	SessionID                                                                        string `json:"SessionID,omitempty"`
 	Kind, Target, ID, Key, Reason, Correlation, Reference, Action, GiftID, Direction string
 	Amount, Quantity                                                                 int64
 	Policy                                                                           *Policy
@@ -177,7 +179,7 @@ func (s *Service) Execute(ctx context.Context, c access.Credentials, in Command)
 			return nil, Error(apperror.ValidationFailed)
 		}
 	case "gift":
-		if in.Quantity < 1 || !ValidCatalogID(in.GiftID) || !access.ValidID(in.Target) {
+		if in.Quantity < 1 || !ValidCatalogID(in.GiftID) || !access.ValidID(in.Target) || (in.RoomID != "" || in.SessionID != "") && (!access.ValidID(in.RoomID) || !access.ValidID(in.SessionID)) {
 			return nil, Error(apperror.ValidationFailed)
 		}
 	case "adjust":

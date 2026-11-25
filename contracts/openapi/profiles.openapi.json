@@ -4903,7 +4903,7 @@
         "properties": {
           "permissions": {
             "type": "array",
-            "maxItems": 14,
+            "maxItems": 19,
             "uniqueItems": true,
             "items": {
               "enum": [
@@ -4920,7 +4920,12 @@
                 "agencies.manage",
                 "live.rooms.moderate",
                 "live.activity.read",
-                "live.policies.manage"
+                "live.policies.manage",
+                "gifts.manage",
+                "media.manage",
+                "notifications.announce",
+                "deliveries.read",
+                "deliveries.retry"
               ]
             }
           },
@@ -4950,7 +4955,7 @@
           },
           "permissions": {
             "type": "array",
-            "maxItems": 14,
+            "maxItems": 19,
             "uniqueItems": true,
             "items": {
               "enum": [
@@ -4967,7 +4972,12 @@
                 "agencies.manage",
                 "live.rooms.moderate",
                 "live.activity.read",
-                "live.policies.manage"
+                "live.policies.manage",
+                "gifts.manage",
+                "media.manage",
+                "notifications.announce",
+                "deliveries.read",
+                "deliveries.retry"
               ]
             }
           }
@@ -4993,7 +5003,7 @@
           },
           "permissions": {
             "type": "array",
-            "maxItems": 14,
+            "maxItems": 19,
             "uniqueItems": true,
             "items": {
               "enum": [
@@ -5010,7 +5020,12 @@
                 "agencies.manage",
                 "live.rooms.moderate",
                 "live.activity.read",
-                "live.policies.manage"
+                "live.policies.manage",
+                "gifts.manage",
+                "media.manage",
+                "notifications.announce",
+                "deliveries.read",
+                "deliveries.retry"
               ]
             }
           },

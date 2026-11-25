@@ -68,6 +68,65 @@ type AppAgencyManager struct {
 	AccountID string
 }
 
+type AppDeliveryAnnouncement struct {
+	ID        string
+	Template  string
+	CreatedAt pgtype.Timestamptz
+}
+
+type AppDeliveryAsset struct {
+	ID           string
+	OwnerID      string
+	Purpose      string
+	TargetID     string
+	ObjectKey    string
+	DeclaredType string
+	DeclaredSize int64
+	Checksum     string
+	State        string
+	LeaseID      string
+	LeaseUntil   pgtype.Timestamptz
+	ApprovedKey  string
+	ThumbnailKey string
+	PublicUrl    string
+	Width        int32
+	Height       int32
+	SizeBytes    int64
+	ErrorCode    string
+	ExpiresAt    pgtype.Timestamptz
+	CreatedAt    pgtype.Timestamptz
+	UpdatedAt    pgtype.Timestamptz
+}
+
+type AppDeliveryAssetLink struct {
+	TargetID string
+	Purpose  string
+	AssetID  string
+}
+
+type AppDeliveryCommand struct {
+	ActorID     string
+	Kind        string
+	Key         string
+	Fingerprint string
+	Result      []byte
+}
+
+type AppDeliveryOutbox struct {
+	ID          string
+	Topic       string
+	AggregateID string
+	Payload     []byte
+	State       string
+	Attempts    int32
+	LeaseID     string
+	LeaseUntil  pgtype.Timestamptz
+	AvailableAt pgtype.Timestamptz
+	ErrorCode   string
+	CreatedAt   pgtype.Timestamptz
+	UpdatedAt   pgtype.Timestamptz
+}
+
 type AppEconomyCommand struct {
 	ActorID        string
 	Kind           string
@@ -86,6 +145,38 @@ type AppEconomyPolicy struct {
 	CreatedAt   pgtype.Timestamptz
 	ActorID     string
 	Config      []byte
+}
+
+type AppGiftCatalog struct {
+	ID             string
+	Code           string
+	CurrentVersion pgtype.Text
+	DisplayOrder   int32
+	Active         bool
+	CreatedAt      pgtype.Timestamptz
+}
+
+type AppGiftRecipientPolicy struct {
+	ID         string
+	PreviousID string
+	Mode       string
+	Revision   pgtype.Int8
+	CreatedAt  pgtype.Timestamptz
+}
+
+type AppGiftVersion struct {
+	ID               string
+	GiftID           string
+	Name             string
+	Description      string
+	Price            int64
+	Category         string
+	ThumbnailAssetID pgtype.Text
+	ThumbnailUrl     string
+	AnimationUrl     string
+	Active           bool
+	DisplayOrder     int32
+	CreatedAt        pgtype.Timestamptz
 }
 
 type AppHostApplication struct {
@@ -250,11 +341,52 @@ type AppLiveRoom struct {
 	ClosedAt    pgtype.Timestamptz
 }
 
+type AppNotification struct {
+	ID        string
+	AccountID string
+	Kind      string
+	Reference string
+	CreatedAt pgtype.Timestamptz
+}
+
+type AppNotificationPreference struct {
+	AccountID         string
+	GiftReceived      bool
+	AgencyDecision    bool
+	AccountEvent      bool
+	RoomInvitation    bool
+	AdminAnnouncement bool
+}
+
 type AppProfile struct {
 	AccountID   string
 	DisplayName string
 	Bio         string
 	AvatarUrl   string
+}
+
+type AppPushDevice struct {
+	InstallationID string
+	AccountID      string
+	SessionID      string
+	Platform       string
+	TokenHash      string
+	TokenCipher    []byte
+	ExpiresAt      pgtype.Timestamptz
+	Revision       pgtype.Int8
+	UpdatedAt      pgtype.Timestamptz
+}
+
+type AppRoomGift struct {
+	OperationID string
+	GiftID      string
+	VersionID   string
+	RoomID      string
+	SessionID   string
+	SenderID    string
+	RecipientID string
+	Event       []byte
+	CreatedAt   pgtype.Timestamptz
 }
 
 type AppWalletAccount struct {

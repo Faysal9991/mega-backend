@@ -15,7 +15,10 @@ import (
 	"github.com/Faysal9991/mega-backend/internal/platform/apperror"
 )
 
-type Decoder struct{ maxBytes int64 }
+type Decoder struct {
+	maxBytes  int64
+	snakeCase bool
+}
 
 func NewDecoder(maxBytes int64) (*Decoder, error) {
 	if maxBytes < 1 || maxBytes > 16<<20 {
@@ -78,7 +81,7 @@ func (d *Decoder) Decode(r *http.Request, dst any) error {
 	if first != json.Delim('{') {
 		return apperror.New(apperror.InvalidRequest, nil)
 	}
-	if err := object(probe, 0); err != nil {
+	if err := object(probe, 0, d.snakeCase); err != nil {
 		return apperror.New(apperror.InvalidJSON, err)
 	}
 	if _, err := probe.Token(); err != io.EOF {
@@ -93,7 +96,7 @@ func (d *Decoder) Decode(r *http.Request, dst any) error {
 	return nil
 }
 
-func object(decoder *json.Decoder, depth int) error {
+func object(decoder *json.Decoder, depth int, snakeCase bool) error {
 	seen := map[string]bool{}
 	for decoder.More() {
 		key, err := decoder.Token()
@@ -104,12 +107,19 @@ func object(decoder *json.Decoder, depth int) error {
 		if !ok {
 			return errors.New("invalid object key")
 		}
+		if snakeCase {
+			for i, b := range []byte(name) {
+				if !(b >= 'a' && b <= 'z' || i > 0 && (b >= '0' && b <= '9' || b == '_')) {
+					return errors.New("canonical snake_case object key required")
+				}
+			}
+		}
 		folded := fold(name)
 		if seen[folded] {
 			return errors.New("duplicate object key")
 		}
 		seen[folded] = true
-		if err := jsonValue(decoder, depth+1); err != nil {
+		if err := jsonValue(decoder, depth+1, snakeCase); err != nil {
 			return err
 		}
 	}
@@ -123,7 +133,7 @@ func object(decoder *json.Decoder, depth int) error {
 	return nil
 }
 
-func jsonValue(decoder *json.Decoder, depth int) error {
+func jsonValue(decoder *json.Decoder, depth int, snakeCase bool) error {
 	if depth > 64 {
 		return errors.New("JSON nesting limit exceeded")
 	}
@@ -133,10 +143,10 @@ func jsonValue(decoder *json.Decoder, depth int) error {
 	}
 	switch token {
 	case json.Delim('{'):
-		return object(decoder, depth)
+		return object(decoder, depth, snakeCase)
 	case json.Delim('['):
 		for decoder.More() {
-			if err := jsonValue(decoder, depth+1); err != nil {
+			if err := jsonValue(decoder, depth+1, snakeCase); err != nil {
 				return err
 			}
 		}
@@ -162,4 +172,15 @@ func fold(key string) string {
 		}
 		return smallest
 	}, key)
+}
+
+// NewSnakeCaseDecoder is opt-in for contracts that reject Go's implicit
+// case-insensitive JSON field aliases. Existing endpoint decoding is unchanged.
+func NewSnakeCaseDecoder(maxBytes int64) (*Decoder, error) {
+	d, e := NewDecoder(maxBytes)
+	if e != nil {
+		return nil, e
+	}
+	d.snakeCase = true
+	return d, nil
 }

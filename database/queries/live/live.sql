@@ -139,3 +139,6 @@ FROM app.live_members m JOIN app.identity_accounts i ON i.id=m.account_id
 LEFT JOIN app.agency_host_associations a ON a.account_id=m.account_id AND a.effective_until IS NULL AND a.effective_from<=clock_timestamp()
 LEFT JOIN app.agencies g ON g.id=a.agency_id
 WHERE m.room_id=$1 AND m.account_id=$2;
+
+-- name: GiftPresence :many
+SELECT DISTINCT p.account_id FROM app.live_presence p WHERE p.room_id=$1 AND p.started_at IS NOT NULL AND p.ended_at IS NULL AND p.valid_until IS NULL AND (p.account_id=sqlc.arg(sender)::text OR p.account_id=sqlc.arg(recipient)::text AND p.qualifying AND p.association_id=(SELECT id FROM app.agency_host_associations WHERE account_id=sqlc.arg(recipient)::text AND effective_until IS NULL AND effective_from<=clock_timestamp())) LIMIT 2;

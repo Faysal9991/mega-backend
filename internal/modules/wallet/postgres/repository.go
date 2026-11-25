@@ -30,6 +30,7 @@ type Repository struct {
 	pool   *pgxpool.Pool
 	guard  FinancialGuard
 	source agency.ActivitySource
+	gifts  RoomGifts
 }
 
 func New(pool *pgxpool.Pool, source agency.ActivitySource) (*Repository, error) {
@@ -40,7 +41,7 @@ func New(pool *pgxpool.Pool, source agency.ActivitySource) (*Repository, error) 
 	if source == nil {
 		source = agency.UnavailableSource{}
 	}
-	return &Repository{pool, g, source}, nil
+	return &Repository{pool: pool, guard: g, source: source}, nil
 }
 func timestamp(t time.Time) pgtype.Timestamptz { return pgtype.Timestamptz{Time: t.UTC(), Valid: true} }
 func text(s string) pgtype.Text                { return pgtype.Text{String: s, Valid: true} }
@@ -364,3 +365,16 @@ func post(ctx context.Context, q *walletsql.Queries, operation walletsql.InsertO
 type FinancialGuard interface {
 	Financial(context.Context, access.Credentials, string, bool, string, func(context.Context, pgx.Tx, access.Unit) error) error
 }
+
+// RoomGifts resolves nonfinancial live/catalog authority and records delivery
+// intent inside the Wallet-owned transaction. Implementations cannot post money.
+type GiftCatalogSnapshot struct {
+	Price    int64
+	Snapshot json.RawMessage
+}
+type RoomGifts interface {
+	Resolve(context.Context, pgx.Tx, string, wallet.Command) (GiftCatalogSnapshot, error)
+	Record(context.Context, pgx.Tx, string, string, wallet.Command, int64, GiftCatalogSnapshot) error
+}
+
+func (r *Repository) WithRoomGifts(g RoomGifts) *Repository { r.gifts = g; return r }
