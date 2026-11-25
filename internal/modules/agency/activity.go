@@ -13,12 +13,12 @@ import (
 )
 
 const (
-	AudioHost                      = "audio_host"
-	VideoHost                      = "video_host"
-	AgencyScope                    = "agency"
-	PreviousCompletedCalendarMonth = "previous_completed_calendar_month"
-	InitialQualifyingDays          = 15
-	InitialDailyLiveMinutes        = 120
+	AudioHost               = "audio_host"
+	VideoHost               = "video_host"
+	AgencyScope             = "agency"
+	CurrentCalendarMonth    = "current_calendar_month"
+	InitialQualifyingDays   = 15
+	InitialDailyLiveMinutes = 120
 	// MaxSessions bounds an authoritative monthly snapshot before sorting it.
 	// An adapter must also bound its query and decoding allocation at the source.
 	MaxSessions = 10000
@@ -72,7 +72,7 @@ type Policy struct {
 }
 
 func (p Policy) Validate() error {
-	if !identifier(p.Version) || p.Scope != AgencyScope && !ValidClassification(p.Scope) || p.Period != PreviousCompletedCalendarMonth || p.MinimumQualifyingDays < 1 || p.MinimumQualifyingDays > 31 || p.MinimumDailyLiveMinutes < 1 || p.MinimumDailyLiveMinutes > 1440 || p.EffectiveAt.IsZero() {
+	if !identifier(p.Version) || p.Scope != AgencyScope && !ValidClassification(p.Scope) || p.Period != CurrentCalendarMonth || p.MinimumQualifyingDays < 1 || p.MinimumQualifyingDays > 31 || p.MinimumDailyLiveMinutes < 1 || p.MinimumDailyLiveMinutes > 1440 || p.EffectiveAt.IsZero() {
 		return ErrInvalidPolicy
 	}
 	_, err := p.location()
@@ -133,7 +133,7 @@ type Result struct {
 	PolicyVersion  string    `json:"policy_version"`
 	QualifyingDays int       `json:"qualifying_days"`
 	PeriodStart    time.Time `json:"period_start"`
-	PeriodEnd      time.Time `json:"period_end"`
+	PeriodEnd      time.Time `json:"period_end"` // Authoritative check cutoff, not month-end.
 	Days           []Day     `json:"days"`
 }
 
@@ -278,9 +278,11 @@ func period(policy Policy, now time.Time) (Result, *time.Location, error) {
 		return result, nil, err
 	}
 	local := now.In(location)
-	end := civilBoundary(local.Year(), local.Month(), 1, location)
-	start := civilBoundary(local.Year(), local.Month()-1, 1, location)
-	if start.IsZero() || end.IsZero() || !end.After(start) {
+	start := civilBoundary(local.Year(), local.Month(), 1, location)
+	end := now.UTC()
+	// The exact month boundary is a valid empty window: no previous-month
+	// activity carries over, and no completed segment is invented.
+	if start.IsZero() || end.Before(start) {
 		return result, nil, ErrInvalidPolicy
 	}
 	result.PeriodStart, result.PeriodEnd = start.UTC(), end.UTC()

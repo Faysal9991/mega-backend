@@ -6193,7 +6193,8 @@
             "description": "Explicit fixed IANA business timezone; Local and unknown zones rejected."
           },
           "period": {
-            "const": "previous_completed_calendar_month"
+            "const": "current_calendar_month",
+            "description": "Current business calendar month through the authoritative check cutoff; no wait for month-end."
           },
           "minimum_qualifying_days": {
             "type": "integer",
@@ -6611,7 +6612,8 @@
                 "description": "Explicit fixed IANA business timezone; Local and unknown zones rejected."
               },
               "period": {
-                "const": "previous_completed_calendar_month"
+                "const": "current_calendar_month",
+                "description": "Current business calendar month through the authoritative check cutoff; no wait for month-end."
               },
               "minimum_qualifying_days": {
                 "type": "integer",
@@ -7122,7 +7124,11 @@
             "description": "Explicit fixed IANA business timezone; Local and unknown zones rejected."
           },
           "period": {
-            "const": "previous_completed_calendar_month"
+            "description": "Current month through check cutoff for new policies. The superseded previous-month selector is readable only in immutable historical policy records; it cannot authorize new withdrawals.",
+            "enum": [
+              "current_calendar_month",
+              "previous_completed_calendar_month"
+            ]
           },
           "minimum_qualifying_days": {
             "type": "integer",
@@ -7177,12 +7183,12 @@
           "period_start": {
             "type": "string",
             "format": "date-time",
-            "description": "RFC3339 instant; normalized to UTC."
+            "description": "Start of current month in the configured business timezone, normalized to UTC."
           },
           "period_end": {
             "type": "string",
             "format": "date-time",
-            "description": "RFC3339 instant; normalized to UTC."
+            "description": "Authoritative activity check cutoff (inclusive for completed segment ends), normalized to UTC; not next month-start."
           },
           "days": {
             "type": "array",

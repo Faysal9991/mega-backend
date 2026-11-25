@@ -13,7 +13,7 @@ import (
 const testAccount = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 
 func activityPolicy(scope string) Policy {
-	return Policy{Version: "fixture-policy-1", Scope: scope, Timezone: "Asia/Dhaka", Period: PreviousCompletedCalendarMonth, MinimumQualifyingDays: InitialQualifyingDays, MinimumDailyLiveMinutes: InitialDailyLiveMinutes, EffectiveAt: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)}
+	return Policy{Version: "fixture-policy-1", Scope: scope, Timezone: "Asia/Dhaka", Period: CurrentCalendarMonth, MinimumQualifyingDays: InitialQualifyingDays, MinimumDailyLiveMinutes: InitialDailyLiveMinutes, EffectiveAt: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)}
 }
 func clock() time.Time { return time.Date(2026, 11, 25, 12, 0, 0, 0, time.UTC) }
 func location(t *testing.T, name string) *time.Location {
@@ -29,7 +29,7 @@ func sessionsForDays(t *testing.T, days, minutes int) []Session {
 	loc := location(t, "Asia/Dhaka")
 	sessions := make([]Session, days)
 	for i := range days {
-		start := time.Date(2026, 10, i+1, 10, 0, 0, 0, loc)
+		start := time.Date(2026, 11, i+1, 10, 0, 0, 0, loc)
 		sessions[i] = Session{ID: fmt.Sprintf("fixture-session-%d", i), AccountID: testAccount, Start: start, End: start.Add(time.Duration(minutes) * time.Minute)}
 	}
 	return sessions
@@ -90,19 +90,19 @@ func TestActivityClipsMonthAndSplitsBusinessDays(t *testing.T) {
 	p := activityPolicy(AgencyScope)
 	p.MinimumQualifyingDays = 2
 	loc := location(t, p.Timezone)
-	first := time.Date(2026, 10, 1, 0, 0, 0, 0, loc)
-	last := time.Date(2026, 11, 1, 0, 0, 0, 0, loc)
+	first := time.Date(2026, 11, 1, 0, 0, 0, 0, loc)
+	last := clock()
 	sessions := []Session{
 		{ID: "before-month", AccountID: testAccount, Start: first.Add(-2 * time.Hour), End: first.Add(time.Hour)},
-		{ID: "midnight", AccountID: testAccount, Start: time.Date(2026, 10, 15, 23, 0, 0, 0, loc), End: time.Date(2026, 10, 16, 1, 0, 0, 0, loc)},
-		{ID: "end-month", AccountID: testAccount, Start: last.Add(-2 * time.Hour), End: last.Add(3 * time.Hour)},
-		{ID: "outside", AccountID: testAccount, Start: last.Add(time.Hour), End: last.Add(3 * time.Hour)},
+		{ID: "midnight", AccountID: testAccount, Start: time.Date(2026, 11, 15, 23, 0, 0, 0, loc), End: time.Date(2026, 11, 16, 1, 0, 0, 0, loc)},
+		{ID: "at-check", AccountID: testAccount, Start: last.Add(-2 * time.Hour), End: last},
+		{ID: "outside", AccountID: testAccount, Start: first.Add(-4 * time.Hour), End: first.Add(-time.Hour)},
 	}
 	got, e := Calculate(testAccount, p, clock(), sessions)
 	if e != nil || got.Eligible || got.QualifyingDays != 1 || !got.PeriodStart.Equal(first) || !got.PeriodEnd.Equal(last) {
 		t.Fatalf("month clipping %+v %v", got, e)
 	}
-	want := []Day{{Date: "2026-10-01", VerifiedSeconds: 3600}, {Date: "2026-10-15", VerifiedSeconds: 3600}, {Date: "2026-10-16", VerifiedSeconds: 3600}, {Date: "2026-10-31", VerifiedSeconds: 7200, Qualifies: true}}
+	want := []Day{{Date: "2026-11-01", VerifiedSeconds: 3600}, {Date: "2026-11-15", VerifiedSeconds: 3600}, {Date: "2026-11-16", VerifiedSeconds: 3600}, {Date: "2026-11-25", VerifiedSeconds: 7200, Qualifies: true}}
 	if !reflect.DeepEqual(got.Days, want) {
 		t.Fatalf("day boundaries %+v", got.Days)
 	}
@@ -110,6 +110,38 @@ func TestActivityClipsMonthAndSplitsBusinessDays(t *testing.T) {
 	other, e := Calculate(testAccount, p, clock().In(location(t, "Pacific/Honolulu")), sessions)
 	if e != nil || !reflect.DeepEqual(got, other) {
 		t.Fatal("host clock timezone changed eligibility")
+	}
+}
+
+func TestCurrentMonthQualificationAndReset(t *testing.T) {
+	p := activityPolicy(AudioHost)
+	loc := location(t, p.Timezone)
+	sessions := sessionsForDays(t, 15, 120)
+	// Qualification is immediate on day 15, including a segment completed
+	// exactly at the check cutoff; month-end is not a prerequisite.
+	at := sessions[14].End
+	qualified, err := Calculate(testAccount, p, at, sessions)
+	if err != nil || !qualified.Eligible || qualified.QualifyingDays != 15 || !qualified.PeriodEnd.Equal(at) {
+		t.Fatalf("mid-month qualification %+v %v", qualified, err)
+	}
+	history := append([]Session(nil), sessions...)
+	nextMonth := time.Date(2026, 12, 1, 0, 0, 0, 0, loc)
+	for _, at := range []time.Time{nextMonth, nextMonth.Add(time.Hour)} {
+		reset, err := Calculate(testAccount, p, at, sessions)
+		if err != nil || reset.Eligible || reset.QualifyingDays != 0 || len(reset.Days) != 0 || !reset.PeriodStart.Equal(nextMonth) || !reset.PeriodEnd.Equal(at) {
+			t.Fatalf("new month reset %+v %v", reset, err)
+		}
+	}
+	if !reflect.DeepEqual(sessions, history) || !qualified.Eligible || qualified.QualifyingDays != 15 {
+		t.Fatal("monthly window changed historical records/results")
+	}
+	// The business month has reset even while the UTC calendar is still November.
+	if nextMonth.UTC().Month() != time.November {
+		t.Fatal("fixture does not cross timezone month boundary")
+	}
+	// Completed activity after the cutoff must never contribute early.
+	if got, err := Calculate(testAccount, p, at.Add(-time.Nanosecond), sessions); !errors.Is(err, ErrInvalidActivity) || got.Eligible {
+		t.Fatal("unfinished interval accepted")
 	}
 }
 
@@ -125,7 +157,7 @@ func TestActivityDSTUsesElapsedTime(t *testing.T) {
 		loc := location(t, p.Timezone)
 		start := time.Date(2026, c.month, c.day, 0, 0, 0, 0, loc)
 		end := time.Date(2026, c.month, c.day+1, 0, 0, 0, 0, loc)
-		now := time.Date(2026, c.month+1, 15, 0, 0, 0, 0, loc)
+		now := time.Date(2026, c.month, 15, 0, 0, 0, 0, loc)
 		got, e := Calculate(testAccount, p, now, []Session{{ID: "dst-day", AccountID: testAccount, Start: start, End: end}})
 		if e != nil || !got.Eligible || len(got.Days) != 1 || got.Days[0].VerifiedSeconds != int64(c.hours*3600) {
 			t.Fatalf("DST %+v %v", got, e)
@@ -213,7 +245,7 @@ func TestMalformedAuthoritativeSessionsFailClosed(t *testing.T) {
 
 func TestActivityPolicyExplicitConfigurationAndSnapshots(t *testing.T) {
 	valid := activityPolicy(AudioHost)
-	for _, mutate := range []func(*Policy){func(p *Policy) { p.Version = "" }, func(p *Policy) { p.Version = "v\n" }, func(p *Policy) { p.Scope = "owner" }, func(p *Policy) { p.Timezone = "" }, func(p *Policy) { p.Timezone = "Local" }, func(p *Policy) { p.Timezone = "Invalid/Zone" }, func(p *Policy) { p.Period = "current_month" }, func(p *Policy) { p.MinimumQualifyingDays = 0 }, func(p *Policy) { p.MinimumQualifyingDays = 32 }, func(p *Policy) { p.MinimumDailyLiveMinutes = 0 }, func(p *Policy) { p.MinimumDailyLiveMinutes = 1441 }, func(p *Policy) { p.EffectiveAt = time.Time{} }} {
+	for _, mutate := range []func(*Policy){func(p *Policy) { p.Version = "" }, func(p *Policy) { p.Version = "v\n" }, func(p *Policy) { p.Scope = "owner" }, func(p *Policy) { p.Timezone = "" }, func(p *Policy) { p.Timezone = "Local" }, func(p *Policy) { p.Timezone = "Invalid/Zone" }, func(p *Policy) { p.Period = "previous_completed_calendar_month" }, func(p *Policy) { p.MinimumQualifyingDays = 0 }, func(p *Policy) { p.MinimumQualifyingDays = 32 }, func(p *Policy) { p.MinimumDailyLiveMinutes = 0 }, func(p *Policy) { p.MinimumDailyLiveMinutes = 1441 }, func(p *Policy) { p.EffectiveAt = time.Time{} }} {
 		p := valid
 		mutate(&p)
 		if p.Validate() == nil {
@@ -292,7 +324,7 @@ func TestActivityMidnightDSTGap(t *testing.T) {
 	loc := location(t, p.Timezone)
 	start := time.Date(2026, 9, 5, 0, 0, 0, 0, loc)
 	end := time.Date(2026, 9, 7, 0, 0, 0, 0, loc)
-	got, e := Calculate(testAccount, p, time.Date(2026, 10, 15, 0, 0, 0, 0, time.UTC), []Session{{ID: "midnight-gap", AccountID: testAccount, Start: start, End: end}})
+	got, e := Calculate(testAccount, p, time.Date(2026, 9, 15, 0, 0, 0, 0, time.UTC), []Session{{ID: "midnight-gap", AccountID: testAccount, Start: start, End: end}})
 	if e != nil || !got.Eligible || len(got.Days) != 2 || got.Days[0].VerifiedSeconds != 24*3600 || got.Days[1].VerifiedSeconds != 23*3600 {
 		t.Fatalf("midnight DST gap %+v %v", got, e)
 	}

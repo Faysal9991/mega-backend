@@ -51,7 +51,7 @@ func (s verifiedActivityFixture) Sessions(_ context.Context, account string, sta
 	sessions := make([]agency.Session, 0, s.days)
 	for i := 0; i < s.days; i++ {
 		at := start.AddDate(0, 0, i).Add(10 * time.Hour)
-		if !at.Before(end) {
+		if at.Add(time.Duration(s.minutes) * time.Minute).After(end) {
 			break
 		}
 		sessions = append(sessions, agency.Session{ID: fmt.Sprintf("verified-fixture-%d", i), AccountID: account, Start: at, End: at.Add(time.Duration(s.minutes) * time.Minute)})
@@ -866,7 +866,17 @@ func TestIntegrationFinancialEngine(t *testing.T) {
 		}
 	})
 	t.Run("agency_verified_activity_and_policy_binding", func(t *testing.T) {
-		activity := agency.Policy{Scope: agency.AudioHost, Timezone: "UTC", Period: agency.PreviousCompletedCalendarMonth, MinimumQualifyingDays: 15, MinimumDailyLiveMinutes: 120}
+		// Real PostgreSQL time cannot fabricate fifteen completed current-month
+		// dates before day 15. Calendar transition coverage uses injected clocks.
+		var at time.Time
+		if e := operator.QueryRow(ctx, "SELECT clock_timestamp()").Scan(&at); e != nil {
+			t.Fatal(e)
+		}
+		at = at.UTC()
+		if at.Day() < 15 || at.Day() == 15 && at.Hour() < 12 {
+			t.Skip("fifteen completed UTC fixture days unavailable in current month; deterministic unit tests cover early-month/reset behavior")
+		}
+		activity := agency.Policy{Scope: agency.AudioHost, Timezone: "UTC", Period: agency.CurrentCalendarMonth, MinimumQualifyingDays: 15, MinimumDailyLiveMinutes: 120}
 		p := savePolicy(wallet.Policy{Kind: "activity", Scope: agency.AudioHost, Enabled: true, Activity: &activity})
 		unavailable := decodeFinance[wallet.Eligibility](t, read(engine, hc, wallet.Query{Kind: "eligibility"}).Data)
 		if unavailable.Eligible || !strings.Contains(strings.Join(unavailable.Reasons, ","), agency.ReasonUnavailable) {
@@ -881,6 +891,22 @@ func TestIntegrationFinancialEngine(t *testing.T) {
 			t.Fatal(e)
 		}
 		trusted := wallet.New(trustedRepo)
+		displayed := decodeFinance[wallet.Eligibility](t, read(trusted, hc, wallet.Query{Kind: "eligibility"}).Data)
+		if !displayed.Eligible || displayed.Activity == nil || displayed.Activity.PeriodStart.Month() != at.Month() || displayed.Activity.PeriodStart.Year() != at.Year() || displayed.Activity.PeriodEnd.After(time.Now()) {
+			t.Fatal("eligibility did not use current-month activity through check time")
+		}
+		// An earlier successful display is never authority for accepting a new
+		// request: fetch again, then revalidate under the financial transaction.
+		emptyRepo, e := New(other, verifiedActivityFixture{})
+		if e != nil {
+			t.Fatal(e)
+		}
+		before := getBalance(engine, hc)
+		_, e = wallet.New(emptyRepo).Execute(ctx, hc, request)
+		expect(e, wallet.NotEligible)
+		if getBalance(engine, hc) != before {
+			t.Fatal("stale displayed eligibility reserved funds")
+		}
 		w := decodeFinance[wallet.Withdrawal](t, execute(trusted, hc, request))
 		if w.Settlement != notConfigured {
 			t.Fatal("activity fixture caused settlement")

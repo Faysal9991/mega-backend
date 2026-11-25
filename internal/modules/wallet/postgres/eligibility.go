@@ -21,6 +21,14 @@ type activitySnapshot struct {
 	At                      time.Time
 }
 
+// Counts cannot decrease within a business month for an authoritative completed
+// snapshot. Revalidate its month and cutoff under the financial lock; do not
+// compare the advancing check cutoff as though it were a fixed month-end.
+func (s *activitySnapshot) validAt(actor string, policy agency.Policy, at time.Time) bool {
+	probe, err := agency.Calculate(actor, policy, at, nil)
+	return err == nil && !at.Before(s.At) && s.Result.PeriodEnd.Equal(s.At) && probe.PeriodStart.Equal(s.Result.PeriodStart)
+}
+
 func activityPolicy(ctx context.Context, q *walletsql.Queries, classification string) (wallet.Policy, error) {
 	p, e := policy(ctx, q, "activity", classification)
 	if errors.Is(e, pgx.ErrNoRows) {
@@ -129,8 +137,7 @@ func eligibility(ctx context.Context, q *walletsql.Queries, actor string, snapsh
 				if clockErr != nil {
 					return out, p, clockErr
 				}
-				periodProbe, probeErr := agency.Calculate(actor, *selected.Activity, clock.Time.UTC(), nil)
-				if probeErr != nil || !periodProbe.PeriodStart.Equal(snapshot.Result.PeriodStart) || !periodProbe.PeriodEnd.Equal(snapshot.Result.PeriodEnd) {
+				if !snapshot.validAt(actor, *selected.Activity, clock.Time.UTC()) {
 					return out, p, wallet.Error(apperror.Conflict)
 				}
 				result := snapshot.Result

@@ -232,7 +232,7 @@ func TestTransferAndActivityPolicyValidation(t *testing.T) {
 	if p.Validate() != nil {
 		t.Fatal("bounded configured transfer policy denied")
 	}
-	a := agency.Policy{Version: "fixture-activity", Scope: agency.AudioHost, Timezone: "Asia/Dhaka", Period: agency.PreviousCompletedCalendarMonth, MinimumQualifyingDays: 15, MinimumDailyLiveMinutes: 120, EffectiveAt: p.EffectiveAt}
+	a := agency.Policy{Version: "fixture-activity", Scope: agency.AudioHost, Timezone: "Asia/Dhaka", Period: agency.CurrentCalendarMonth, MinimumQualifyingDays: 15, MinimumDailyLiveMinutes: 120, EffectiveAt: p.EffectiveAt}
 	activity := Policy{Kind: "activity", Scope: agency.AudioHost, EffectiveAt: p.EffectiveAt, Activity: &a}
 	if activity.Validate() != nil {
 		t.Fatal("valid explicit activity policy denied")
@@ -337,7 +337,7 @@ func TestPolicyCommandBindsServerVersionWithoutMutatingInput(t *testing.T) {
 	if !access.ValidID(r.command.Policy.ID) || r.command.Policy.ID == p.ID || p.ID != strings.Repeat("f", 32) {
 		t.Fatal("policy authority accepted client version or mutated input")
 	}
-	a := agency.Policy{Version: "client-version", Scope: agency.AudioHost, Timezone: "Asia/Dhaka", Period: agency.PreviousCompletedCalendarMonth, MinimumQualifyingDays: 15, MinimumDailyLiveMinutes: 120, EffectiveAt: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)}
+	a := agency.Policy{Version: "client-version", Scope: agency.AudioHost, Timezone: "Asia/Dhaka", Period: agency.CurrentCalendarMonth, MinimumQualifyingDays: 15, MinimumDailyLiveMinutes: 120, EffectiveAt: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)}
 	activity := Policy{Kind: "activity", Scope: agency.AudioHost, EffectiveAt: p.EffectiveAt, Activity: &a}
 	_, e = New(r).Execute(context.Background(), access.Credentials{}, Command{Kind: "policy", Key: "activity-key", Correlation: "operation", Reason: "configured synthetic activity", Policy: &activity})
 	if e != nil {

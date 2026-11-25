@@ -110,8 +110,13 @@ for field in ("vat", "tax_jurisdiction", "rounding", "host_bps", "agency_bps", "
     invalid = copy.deepcopy(gift_policy)
     del invalid[field]
     assert not check("PolicyRequest").is_valid(invalid), field
-activity_policy = {"kind": "activity", "scope": "audio_host", "effective_at": "2026-01-01T00:00:00Z", "enabled": False, "reason": "explicit synthetic period", "activity": {"timezone": "Asia/Dhaka", "period": "previous_completed_calendar_month", "minimum_qualifying_days": 15, "minimum_daily_live_minutes": 120}}
+activity_policy = {"kind": "activity", "scope": "audio_host", "effective_at": "2026-01-01T00:00:00Z", "enabled": False, "reason": "explicit synthetic period", "activity": {"timezone": "Asia/Dhaka", "period": "current_calendar_month", "minimum_qualifying_days": 15, "minimum_daily_live_minutes": 120}}
 check("PolicyRequest").validate(activity_policy)
+invalid = copy.deepcopy(activity_policy)
+invalid["activity"]["period"] = "previous_completed_calendar_month"
+assert not check("PolicyRequest").is_valid(invalid), "Superseded withdrawal period must be rejected"
+historical_activity = dict(invalid["activity"], version="a" * 32, scope="audio_host", effective_at="2026-01-01T00:00:00Z")
+check("ActivityPolicy").validate(historical_activity)  # Immutable historical records remain readable.
 assert not check("ReviewRequest").is_valid({"action": "settle", "reason": "no provider"})
 assert not check("AssociationRequest").is_valid({"agency_id": recipient, "classification": "staff", "effective_from": "2026-01-01T00:00:00Z", "reason": "invalid classification"})
 for path, operations in spec["paths"].items():
