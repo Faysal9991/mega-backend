@@ -162,6 +162,19 @@ func (c *limitedConn) Close() error {
 	return err
 }
 
+// contextStatus also covers the interval between an absolute deadline passing
+// and the context timer publishing expiration through Err/Done. A socket may
+// finish in that interval; earlier socket timeouts must remain independent.
+func contextStatus(ctx context.Context) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	if deadline, ok := ctx.Deadline(); ok && !time.Now().Before(deadline) {
+		return context.DeadlineExceeded
+	}
+	return nil
+}
+
 // Bounded workers let callers observe cancellation immediately even though the
 // pinned client only applies context *deadlines* to established socket I/O.
 // At most MaxConns workers remain until their bounded socket/operation completes.
@@ -169,8 +182,8 @@ func (c *Cache) execute(ctx context.Context, fn func(context.Context) result) (r
 	if !c.cfg.Enabled {
 		return result{}, ErrDisabled
 	}
-	if ctx.Err() != nil {
-		return result{}, &failure{ErrUnavailable, ctx.Err()}
+	if err := contextStatus(ctx); err != nil {
+		return result{}, &failure{ErrUnavailable, err}
 	}
 	c.mu.Lock()
 	if c.closed {
@@ -202,12 +215,12 @@ func (c *Cache) execute(ctx context.Context, fn func(context.Context) result) (r
 	}()
 	select {
 	case r := <-done:
-		if ctx.Err() != nil {
-			return result{}, &failure{ErrUnavailable, ctx.Err()}
+		if err := contextStatus(ctx); err != nil {
+			return result{}, &failure{ErrUnavailable, err}
 		}
 		return r, nil
 	case <-ctx.Done():
-		return result{}, &failure{ErrUnavailable, ctx.Err()}
+		return result{}, &failure{ErrUnavailable, contextStatus(ctx)}
 	}
 }
 func (c *Cache) key(key string) (string, error) {

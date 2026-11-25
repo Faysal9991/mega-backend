@@ -552,3 +552,25 @@ Commands: `go test -run '^$' -bench BenchmarkAdapterDispatch -benchtime=100000x 
 An initial 100-sample benchmark failed when its single shared 30-second fixture expired during the second mode. Cleanup completed without errors. Corrected the benchmark fixture lifecycle (refresh the owned key outside timing per mode), capped samples at 50, ran 20 per mode, and retained the short TTL safety constraint. Final measurements above use nearest-rank percentiles. No production adapter behavior was changed to accommodate the benchmark.
 
 Remaining limitations: receive-value size is checked after driver decoding/allocation; cancellation does not prove SET/DELETE did not execute; SDK logging policy is process-wide; per-process caps do not impose fleet/server resource limits. These preexisting constraints remain documented in REDIS_CACHE.md/ADR 0007. No shared-server stop, FLUSH/KEYS/CONFIG/ACL command, schema mutation, credential change, infrastructure change, commit, push or deployment occurred. Stop at Step 7 owner review.
+
+## Step 7 deadline classification follow-up — 2026-11-25 (Asia/Dhaka)
+
+Baseline 44a2f5e; initially clean. Scope is only the confirmed deadline-error classification defect. The previous audit's passing deadline checks did not establish race-free classification: independent review reported two failures in twenty repeated runs when a socket deadline elapsed before the effective context published Err/Done.
+
+Added a shared contextStatus helper at execute admission and completion boundaries. It preserves a nonnil ctx.Err() first, otherwise treats an already-reached absolute Deadline as context.DeadlineExceeded. The existing safe CACHE_UNAVAILABLE wrapper retains that cause for errors.Is. No network-timeout-wide conversion was added: a socket timeout before the context deadline remains plain CACHE_UNAVAILABLE. Admission slot release-before-result ordering, socket/worker/pool limits, TLS, optional-cache behavior and dependencies are unchanged.
+
+Deterministic regression uses a synthetic context with unpublished Err/Done and a test-controlled absolute deadline, moving from future to past inside the command callback to model the completion race without timer scheduling. Admission starts with an expired unpublished deadline and must not execute the command. Both subtests failed against the original execute implementation before the fix. The final timeout fixture is a net.OpError wrapping os.ErrDeadlineExceeded. The earlier-socket-timeout control uses the same fixture with a future context deadline and verifies errors.Is(context.DeadlineExceeded) remains false and the error text stays CACHE_UNAVAILABLE. A separate check preserves published context.Canceled even when the absolute deadline has passed. Existing real TLS test files and all existing deadline assertions remain intact.
+
+Actual final checks (all exit 0):
+
+| Command | Result |
+| --- | --- |
+| `go test -race -run '^(TestDisabledAndEarlierDeadline\|TestDelayedContextDeadlinePublication\|TestEarlierSocketTimeoutClassification\|TestContextStatusPreservesPublishedError)$' -count=100 ./internal/platform/rediscache` | PASS, 3.785s; each selected test repeated 100 times, no races |
+| `go test -count=1 ./...` | PASS, full uncached default suite |
+| `go test -race -count=1 ./...` | PASS, full uncached default race suite |
+| `go build ./...` | PASS |
+| `go vet ./...` | PASS |
+| `gofmt -l cmd internal database` | PASS, empty output |
+| `git diff --check` | PASS |
+
+Changed only cache.go, cache_test.go and scoped verification/roadmap/coverage documentation. Controlled local TLS tests ran in the full suites. Opt-in shared Redis/API integration tests and benchmarks were not rerun for this classification-only change; prior endpoint/measurement evidence remains historical, not a new claim. No new performance measurements or dependency/sqlc checks were needed; dependencies and SQL are unchanged. FND-008 remains implemented pending owner architectural acceptance. No business/API contract, infrastructure, Step 8, commit, push or deployment changes. Stop at the scoped Step 7 review gate.

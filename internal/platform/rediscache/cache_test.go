@@ -11,6 +11,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http/httptest"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -512,5 +513,74 @@ func TestOperationTimeoutAndPanicAdmission(t *testing.T) {
 	}
 	if _, err := local.execute(context.Background(), func(context.Context) result { return result{} }); err != nil {
 		t.Fatal("panic leaked admission")
+	}
+}
+
+// delayedDeadlineContext models the interval after a socket deadline expires
+// but before the context timer publishes Err/Done. Moving the advertised
+// deadline in the command callback makes both boundaries deterministic without
+// depending on timer scheduling or sleeping in the regression.
+type delayedDeadlineContext struct {
+	context.Context
+	deadline atomic.Int64
+}
+
+func (c *delayedDeadlineContext) Deadline() (time.Time, bool) {
+	return time.Unix(0, c.deadline.Load()), true
+}
+
+func TestDelayedContextDeadlinePublication(t *testing.T) {
+	for _, boundary := range []string{"admission", "completion"} {
+		t.Run(boundary, func(t *testing.T) {
+			c := &Cache{cfg: config.RedisConfig{Enabled: true}, slots: make(chan struct{}, 1)}
+			defer c.Close()
+			ctx := &delayedDeadlineContext{Context: context.Background()}
+			ctx.deadline.Store(time.Now().Add(time.Hour).UnixNano())
+			if boundary == "admission" {
+				ctx.deadline.Store(time.Now().Add(-time.Hour).UnixNano())
+			}
+			var called atomic.Bool
+			_, err := c.execute(ctx, func(context.Context) result {
+				called.Store(true)
+				ctx.deadline.Store(time.Now().Add(-time.Hour).UnixNano())
+				return result{err: &net.OpError{Op: "read", Net: "tcp", Err: os.ErrDeadlineExceeded}}
+			})
+			if ctx.Err() != nil || ctx.Done() != nil {
+				t.Fatal("context expiration was already published")
+			}
+			if !errors.Is(err, context.DeadlineExceeded) || !errors.Is(err, ErrUnavailable) || err.Error() != "CACHE_UNAVAILABLE" {
+				t.Fatal("expired absolute deadline lost its safe context classification", err)
+			}
+			if called.Load() != (boundary == "completion") {
+				t.Fatal("expired admission executed a command or completion was not exercised")
+			}
+		})
+	}
+}
+
+func TestEarlierSocketTimeoutClassification(t *testing.T) {
+	c := &Cache{cfg: config.RedisConfig{Enabled: true}, slots: make(chan struct{}, 1)}
+	defer c.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
+	defer cancel()
+	r, err := c.execute(ctx, func(context.Context) result {
+		return result{err: &net.OpError{Op: "read", Net: "tcp", Err: os.ErrDeadlineExceeded}}
+	})
+	if err != nil {
+		t.Fatal("socket timeout before context deadline treated as context expiration", err)
+	}
+	err = classify(r.err)
+	if !errors.Is(err, ErrUnavailable) || errors.Is(err, context.DeadlineExceeded) || err.Error() != "CACHE_UNAVAILABLE" {
+		t.Fatal("earlier socket timeout lost safe independent classification", err)
+	}
+}
+
+func TestContextStatusPreservesPublishedError(t *testing.T) {
+	parent, cancel := context.WithCancel(context.Background())
+	cancel()
+	ctx := &delayedDeadlineContext{Context: parent}
+	ctx.deadline.Store(time.Now().Add(-time.Hour).UnixNano())
+	if err := contextStatus(ctx); err != context.Canceled {
+		t.Fatal("absolute deadline replaced the already-published cancellation", err)
 	}
 }
