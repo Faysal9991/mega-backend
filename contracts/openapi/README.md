@@ -99,3 +99,7 @@ PY
 ```
 
 These schema checks do not assert fleet behavior, production availability or dependency health. HEAD behavior and headers are exercised by Go router/startup tests.
+
+## Step 8 identity contracts
+
+`identity.openapi.json` defines only the nine authorized identity/authentication routes. `fixtures/identity.json` includes synthetic current-identity and token envelopes; the current-identity fixture is compared to actual HTTP output by the identity transport test. Request alternatives and forbidden extra projection fields are checked with `python contracts/openapi/validate_identity.py` using the optional isolated validation environment above. Existing safe common error schemas are reused for validation/auth/forbidden/conflict/rate/service failures. UTF-8 byte input limits and nonce/session/revocation semantics are specified in IDENTITY_AUTH.md; no live Google verification follows from schema validation.

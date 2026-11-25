@@ -6,7 +6,7 @@ Date: 2026-11-24 (Asia/Dhaka)
 
 The owner's greenfield instruction and current `AGENTS.md` supersede the earlier migration framing. Approved requirements define new behavior; Django is optional read-only reference evidence. No legacy schema, API adapter, data import or Python runtime dependency is planned. `docs/migration/` contains superseded historical notes.
 
-Current authorized task: Step 7 Redis client and optional disposable-cache foundation only. Preserve the reviewed Step 6 behavior at 63992e4 and earlier scoped review evidence; no broader approval is inferred. Optional Redis must not affect PostgreSQL readiness/liveness. The focused Step 7 acceptance audit passed real Redis and actual API lifecycle tests using ignored local settings and explicit endpoint acknowledgment; remote certificate identity remains unverified under the explicit test bypass. See the appended acceptance report in FOUNDATION_VERIFICATION.md. Step 8 onward remains unauthorized.
+Current authorized task: Step 8 identity/authentication only, per the owner's concrete Google-only signup, password/alias, session/restriction and durable abuse-control rules. Preserve scoped Step 7 optional-cache architectural acceptance at 51514aaa567e4a252732f1f0494261f63ca54d20; other review statuses remain unchanged. Implementation and acceptance plan: docs/architecture/IDENTITY_AUTH.md and ADR 0008. Step 9 onward and deferred business/infrastructure work remain unauthorized.
 
 ## Initial architecture inspection (historical)
 
@@ -20,7 +20,7 @@ Current authorized task: Step 7 Redis client and optional disposable-cache found
 
 ## Execution sequence and gates
 
-Each row requires owner authorization before execution. Step 7 is authorized; later capabilities must not be bundled into it.
+Each row requires owner authorization before execution. Step 8 identity is authorized; later capabilities must not be bundled into it.
 
 | Step | Scope | Acceptance evidence |
 | --- | --- | --- |
@@ -31,8 +31,8 @@ Each row requires owner authorization before execution. Step 7 is authorized; la
 | 4 | Response/error/validation foundation | Scoped owner review complete at c875d876; previous baseline full checks and fix-specific review evidence are distinguished in FOUNDATION_VERIFICATION.md; no production-performance approval |
 | 5 | Health & readiness | Implemented for review: explicit atomic lifecycle, operational GET/HEAD probes independent of ordinary admission, no-store/minimal JSON, startup/drain/error contracts and deterministic tests; final evidence in FOUNDATION_VERIFICATION.md |
 | 6 | PostgreSQL foundation | Implemented for review: owner testing-server bootstrap, isolated dev/test roles, bounded direct pgxpool, startup identity/schema checks, direct Goose migrations/locking and sqlc consistency. Actual checks in FOUNDATION_VERIFICATION.md; no proxy/deployment or production-performance approval |
-| 7 — current | Redis optional disposable cache | Implemented for review: typed TLS-only configuration, bounded shared client/workers/sockets, optional startup diagnostic, Get/Set/Delete with versioned namespaces/size/TTL bounds. Focused source/options audit, real TLS Redis operations/cleanup and API lifecycle in all three modes passed; one admission-release defect fixed with a failing-before regression. Bounded benchmark and full check evidence in FOUNDATION_VERIFICATION.md; owner architectural acceptance pending; no durable authority |
-| 8 | Identity | Approved login/session/verification requirements and permission policy before implementation; abuse, token revocation and recovery tests |
+| 7 | Redis optional disposable cache | Implemented for review: typed TLS-only configuration, bounded shared client/workers/sockets, optional startup diagnostic, Get/Set/Delete with versioned namespaces/size/TTL bounds. Focused source/options audit, real TLS Redis operations/cleanup and API lifecycle in all three modes passed; one admission-release defect fixed with a failing-before regression. Bounded benchmark and full check evidence in FOUNDATION_VERIFICATION.md; scoped optional-cache architectural acceptance recorded at 51514aaa; no durable authority |
+| 8 — current | Identity | Owner-approved rules and concrete contracts/defaults in IDENTITY_AUTH.md; migration 2, Google-only signup, aliases/password proofs, opaque rotating sessions, installation restrictions and PostgreSQL abuse state; actual verification in STEP8_VERIFICATION.md; architectural review pending |
 | 9 | Profiles and permissions | Approved resource ownership/roles, contract fixtures and unauthorized-access tests |
 | 10 | Wallet | Approved units, limits, rounding, eligibility and accounting policies; reconciliation, concurrency, retry and crash-recovery acceptance |
 | 11 | Remaining business capabilities | Feature-specific requirements, dependencies, API/schema review and acceptance per coverage ID; order refined after discovery |
@@ -130,3 +130,14 @@ FND-008 tracks implementation with the real-integration gate visible. Saved .env
 ### Step 7 focused acceptance audit — 2026-11-25
 
 Audited baseline 8f32219 with an initially clean tree. Fixed completed-operation admission release before publishing its result; the new single-slot sequential regression failed before the fix. Added concurrent close/operation, timeout/panic admission regressions, opt-in actual API lifecycle tests and bounded benchmarks. Real Redis operations and tracked-key cleanup now pass; the earlier missing-credential blocker is superseded. Actual API/PostgreSQL/Redis startup, health/readiness and context-driven graceful shutdown pass enabled, disabled and locally unavailable modes. Full default/race/build/vet/module/sqlc checks pass. Detailed PASS/NOT TESTED matrix, measurements and limits are appended to FOUNDATION_VERIFICATION.md. FND-008 remains implemented pending owner architectural acceptance. Stop at Step 7; no Step 8 authorization, commit, push or deployment.
+
+### Step 7 deadline classification follow-up — baseline 44a2f5e
+
+Scoped fix only: preserve published context errors or an already-reached absolute deadline at cache admission/completion, without converting genuinely earlier socket timeouts. Deterministic unpublished-deadline regressions failed before the fix; final focused race verification passed 100 repetitions, followed by full uncached tests/race, build, vet, formatting and diff checks. Evidence is appended to FOUNDATION_VERIFICATION.md. Existing admission ordering, limits, TLS and optional behavior are preserved; FND-008 remains implemented for owner review, no Step 8 authorization.
+
+
+### Step 8 authorized plan and gate
+
+Baseline 51514aaa567e4a252732f1f0494261f63ca54d20. Existing roadmap/feature-matrix deadline-follow-up edits were present and preserved. Only Step 7 optional-cache architectural acceptance is recorded; all other scoped approvals/pending reviews remain intact. Document identity schema/contracts/defaults first (IDENTITY_AUTH.md), then implement pure service boundaries, bounded provider/password adapters, generated transactional storage and existing HTTP composition. Execute signed fixtures, Argon2/generic failures, concurrent PostgreSQL signup/refresh/revocation/alias/restriction/cleanup tests; explicit guarded isolated migration suite; real API Redis modes; final complete tool checks/OpenAPI validation. Evidence and limitations go to STEP8_VERIFICATION.md. Stop for Step 8 architectural review; no later modules or infrastructure authorized.
+
+Step 8 implementation and checks completed for review: full uncached/race/build/vet/module/sqlc/OpenAPI checks pass; guarded real migration/identity tests and actual API Redis-mode tests pass. Live Google mobile end-to-end remains NOT TESTED; no fake production verifier. See docs/architecture/STEP8_VERIFICATION.md. Next gate is owner Step 8 architectural review, not Step 9 implementation.

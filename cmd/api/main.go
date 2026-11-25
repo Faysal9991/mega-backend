@@ -11,11 +11,15 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Faysal9991/mega-backend/internal/modules/identity"
+	"github.com/Faysal9991/mega-backend/internal/modules/identity/httpapi"
+	identitypg "github.com/Faysal9991/mega-backend/internal/modules/identity/postgres"
 	"github.com/Faysal9991/mega-backend/internal/platform/config"
 	"github.com/Faysal9991/mega-backend/internal/platform/httpserver"
 	"github.com/Faysal9991/mega-backend/internal/platform/logging"
 	"github.com/Faysal9991/mega-backend/internal/platform/postgres"
 	"github.com/Faysal9991/mega-backend/internal/platform/rediscache"
+	"github.com/go-chi/chi/v5"
 )
 
 func main() {
@@ -27,6 +31,10 @@ func main() {
 
 func run(ctx context.Context, lookup config.LookupEnv, stdout, stderr io.Writer, listen func(string, string) (net.Listener, error)) int {
 	return runWithDatabase(ctx, lookup, stdout, stderr, listen, func(ctx context.Context, cfg config.DatabaseConfig) (databaseRuntime, error) {
+		authConfig, err := config.LoadIdentity(lookup)
+		if err != nil {
+			return databaseRuntime{}, err
+		}
 		pool, err := postgres.Open(ctx, cfg)
 		if err != nil {
 			return databaseRuntime{}, err
@@ -36,13 +44,35 @@ func run(ctx context.Context, lookup config.LookupEnv, stdout, stderr io.Writer,
 			pool.Close()
 			return databaseRuntime{}, err
 		}
-		return databaseRuntime{close: pool.Close, available: availability.Available}, nil
+		repository, err := identitypg.New(pool)
+		if err != nil {
+			pool.Close()
+			return databaseRuntime{}, err
+		}
+		if err := repository.Ready(ctx); err != nil {
+			pool.Close()
+			return databaseRuntime{}, err
+		}
+		service, err := identity.New(repository, identity.NewGoogle(authConfig.GoogleClientID, authConfig.GoogleAuthorizedParties...), identity.NewPasswords())
+		if err != nil {
+			pool.Close()
+			return databaseRuntime{}, err
+		}
+		return databaseRuntime{close: pool.Close, available: availability.Available, register: func(router chi.Router, logger *slog.Logger) error {
+			handler, err := httpapi.New(service, logger)
+			if err != nil {
+				return err
+			}
+			handler.Mount(router)
+			return nil
+		}}, nil
 	})
 }
 
 type databaseRuntime struct {
 	close     func()
 	available func(context.Context) bool
+	register  func(chi.Router, *slog.Logger) error
 }
 
 // The injected starter isolates lifecycle tests from external database access.
@@ -112,7 +142,16 @@ func runWithServices(ctx context.Context, lookup config.LookupEnv, stdout, stder
 		return 0
 	}
 	lifecycle := httpserver.NewLifecycle(runtimeDatabase.available)
-	router, err := httpserver.NewRouter(cfg.HTTP, logger, lifecycle)
+	var registrationErr error
+	var mounts []func(chi.Router)
+	if runtimeDatabase.register != nil {
+		mounts = append(mounts, func(router chi.Router) { registrationErr = runtimeDatabase.register(router, logger) })
+	}
+	router, err := httpserver.NewRouter(cfg.HTTP, logger, lifecycle, mounts...)
+	if registrationErr != nil {
+		fmt.Fprintln(stderr, "identity: transport initialization failed")
+		return 1
+	}
 	if err != nil {
 		fmt.Fprintln(stderr, "http: router construction failed")
 		return 1

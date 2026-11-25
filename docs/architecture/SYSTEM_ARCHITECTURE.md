@@ -97,3 +97,7 @@ Measure latency percentiles, throughput/errors, SQL count/time/rows, CPU/RSS/all
 Document future ports for media token issuance, room operations, node health and cluster registry; create no speculative interfaces/packages yet. No LiveKit SDK/configuration, SFU routing, server provisioning or admin registration implementation belongs to this step.
 
 Before feature implementation, approve identifier/wire amount types, role policies, financial rules, session lifetimes, retention/privacy requirements, provider contracts, availability objectives and expected workloads. See the feature matrix, database design, API standards and testing strategy. Reference source gaps block affected business decisions, not foundation work.
+
+## Step 8 implementation boundary
+
+Identity is the first business module: HTTP DTOs -> identity application services/rules -> small Store/Repository/GoogleVerifier/PasswordHasher boundaries -> generated PostgreSQL repository and bounded Google/Argon2 adapters. API composition injects one repository/service and registers only authorized identity routes using the existing router extension. Authentication has no Redis dependency; no in-memory revocation/rate state. Existing HTTP drain closes optional cache then PostgreSQL. Schema checks are read-only; migrations remain explicit. See IDENTITY_AUTH.md and ADR 0008. Other module boundaries remain proposed/deferred.

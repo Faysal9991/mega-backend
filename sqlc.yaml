@@ -1,11 +1,20 @@
 version: "2"
 sql:
   - engine: postgresql
-    schema: database/migrations
-    queries: database/queries
+    schema: database/migrations/00001_application_schema.sql
+    queries: database/queries/connection.sql
     gen:
       go:
         package: dbsql
         out: internal/platform/postgres/dbsql
+        sql_package: pgx/v5
+        emit_empty_slices: true
+  - engine: postgresql
+    schema: database/migrations
+    queries: database/queries/identity
+    gen:
+      go:
+        package: identitysql
+        out: internal/modules/identity/postgres/identitysql
         sql_package: pgx/v5
         emit_empty_slices: true

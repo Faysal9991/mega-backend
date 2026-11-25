@@ -1,6 +1,6 @@
 # ADR 0007: Optional TLS Redis and disposable cache ownership
 
-Status: authorized Step 7 implementation, architectural review pending. Preserve Step 6 behavior at 63992e4; no broader review approval or production-performance claim is inferred.
+Status: scoped optional-cache architectural acceptance supplied by the owner at 51514aaa567e4a252732f1f0494261f63ca54d20. This does not approve unrelated foundation/business scope or production performance. Preserve Step 6 behavior at 63992e4; no broader review approval or production-performance claim is inferred.
 
 Use one explicitly injected standalone go-redis client and a small versioned/environment-scoped Get/Set/Delete adapter. Disabled mode does not construct a network client. Optional bounded startup PING failure is diagnostic only; later calls can recover without changing PostgreSQL readiness/liveness. Close once after HTTP drain. No business caching or authoritative/durable coordination is included.
 

@@ -33,3 +33,7 @@ Historical imports, old identifiers/hashes, existing-client compatibility and pr
 ## Step 6 foundation boundary
 
 Use separate isolated development/integration databases and runtime/migration roles. App uses bounded direct pgxpool; Goose uses explicit direct migration settings and session advisory locking. Destructive test guards verify biho_live_test and its migration identity before writes; no development/default database reset is provided. Existing Coolify testing server is owner-authorized; no local Compose or PgBouncer deployment is introduced. Schema-only rollback is non-CASCADE; populated production rollback and backup/restore remain separately reviewed future work.
+
+## Step 8 identity schema
+
+Migration 00002_identity.sql adds ten identity-owned tables with explicit foreign keys, uniqueness and validation checks; generated query ownership is internal/modules/identity/postgres/identitysql. See IDENTITY_AUTH.md and ADR 0008 for concrete columns, units, expiry, locking and access patterns. Session/refresh lookup hashes and active account/expiry/installation indexes follow actual queries. PostgreSQL also owns fixed-window abuse counters and single-use challenges/proofs. All bearer secrets are hashes; runtime and migration roles remain separate. Explicit migrations are required before API startup; identity Ready checks table artifacts but never migrates. Rollback removes only identity tables in FK order before migration 1 removes the app schema; populated production rollback is not authorized. No wallet/agency/profile expansion.

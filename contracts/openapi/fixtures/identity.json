@@ -1,0 +1,33 @@
+[
+  {
+    "schema": "IdentityFetchedEnvelope",
+    "body": {
+      "success": true,
+      "code": "IDENTITY_FETCHED",
+      "data": {
+        "account_id": "dddddddddddddddddddddddddddddddd",
+        "display_name": "Synthetic",
+        "contact_email": "",
+        "avatar_url": "",
+        "username": "synthetic",
+        "phone": "",
+        "phone_verified": false
+      },
+      "request_id": "synthetic-request"
+    }
+  },
+  {
+    "schema": "AuthenticatedEnvelope",
+    "body": {
+      "success": true,
+      "code": "AUTHENTICATED",
+      "data": {
+        "access_token": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "refresh_token": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "expires_in": 900,
+        "account_id": "dddddddddddddddddddddddddddddddd"
+      },
+      "request_id": "synthetic-request"
+    }
+  }
+]

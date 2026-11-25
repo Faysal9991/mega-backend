@@ -574,3 +574,7 @@ Actual final checks (all exit 0):
 | `git diff --check` | PASS |
 
 Changed only cache.go, cache_test.go and scoped verification/roadmap/coverage documentation. Controlled local TLS tests ran in the full suites. Opt-in shared Redis/API integration tests and benchmarks were not rerun for this classification-only change; prior endpoint/measurement evidence remains historical, not a new claim. No new performance measurements or dependency/sqlc checks were needed; dependencies and SQL are unchanged. FND-008 remains implemented pending owner architectural acceptance. No business/API contract, infrastructure, Step 8, commit, push or deployment changes. Stop at the scoped Step 7 review gate.
+
+## Step 8 handoff — 2026-11-25
+
+The owner records scoped Step 7 optional-cache architectural acceptance at 51514aaa567e4a252732f1f0494261f63ca54d20 and authorizes Step 8 identity only. All other approval statuses and the existing deadline follow-up edits are preserved. Step 8 actual verification, isolated migration/schema effects, fixture/real API evidence and live Google limitations are recorded separately in [STEP8_VERIFICATION.md](STEP8_VERIFICATION.md). No Redis runtime behavior was changed or new production-performance approval inferred.

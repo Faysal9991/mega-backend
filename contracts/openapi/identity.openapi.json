@@ -1,0 +1,2176 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Biho Live Step 8 Identity",
+    "version": "1.0.0",
+    "description": "Google nonce-bound mobile flow and PostgreSQL-authoritative opaque sessions. See docs/architecture/IDENTITY_AUTH.md for security policy."
+  },
+  "paths": {
+    "/api/v1/auth/google/challenges": {
+      "post": {
+        "operationId": "auth_google_challenges",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "GOOGLE_CHALLENGE_CREATED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoogleChallengeCreatedEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error 400",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error 401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error 403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error 404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error 409",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Safe error 413",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Safe error 415",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error 422",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error 429",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "const": "60"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Safe error 500",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error 503",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Safe error 504",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChallengeRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/google": {
+      "post": {
+        "operationId": "auth_google",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "GOOGLE_EXCHANGED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthenticatedEnvelope"
+                    },
+                    {
+                      "$ref": "#/components/schemas/GoogleProofCreatedEnvelope"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error 400",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error 401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error 403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error 404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error 409",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Safe error 413",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Safe error 415",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error 422",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error 429",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "const": "60"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Safe error 500",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error 503",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Safe error 504",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/password/login": {
+      "post": {
+        "operationId": "auth_password_login",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "AUTHENTICATED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthenticatedEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error 400",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error 401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error 403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error 404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error 409",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Safe error 413",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Safe error 415",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error 422",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error 429",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "const": "60"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Safe error 500",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error 503",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Safe error 504",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordLoginRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "operationId": "auth_refresh",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "SESSION_REFRESHED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionRefreshedEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error 400",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error 401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error 403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error 404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error 409",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Safe error 413",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Safe error 415",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error 422",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error 429",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "const": "60"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Safe error 500",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error 503",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Safe error 504",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "operationId": "auth_logout",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "LOGGED_OUT",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoggedOutEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error 400",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error 401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error 403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error 404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error 409",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Safe error 413",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Safe error 415",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error 422",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error 429",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "const": "60"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Safe error 500",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error 503",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Safe error 504",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Installation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Empty"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/logout-all": {
+      "post": {
+        "operationId": "auth_logout_all",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "LOGGED_OUT",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoggedOutEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error 400",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error 401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error 403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error 404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error 409",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Safe error 413",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Safe error 415",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error 422",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error 429",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "const": "60"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Safe error 500",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error 503",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Safe error 504",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Installation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Empty"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/identity/identifiers": {
+      "put": {
+        "operationId": "identity_identifiers",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "IDENTIFIERS_UPDATED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdentifiersUpdatedEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error 400",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error 401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error 403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error 404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error 409",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Safe error 413",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Safe error 415",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error 422",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error 429",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "const": "60"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Safe error 500",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error 503",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Safe error 504",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Installation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IdentifiersRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/identity/password": {
+      "put": {
+        "operationId": "identity_password",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "PASSWORD_UPDATED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasswordUpdatedEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error 400",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error 401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error 403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error 404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error 409",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Safe error 413",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Safe error 415",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error 422",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error 429",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "const": "60"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Safe error 500",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error 503",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Safe error 504",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/identity/me": {
+      "get": {
+        "operationId": "identity_me",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "IDENTITY_FETCHED",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "const": "no-store"
+                }
+              },
+              "X-Request-ID": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdentityFetchedEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error 400",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error 401",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error 403",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error 404",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error 409",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Safe error 413",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Safe error 415",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error 422",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error 429",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "const": "60"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Safe error 500",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error 503",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Safe error 504",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Installation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ChallengeRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "installation_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "purpose": {
+            "enum": [
+              "login",
+              "password",
+              "identifiers"
+            ]
+          }
+        },
+        "required": [
+          "installation_id",
+          "purpose"
+        ]
+      },
+      "GoogleRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "installation_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "challenge_token": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{43}$"
+          },
+          "id_token": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 16384
+          }
+        },
+        "required": [
+          "installation_id",
+          "challenge_token",
+          "id_token"
+        ]
+      },
+      "PasswordLoginRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "installation_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "identifier": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "ASCII username normalized by trimming surrounding ASCII whitespace and lowercasing, or exact E.164 phone. Email is forbidden."
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "installation_id",
+          "identifier",
+          "password"
+        ]
+      },
+      "RefreshRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "installation_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "refresh_token": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{43}$"
+          }
+        },
+        "required": [
+          "installation_id",
+          "refresh_token"
+        ]
+      },
+      "IdentifiersRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "username": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 128
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 16,
+            "pattern": "^(\\+[1-9][0-9]{7,14})?$"
+          },
+          "proof_token": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{43}$"
+          }
+        },
+        "required": [
+          "proof_token"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "username"
+            ],
+            "properties": {
+              "username": {
+                "type": "string",
+                "maxLength": 128,
+                "pattern": "^[ \\t\\r\\n]*[A-Za-z][A-Za-z0-9_]{2,31}[ \\t\\r\\n]*$"
+              }
+            }
+          },
+          {
+            "required": [
+              "phone"
+            ],
+            "properties": {
+              "phone": {
+                "type": "string",
+                "pattern": "^\\+[1-9][0-9]{7,14}$"
+              }
+            }
+          }
+        ]
+      },
+      "PasswordRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "installation_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 12,
+            "maxLength": 128
+          },
+          "proof_token": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 43
+          },
+          "access_token": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 43
+          },
+          "current_password": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "installation_id",
+          "password"
+        ],
+        "oneOf": [
+          {
+            "required": [
+              "proof_token"
+            ],
+            "properties": {
+              "proof_token": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]{43}$"
+              },
+              "access_token": {
+                "enum": [
+                  "",
+                  null
+                ]
+              },
+              "current_password": {
+                "enum": [
+                  "",
+                  null
+                ]
+              }
+            }
+          },
+          {
+            "required": [
+              "access_token",
+              "current_password"
+            ],
+            "properties": {
+              "access_token": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]{43}$"
+              },
+              "current_password": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "proof_token": {
+                "enum": [
+                  "",
+                  null
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "Empty": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      },
+      "Tokens": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{43}$"
+          },
+          "refresh_token": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{43}$"
+          },
+          "expires_in": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 900
+          },
+          "account_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          }
+        },
+        "required": [
+          "access_token",
+          "refresh_token",
+          "expires_in",
+          "account_id"
+        ]
+      },
+      "Challenge": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "challenge_token": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{43}$"
+          },
+          "nonce": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "expires_in": {
+            "const": 300
+          }
+        },
+        "required": [
+          "challenge_token",
+          "nonce",
+          "expires_in"
+        ]
+      },
+      "Proof": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "proof_token": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{43}$"
+          },
+          "expires_in": {
+            "const": 300
+          }
+        },
+        "required": [
+          "proof_token",
+          "expires_in"
+        ]
+      },
+      "Me": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "display_name": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 256
+          },
+          "contact_email": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 320
+          },
+          "avatar_url": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 2048
+          },
+          "username": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 32
+          },
+          "phone": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 16
+          },
+          "phone_verified": {
+            "const": false
+          }
+        },
+        "required": [
+          "account_id",
+          "display_name",
+          "contact_email",
+          "avatar_url",
+          "username",
+          "phone",
+          "phone_verified"
+        ]
+      },
+      "IdentifiersUpdated": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "updated": {
+            "const": true
+          }
+        },
+        "required": [
+          "updated"
+        ]
+      },
+      "PasswordUpdated": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "reauthentication_required": {
+            "const": true
+          }
+        },
+        "required": [
+          "reauthentication_required"
+        ]
+      },
+      "LoggedOut": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "logged_out": {
+            "const": true
+          }
+        },
+        "required": [
+          "logged_out"
+        ]
+      },
+      "GoogleChallengeCreatedEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "GOOGLE_CHALLENGE_CREATED"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Challenge"
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      },
+      "AuthenticatedEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "AUTHENTICATED"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Tokens"
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      },
+      "GoogleProofCreatedEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "GOOGLE_PROOF_CREATED"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Proof"
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      },
+      "SessionRefreshedEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "SESSION_REFRESHED"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Tokens"
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      },
+      "LoggedOutEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "LOGGED_OUT"
+          },
+          "data": {
+            "$ref": "#/components/schemas/LoggedOut"
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      },
+      "IdentifiersUpdatedEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "IDENTIFIERS_UPDATED"
+          },
+          "data": {
+            "$ref": "#/components/schemas/IdentifiersUpdated"
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      },
+      "PasswordUpdatedEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "PASSWORD_UPDATED"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PasswordUpdated"
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      },
+      "IdentityFetchedEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "IDENTITY_FETCHED"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Me"
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "opaque 256-bit"
+      }
+    }
+  }
+}

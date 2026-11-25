@@ -98,14 +98,17 @@ func TestRedisIntegrationAPILifecycle(t *testing.T) {
 			}
 			client := &http.Client{Timeout: 5 * time.Second}
 			defer client.CloseIdleConnections()
-			for _, path := range []string{"/health/live", "/health/ready"} {
-				response, err := client.Get("http://" + listener.Addr().String() + path)
+			for _, probe := range []struct {
+				path   string
+				status int
+			}{{"/health/live", http.StatusOK}, {"/health/ready", http.StatusOK}, {"/api/v1/identity/me", http.StatusUnauthorized}} {
+				response, err := client.Get("http://" + listener.Addr().String() + probe.path)
 				if err != nil {
 					t.Fatal("health request failed")
 				}
 				_, readErr := io.Copy(io.Discard, response.Body)
 				closeErr := response.Body.Close()
-				if readErr != nil || closeErr != nil || response.StatusCode != http.StatusOK {
+				if readErr != nil || closeErr != nil || response.StatusCode != probe.status {
 					t.Error("health/readiness failed")
 				}
 			}
