@@ -17,6 +17,9 @@ import (
 	"github.com/Faysal9991/mega-backend/internal/modules/identity"
 	"github.com/Faysal9991/mega-backend/internal/modules/identity/httpapi"
 	identitypg "github.com/Faysal9991/mega-backend/internal/modules/identity/postgres"
+	"github.com/Faysal9991/mega-backend/internal/modules/wallet"
+	wallethttp "github.com/Faysal9991/mega-backend/internal/modules/wallet/httpapi"
+	walletpg "github.com/Faysal9991/mega-backend/internal/modules/wallet/postgres"
 	"github.com/Faysal9991/mega-backend/internal/platform/config"
 	"github.com/Faysal9991/mega-backend/internal/platform/httpserver"
 	"github.com/Faysal9991/mega-backend/internal/platform/logging"
@@ -52,7 +55,17 @@ func run(ctx context.Context, lookup config.LookupEnv, stdout, stderr io.Writer,
 			pool.Close()
 			return databaseRuntime{}, err
 		}
-		if err := checkIdentitySchema(ctx, cfg.ConnectTimeout, repository.Ready, pool.Close); err != nil {
+		financial, err := walletpg.New(pool, nil)
+		if err != nil {
+			pool.Close()
+			return databaseRuntime{}, err
+		}
+		if err := checkIdentitySchema(ctx, cfg.ConnectTimeout, func(check context.Context) error {
+			if err := repository.Ready(check); err != nil {
+				return err
+			}
+			return financial.Ready(check)
+		}, pool.Close); err != nil {
 			return databaseRuntime{}, err
 		}
 		service, err := identity.New(repository, identity.NewGoogle(authConfig.GoogleClientID, authConfig.GoogleAuthorizedParties...), identity.NewPasswords())
@@ -79,6 +92,11 @@ func run(ctx context.Context, lookup config.LookupEnv, stdout, stderr io.Writer,
 				return err
 			}
 			ah.Mount(router)
+			wh, err := wallethttp.New(wallet.New(financial), logger)
+			if err != nil {
+				return err
+			}
+			wh.Mount(router)
 			return nil
 		}}, nil
 	})

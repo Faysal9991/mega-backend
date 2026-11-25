@@ -30,3 +30,15 @@ Step 8 reuses existing registry entries rather than adding duplicate authenticat
 ## Step 9 reuse
 
 No new error codes: strict JSON/unknown fields use INVALID_JSON (400), semantic/null/Unicode/pagination/catalog failures VALIDATION_FAILED (422), missing/expired/revoked session UNAUTHENTICATED (401), missing scoped authority/protected-owner changes FORBIDDEN (403), absent authorized target NOT_FOUND (404), uniqueness/reference/list-cap/bootstrap conflicts CONFLICT (409), per-account minute budget RATE_LIMITED (429, Retry-After: 60), unavailable security/audit storage SERVICE_UNAVAILABLE (503). Existing middleware cancellation mappings remain unchanged. Success codes: PROFILE_FETCHED, PROFILE_UPDATED, PERMISSIONS_FETCHED, USERS_FETCHED, USER_FETCHED, USER_PRIVATE_FETCHED, RESTRICTION_UPDATED, ROLES_FETCHED, ROLE_SAVED, ROLE_DELETED, ASSIGNMENTS_FETCHED, ASSIGNMENTS_UPDATED. See profiles.openapi.json.
+
+
+## Financial batch
+
+| Code | HTTP | Meaning |
+| --- | --- | --- |
+| FINANCIAL_CONFIGURATION_REQUIRED | 409 | No applicable enabled/supported explicit policy or review-only workflow configuration |
+| INSUFFICIENT_DIAMONDS | 409 | Insufficient available diamonds for requested principal and fee |
+| VERIFIED_ACTIVITY_UNAVAILABLE | 503 | Agency host cannot be authorized without trusted monthly activity |
+| WITHDRAWAL_NOT_ELIGIBLE | 403 | Configured activity/balance/withdrawal eligibility requirement not satisfied |
+
+Existing VALIDATION_FAILED covers invalid integer/range/min-max/transfer-period-limit inputs; CONFLICT covers fingerprint/version/state mismatches. Unavailable PostgreSQL/audit fails closed as SERVICE_UNAVAILABLE; no SQL/credential/provider details are returned. A successful review response reports settlement_status=not_configured, never paid or settled. Endpoint success/error DTOs and idempotency headers are in wallet.openapi.json.

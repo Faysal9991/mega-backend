@@ -221,7 +221,7 @@ func TestIntegrationProfilesAuthorization(t *testing.T) {
 		t.Fatal("concurrent bootstrap was not single winner")
 	}
 	effective, e = s2.Permissions(ctx, oc)
-	if e != nil || !effective.Owner || len(effective.Permissions) != 4 {
+	if e != nil || !effective.Owner || len(effective.Permissions) != len(access.Catalog()) {
 		t.Fatal("bootstrap effective permissions")
 	}
 	_, e = s.Profile(ctx, tc, owner)

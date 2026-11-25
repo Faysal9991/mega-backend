@@ -124,10 +124,15 @@ func TestRedisIntegrationAPILifecycle(t *testing.T) {
 				}
 			}
 			request("/api/v1/profiles/me", 200)
+			request("/api/v1/wallet", 200)
+			request("/api/v1/admin/withdrawals?limit=1", 200)
 			request("/api/v1/admin/users?limit=1", 200)
 			assign(false)
+			request("/api/v1/admin/withdrawals?limit=1", 403)
+			request("/api/v1/wallet", 200)
 			request("/api/v1/admin/users?limit=1", 403)
 			assign(true)
+			request("/api/v1/admin/withdrawals?limit=1", 200)
 			request("/api/v1/admin/users?limit=1", 200)
 
 			defer client.CloseIdleConnections()

@@ -36,3 +36,12 @@ sql:
         out: internal/modules/access/postgres/accesssql
         sql_package: pgx/v5
         emit_empty_slices: true
+  - engine: postgresql
+    schema: database/migrations
+    queries: database/queries/wallet
+    gen:
+      go:
+        package: walletsql
+        out: internal/modules/wallet/postgres/walletsql
+        sql_package: pgx/v5
+        emit_empty_slices: true

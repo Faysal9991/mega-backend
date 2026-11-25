@@ -8,6 +8,7 @@ import (
 	"github.com/Faysal9991/mega-backend/internal/modules/identity/postgres/identitysql"
 	"github.com/Faysal9991/mega-backend/internal/modules/profiles"
 	profilepg "github.com/Faysal9991/mega-backend/internal/modules/profiles/postgres"
+	walletaccounts "github.com/Faysal9991/mega-backend/internal/modules/wallet/postgres/accounts"
 	"github.com/Faysal9991/mega-backend/internal/platform/apperror"
 	platform "github.com/Faysal9991/mega-backend/internal/platform/postgres"
 	"github.com/jackc/pgx/v5"
@@ -19,6 +20,9 @@ import (
 type store struct {
 	q        *identitysql.Queries
 	profiles profiles.Initializer
+	wallets  interface {
+		Initialize(context.Context, string) error
+	}
 }
 type Repository struct {
 	*store
@@ -50,7 +54,7 @@ func mapped(err error) error {
 }
 func (r *Repository) Within(ctx context.Context, fn func(identity.Store) error) error {
 	err := r.tx.Within(ctx, pgx.TxOptions{}, func(ctx context.Context, tx pgx.Tx) error {
-		return fn(&store{q: identitysql.New(tx), profiles: profilepg.Bind(tx)})
+		return fn(&store{q: identitysql.New(tx), profiles: profilepg.Bind(tx), wallets: walletaccounts.Bind(tx)})
 	})
 	// Transactions wrap callback errors safely; preserve their application codes.
 	if err == nil {
@@ -78,16 +82,16 @@ func (s *store) CreateGoogle(ctx context.Context, a identity.Account, sub string
 	if s.profiles == nil {
 		return identity.ErrStorage
 	}
-	if s.profiles == nil {
-		return identity.ErrStorage
-	} // Creation requires the transaction-scoped profile writer.
 	if err := s.q.CreateAccount(ctx, identitysql.CreateAccountParams{ID: a.ID, ContactEmail: a.Email}); err != nil {
 		return mapped(err)
 	}
 	if err := s.q.LinkGoogle(ctx, identitysql.LinkGoogleParams{Subject: sub, AccountID: a.ID}); err != nil {
 		return mapped(err)
 	}
-	return mapped(s.profiles.Initialize(ctx, a.ID, a.DisplayName, a.Avatar))
+	if e := s.profiles.Initialize(ctx, a.ID, a.DisplayName, a.Avatar); e != nil {
+		return mapped(e)
+	}
+	return mapped(s.wallets.Initialize(ctx, a.ID))
 }
 func (s *store) LockAccount(ctx context.Context, id string) (identity.Account, error) {
 	v, e := s.q.LockAccount(ctx, id)
@@ -231,7 +235,7 @@ func (r *Repository) Ready(ctx context.Context) error {
 type Security struct{ s *store }
 
 func BindSecurity(tx pgx.Tx) *Security {
-	return &Security{s: &store{q: identitysql.New(tx), profiles: profilepg.Bind(tx)}}
+	return &Security{s: &store{q: identitysql.New(tx), profiles: profilepg.Bind(tx), wallets: walletaccounts.Bind(tx)}}
 }
 func (s *Security) Installation(ctx context.Context, id string) error {
 	restricted, e := s.s.EnsureInstallation(ctx, id)

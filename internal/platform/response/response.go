@@ -103,19 +103,19 @@ func Status(code apperror.Code) int {
 		return 422
 	case apperror.Unauthenticated:
 		return 401
-	case apperror.Forbidden:
+	case apperror.Forbidden, apperror.WithdrawalNotEligible:
 		return 403
 	case apperror.NotFound:
 		return 404
 	case apperror.MethodNotAllowed:
 		return 405
-	case apperror.Conflict:
+	case apperror.Conflict, apperror.FinancialConfigurationRequired, apperror.InsufficientDiamonds:
 		return 409
 	case apperror.PayloadTooLarge:
 		return 413
 	case apperror.RateLimited:
 		return 429
-	case apperror.ServiceUnavailable:
+	case apperror.ServiceUnavailable, apperror.VerifiedActivityUnavailable:
 		return 503
 	case apperror.RequestTimeout:
 		return 504

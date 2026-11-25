@@ -1,0 +1,99 @@
+[
+  {
+    "name": "balance",
+    "schema": "WALLET_FETCHEDEnvelope",
+    "method": "GET",
+    "path": "/wallet",
+    "request": "",
+    "key": "",
+    "status": 200,
+    "body": {
+      "success": true,
+      "code": "WALLET_FETCHED",
+      "data": {
+        "account_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "available_diamonds": 100,
+        "held_diamonds": 0,
+        "unit": "diamonds"
+      },
+      "request_id": "wallet-fixture"
+    }
+  },
+  {
+    "name": "withdrawal-reserved-not-settled",
+    "schema": "WITHDRAWAL_REQUESTEDEnvelope",
+    "method": "POST",
+    "path": "/wallet/withdrawals",
+    "request": "{\"diamonds\":10}",
+    "key": "fixture-key",
+    "status": 202,
+    "body": {
+      "success": true,
+      "code": "WITHDRAWAL_REQUESTED",
+      "data": {
+        "withdrawal_id": "cccccccccccccccccccccccccccccccc",
+        "account_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "diamonds": 10,
+        "fee_diamonds": 0,
+        "reserved_diamonds": 10,
+        "policy_id": "cccccccccccccccccccccccccccccccc",
+        "state": "pending",
+        "settlement_status": "not_configured",
+        "created_at": "2026-01-01T00:00:00Z"
+      },
+      "request_id": "wallet-fixture"
+    }
+  },
+  {
+    "name": "approved-still-held-not-settled",
+    "schema": "WITHDRAWAL_REVIEWEDEnvelope",
+    "method": "POST",
+    "path": "/admin/withdrawals/cccccccccccccccccccccccccccccccc/review",
+    "request": "{\"action\":\"approve\",\"reason\":\"synthetic review\"}",
+    "key": "fixture-key",
+    "status": 200,
+    "owner": true,
+    "body": {
+      "success": true,
+      "code": "WITHDRAWAL_REVIEWED",
+      "data": {
+        "withdrawal_id": "cccccccccccccccccccccccccccccccc",
+        "account_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "diamonds": 10,
+        "fee_diamonds": 0,
+        "reserved_diamonds": 10,
+        "policy_id": "cccccccccccccccccccccccccccccccc",
+        "state": "approved",
+        "settlement_status": "not_configured",
+        "created_at": "2026-01-01T00:00:00Z"
+      },
+      "request_id": "wallet-fixture"
+    }
+  },
+  {
+    "name": "cancelled-not-settled",
+    "schema": "WITHDRAWAL_CANCELLEDEnvelope",
+    "method": "POST",
+    "path": "/wallet/withdrawals/cccccccccccccccccccccccccccccccc/cancel",
+    "request": "{\"reason\":\"synthetic cancellation\"}",
+    "key": "fixture-key",
+    "status": 200,
+    "owner": false,
+    "body": {
+      "success": true,
+      "code": "WITHDRAWAL_CANCELLED",
+      "data": {
+        "withdrawal_id": "cccccccccccccccccccccccccccccccc",
+        "account_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "diamonds": 10,
+        "fee_diamonds": 0,
+        "reserved_diamonds": 10,
+        "policy_id": "cccccccccccccccccccccccccccccccc",
+        "state": "cancelled",
+        "settlement_status": "not_configured",
+        "created_at": "2026-01-01T00:00:00Z"
+      },
+      "request_id": "wallet-fixture"
+    }
+  }
+]

@@ -39,6 +39,7 @@ func New(pool *pgxpool.Pool) (*Repository, error) {
 
 type unit struct {
 	q                  *accesssql.Queries
+	transaction        pgx.Tx
 	security           *identitypg.Security
 	profiles           *profilepg.Store
 	actor              string
@@ -137,7 +138,7 @@ func (r *Repository) Within(ctx context.Context, c access.Credentials, permissio
 			}
 			return e
 		}
-		u := &unit{q: q, security: security, profiles: profilepg.Bind(tx), actor: actual.Account.ID, effective: effective, owners: owners}
+		u := &unit{transaction: tx, q: q, security: security, profiles: profilepg.Bind(tx), actor: actual.Account.ID, effective: effective, owners: owners}
 		if e := fn(u); e != nil {
 			return e
 		}
@@ -361,4 +362,10 @@ func (u *unit) require(permissions ...string) error {
 		}
 	}
 	return nil
+}
+
+// Financial binds a Wallet-owned callback to the same authoritative security
+// transaction and advisory lock as staff mutations. Access still owns audit writes.
+func (r *Repository) Financial(ctx context.Context, c access.Credentials, permission string, owner bool, target string, fn func(context.Context, pgx.Tx, access.Unit) error) error {
+	return r.Within(ctx, c, permission, owner, target, func(u access.Unit) error { return fn(ctx, u.(*unit).transaction, u) })
 }

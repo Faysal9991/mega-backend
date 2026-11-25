@@ -1,0 +1,290 @@
+[
+  {
+    "field": "display_name",
+    "name": "valid",
+    "value": "নাম",
+    "valid": true
+  },
+  {
+    "field": "display_name",
+    "name": "trailing_lf",
+    "value": "নাম\n",
+    "valid": false
+  },
+  {
+    "field": "display_name",
+    "name": "trailing_crlf",
+    "value": "নাম\r\n",
+    "valid": false
+  },
+  {
+    "field": "display_name",
+    "name": "leading_lf",
+    "value": "\nনাম",
+    "valid": false
+  },
+  {
+    "field": "display_name",
+    "name": "interior_lf",
+    "value": "নাম\nother",
+    "valid": false
+  },
+  {
+    "field": "display_name",
+    "name": "trailing_tab",
+    "value": "নাম\t",
+    "valid": false
+  },
+  {
+    "field": "display_name",
+    "name": "empty",
+    "value": "",
+    "valid": true
+  },
+  {
+    "field": "role_name",
+    "name": "valid",
+    "value": "support",
+    "valid": true
+  },
+  {
+    "field": "role_name",
+    "name": "trailing_lf",
+    "value": "support\n",
+    "valid": false
+  },
+  {
+    "field": "role_name",
+    "name": "trailing_crlf",
+    "value": "support\r\n",
+    "valid": false
+  },
+  {
+    "field": "role_name",
+    "name": "leading_lf",
+    "value": "\nsupport",
+    "valid": false
+  },
+  {
+    "field": "role_name",
+    "name": "interior_lf",
+    "value": "support\nother",
+    "valid": false
+  },
+  {
+    "field": "role_name",
+    "name": "trailing_tab",
+    "value": "support\t",
+    "valid": false
+  },
+  {
+    "field": "role_name",
+    "name": "empty",
+    "value": "",
+    "valid": false
+  },
+  {
+    "field": "reason",
+    "name": "valid",
+    "value": "reviewed request",
+    "valid": true
+  },
+  {
+    "field": "reason",
+    "name": "trailing_lf",
+    "value": "reviewed request\n",
+    "valid": false
+  },
+  {
+    "field": "reason",
+    "name": "trailing_crlf",
+    "value": "reviewed request\r\n",
+    "valid": false
+  },
+  {
+    "field": "reason",
+    "name": "leading_lf",
+    "value": "\nreviewed request",
+    "valid": false
+  },
+  {
+    "field": "reason",
+    "name": "interior_lf",
+    "value": "reviewed request\nother",
+    "valid": false
+  },
+  {
+    "field": "reason",
+    "name": "trailing_tab",
+    "value": "reviewed request\t",
+    "valid": false
+  },
+  {
+    "field": "reason",
+    "name": "empty",
+    "value": "",
+    "valid": false
+  },
+  {
+    "field": "bio",
+    "name": "plain",
+    "value": "bio",
+    "valid": true
+  },
+  {
+    "field": "bio",
+    "name": "trailing_lf",
+    "value": "bio\n",
+    "valid": true
+  },
+  {
+    "field": "bio",
+    "name": "leading_lf",
+    "value": "\nbio",
+    "valid": true
+  },
+  {
+    "field": "bio",
+    "name": "interior_tab",
+    "value": "bio\tmore",
+    "valid": true
+  },
+  {
+    "field": "bio",
+    "name": "only_lf_tab",
+    "value": "\n\t",
+    "valid": true
+  },
+  {
+    "field": "bio",
+    "name": "carriage_return",
+    "value": "bio\r",
+    "valid": false
+  },
+  {
+    "field": "bio",
+    "name": "nul",
+    "value": "bio\u0000",
+    "valid": false
+  },
+  {
+    "field": "account_id",
+    "name": "valid",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "valid": true
+  },
+  {
+    "field": "account_id",
+    "name": "trailing_lf",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n",
+    "valid": false
+  },
+  {
+    "field": "account_id",
+    "name": "trailing_crlf",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\r\n",
+    "valid": false
+  },
+  {
+    "field": "account_id",
+    "name": "leading_lf",
+    "value": "\naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "valid": false
+  },
+  {
+    "field": "role_id",
+    "name": "valid",
+    "value": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "valid": true
+  },
+  {
+    "field": "role_id",
+    "name": "trailing_lf",
+    "value": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n",
+    "valid": false
+  },
+  {
+    "field": "role_id",
+    "name": "trailing_crlf",
+    "value": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\r\n",
+    "valid": false
+  },
+  {
+    "field": "role_id",
+    "name": "leading_lf",
+    "value": "\nbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "valid": false
+  },
+  {
+    "field": "cursor",
+    "name": "valid",
+    "value": "cccccccccccccccccccccccccccccccc",
+    "valid": true
+  },
+  {
+    "field": "cursor",
+    "name": "trailing_lf",
+    "value": "cccccccccccccccccccccccccccccccc\n",
+    "valid": false
+  },
+  {
+    "field": "cursor",
+    "name": "trailing_crlf",
+    "value": "cccccccccccccccccccccccccccccccc\r\n",
+    "valid": false
+  },
+  {
+    "field": "cursor",
+    "name": "leading_lf",
+    "value": "\ncccccccccccccccccccccccccccccccc",
+    "valid": false
+  },
+  {
+    "field": "installation_id",
+    "name": "valid",
+    "value": "dddddddddddddddddddddddddddddddd",
+    "valid": true
+  },
+  {
+    "field": "installation_id",
+    "name": "trailing_lf",
+    "value": "dddddddddddddddddddddddddddddddd\n",
+    "valid": false
+  },
+  {
+    "field": "installation_id",
+    "name": "trailing_crlf",
+    "value": "dddddddddddddddddddddddddddddddd\r\n",
+    "valid": false
+  },
+  {
+    "field": "installation_id",
+    "name": "leading_lf",
+    "value": "\ndddddddddddddddddddddddddddddddd",
+    "valid": false
+  },
+  {
+    "field": "request_id",
+    "name": "valid",
+    "value": "request-1",
+    "valid": true
+  },
+  {
+    "field": "request_id",
+    "name": "trailing_lf",
+    "value": "request-1\n",
+    "valid": false
+  },
+  {
+    "field": "request_id",
+    "name": "trailing_crlf",
+    "value": "request-1\r\n",
+    "valid": false
+  },
+  {
+    "field": "request_id",
+    "name": "leading_lf",
+    "value": "\nrequest-1",
+    "valid": false
+  }
+]

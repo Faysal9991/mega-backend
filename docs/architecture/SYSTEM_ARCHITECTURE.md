@@ -105,3 +105,8 @@ Identity is the first business module: HTTP DTOs -> identity application service
 ## Step 9 profile and authorization modules
 
 Profiles owns app.profiles and its editable fields. Identity owns authentication, aliases, contact email, restrictions and sessions; its generated profile read projection preserves /identity/me without duplicate writable profile columns. Transaction-scoped profile initialization is composed by Identity's infrastructure on signup only. Access owns protected authority, custom staff roles/assignments and append-only audit. Its application service coordinates module-owned profile and Identity security adapters in one bounded PostgreSQL transaction. See PROFILES_AUTHORIZATION.md and ADR 0009 for concrete dependencies, locking, scope and limitations. Redis has no authorization role.
+
+
+## Financial modules
+
+Wallet is the single diamond write owner; its PostgreSQL adapter reuses Access's existing authoritative transaction/advisory lock and Identity-owned account checks. A narrow Wallet-owned transaction initializer supports atomic Google signup without a circular import. Pure agency activity calculation accepts only an injected trusted source, collected before financial locks and revalidated against current policy/association/period before reservation. Runtime collection and payout providers remain unavailable; no LiveKit, Redis authority, new background service or second balance writer is introduced. See FINANCIAL_ENGINE.md / AGENCY_ACTIVITY.md and wallet.openapi.json.

@@ -59,7 +59,7 @@ func TestIntegrationIdentitySecurity(t *testing.T) {
 	if err := migrator.Up(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if v, err := migrator.Version(ctx); err != nil || v != 3 {
+	if v, err := migrator.Version(ctx); err != nil || v != 4 {
 		t.Fatal("identity migration version")
 	}
 	pool, err := platform.Open(ctx, app)
@@ -445,5 +445,5 @@ func TestIntegrationIdentitySecurity(t *testing.T) {
 	if _, err := service2.Authenticate(ctx, second.Access, installation2); apperror.Public(err).Code() != apperror.ServiceUnavailable {
 		t.Fatal("security-state failure opened access")
 	}
-	t.Log("PASS: migration 3, generated queries/constraints, two-instance signup/refresh/revocation, profiles, aliases, password setup/change/recovery, restrictions and safe DB failure; no Redis authority")
+	t.Log("PASS: migration 4, generated queries/constraints, two-instance signup/refresh/revocation, profiles, aliases, password setup/change/recovery, restrictions and safe DB failure; no Redis authority")
 }

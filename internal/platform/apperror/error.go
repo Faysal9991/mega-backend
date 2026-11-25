@@ -13,30 +13,42 @@ import (
 type Code string
 
 const (
-	InvalidRequest       Code = "INVALID_REQUEST"
-	InvalidJSON          Code = "INVALID_JSON"
-	UnsupportedMediaType Code = "UNSUPPORTED_MEDIA_TYPE"
-	ValidationFailed     Code = "VALIDATION_FAILED"
-	Unauthenticated      Code = "UNAUTHENTICATED"
-	Forbidden            Code = "FORBIDDEN"
-	NotFound             Code = "NOT_FOUND"
-	MethodNotAllowed     Code = "METHOD_NOT_ALLOWED"
-	Conflict             Code = "CONFLICT"
-	PayloadTooLarge      Code = "PAYLOAD_TOO_LARGE"
-	RateLimited          Code = "RATE_LIMITED"
-	ServiceUnavailable   Code = "SERVICE_UNAVAILABLE"
-	RequestTimeout       Code = "REQUEST_TIMEOUT"
-	Internal             Code = "INTERNAL_ERROR"
-	MaxFields                 = 20
+	InvalidRequest                 Code = "INVALID_REQUEST"
+	InvalidJSON                    Code = "INVALID_JSON"
+	UnsupportedMediaType           Code = "UNSUPPORTED_MEDIA_TYPE"
+	ValidationFailed               Code = "VALIDATION_FAILED"
+	Unauthenticated                Code = "UNAUTHENTICATED"
+	Forbidden                      Code = "FORBIDDEN"
+	NotFound                       Code = "NOT_FOUND"
+	MethodNotAllowed               Code = "METHOD_NOT_ALLOWED"
+	Conflict                       Code = "CONFLICT"
+	PayloadTooLarge                Code = "PAYLOAD_TOO_LARGE"
+	RateLimited                    Code = "RATE_LIMITED"
+	ServiceUnavailable             Code = "SERVICE_UNAVAILABLE"
+	RequestTimeout                 Code = "REQUEST_TIMEOUT"
+	Internal                       Code = "INTERNAL_ERROR"
+	FinancialConfigurationRequired Code = "FINANCIAL_CONFIGURATION_REQUIRED"
+	InsufficientDiamonds           Code = "INSUFFICIENT_DIAMONDS"
+	VerifiedActivityUnavailable    Code = "VERIFIED_ACTIVITY_UNAVAILABLE"
+	WithdrawalNotEligible          Code = "WITHDRAWAL_NOT_ELIGIBLE"
+	MaxFields                           = 20
 )
 
 // Codes returns a fresh registry slice; callers cannot mutate shared definitions.
 func Codes() []Code {
-	return []Code{InvalidRequest, InvalidJSON, UnsupportedMediaType, ValidationFailed, Unauthenticated, Forbidden, NotFound, MethodNotAllowed, Conflict, PayloadTooLarge, RateLimited, ServiceUnavailable, RequestTimeout, Internal}
+	return []Code{InvalidRequest, InvalidJSON, UnsupportedMediaType, ValidationFailed, Unauthenticated, Forbidden, NotFound, MethodNotAllowed, Conflict, PayloadTooLarge, RateLimited, ServiceUnavailable, RequestTimeout, Internal, FinancialConfigurationRequired, InsufficientDiamonds, VerifiedActivityUnavailable, WithdrawalNotEligible}
 }
 
 func (code Code) Message() string {
 	switch code {
+	case FinancialConfigurationRequired:
+		return "Financial configuration required"
+	case InsufficientDiamonds:
+		return "Insufficient diamonds"
+	case VerifiedActivityUnavailable:
+		return "Verified activity unavailable"
+	case WithdrawalNotEligible:
+		return "Withdrawal eligibility requirements not met"
 	case InvalidRequest:
 		return "Invalid request"
 	case InvalidJSON:

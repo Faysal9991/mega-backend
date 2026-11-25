@@ -31,3 +31,19 @@ Account restriction status, future staff grants and business classifications are
 | Bootstrap | Explicit operator + dedicated migration credential | Selected active existing Google-linked account; serialized single winner; no HTTP |
 
 Earlier Step 8 restriction/admin deferrals describe that phase; this explicit Step 9 authorization supersedes only the rows above. Agency audio/video host classifications, premium entitlements and other business permissions remain separate/deferred. No universal user_type.
+
+
+## Cohesive financial batch (explicit owner authorization)
+
+| Action | Required authority | Additional boundary |
+| --- | --- | --- |
+| Own wallet/history/detail, transfer/gift, eligibility/request/history | Live bound active session | Server actor; own financial projection; explicit valid policy; no Redis authority |
+| Cancel own pending withdrawal | Live bound owner session | Idempotent full reservation release; approved/terminal requests cannot be client-cancelled |
+| Read policy publication history | economy.policies.read | Bounded immutable versions |
+| Publish economic/activity policy | economy.policies.write + protected owner | Explicit required settings, previous version CAS, effective timestamp and atomic old/new-ID audit |
+| Inspect operation | wallet.operations.read | Full postings only through this scoped admin projection |
+| Review pending/approved withdrawal | withdrawals.review | Approval retains held diamonds; reject releases once; cannot settle or initiate payout |
+| Issue/retire via adjustment | wallet.adjust + protected owner | Single Engine; explicit source reference/direction/amount/reason/idempotency and atomic audit |
+| Manage minimum host association | agency.hosts.manage + protected owner | Existing distinct active account/agency beneficiary; nonoverlapping effective dates, history and audit |
+
+The fixed catalog is now the four Step 9 user permissions plus these six financial permissions. Editable role names never grant authority; only protected owner manages grants. Financial critical writes still require protected owner even if the permission name appears in a staff role. Account status, host classification, premium entitlements and wallet ownership remain separate. No new generic staff or universal user_type privilege is introduced.

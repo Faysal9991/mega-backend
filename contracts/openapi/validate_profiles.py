@@ -28,3 +28,24 @@ for body in ({},{'bio':None},{'display_name':None},{'roles':['owner']},{'avatar_
 for body in ({'name':'owner','permissions':['owner'],'reason':'x'},{'name':'x','permissions':['users.private.read'],'reason':'x'},{'name':'x','permissions':['users.read','users.read'],'reason':'x'}):assert not check('RoleRequest').is_valid(body)
 assert len(spec['paths'])==11
 print('PASS: Step 9 OpenAPI, strict public projections, request/permission injection negatives and shared Unicode byte/rune fixtures')
+
+# Shared with Go TestStep9SharedValidationBoundaries: JSON Schema's Python
+# implementation gives `$` a before-final-LF alternative. The published portable
+# patterns must assert the absolute end instead of weakening Go's input policy.
+schemas=spec['components']['schemas']
+field_schemas={
+ 'display_name':schemas['PatchProfile']['properties']['display_name'],
+ 'bio':schemas['PatchProfile']['properties']['bio'],
+ 'role_name':schemas['RoleRequest']['properties']['name'],
+ 'reason':schemas['RoleRequest']['properties']['reason'],
+ 'account_id':schemas['Profile']['properties']['account_id'],
+ 'role_id':schemas['Role']['properties']['role_id'],
+ 'cursor':next(p['schema'] for p in spec['paths']['/api/v1/admin/users']['get']['parameters'] if p['name']=='cursor'),
+ 'installation_id':next(p['schema'] for p in spec['paths']['/api/v1/profiles/me']['get']['parameters'] if p['name']=='X-Installation-ID'),
+ 'request_id':{'$ref':'common.openapi.json#/components/schemas/RequestID'},
+}
+parity_cases=json.loads((root/'fixtures/step9_validation.json').read_text())
+for case in parity_cases:
+ schema={'$id':uri,**field_schemas[case['field']]}
+ assert ByteValidator(schema,registry=registry).is_valid(case['value'])==case['valid'],(case['field'],case['name'])
+print(f'PASS: {len(parity_cases)} shared Step 9 runtime/schema newline, control, bio and identifier boundaries')

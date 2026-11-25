@@ -21,7 +21,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "pattern": "^[0-9a-f]{32}$"
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
             }
           }
         ],
@@ -237,7 +237,7 @@
               "Retry-After": {
                 "schema": {
                   "type": "string",
-                  "pattern": "^[0-9]+$"
+                  "pattern": "^[0-9]+(?![\\s\\S])"
                 },
                 "description": "Seconds before retrying."
               }
@@ -323,7 +323,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "pattern": "^[0-9a-f]{32}$"
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
             }
           }
         ],
@@ -539,7 +539,7 @@
               "Retry-After": {
                 "schema": {
                   "type": "string",
-                  "pattern": "^[0-9]+$"
+                  "pattern": "^[0-9]+(?![\\s\\S])"
                 },
                 "description": "Seconds before retrying."
               }
@@ -637,7 +637,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "pattern": "^[0-9a-f]{32}$"
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
             }
           },
           {
@@ -646,7 +646,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "pattern": "^[0-9a-f]{32}$"
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
             }
           }
         ],
@@ -862,7 +862,7 @@
               "Retry-After": {
                 "schema": {
                   "type": "string",
-                  "pattern": "^[0-9]+$"
+                  "pattern": "^[0-9]+(?![\\s\\S])"
                 },
                 "description": "Seconds before retrying."
               }
@@ -950,7 +950,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "pattern": "^[0-9a-f]{32}$"
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
             }
           }
         ],
@@ -1166,7 +1166,7 @@
               "Retry-After": {
                 "schema": {
                   "type": "string",
-                  "pattern": "^[0-9]+$"
+                  "pattern": "^[0-9]+(?![\\s\\S])"
                 },
                 "description": "Seconds before retrying."
               }
@@ -1241,7 +1241,7 @@
     "/api/v1/admin/users": {
       "get": {
         "operationId": "get__admin_users",
-        "description": "users.read; immutable ID keyset, no count; cursor empty on final page.",
+        "description": "users.read; immutable ID keyset, no count. Returns up to limit complete users within the shared 1 MiB escaped JSON envelope budget; pages may be shorter than limit. has_more and next_cursor indicate continuation from the last returned account_id; next_cursor is null on the final page.",
         "security": [
           {
             "bearerAuth": []
@@ -1254,7 +1254,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "pattern": "^[0-9a-f]{32}$"
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
             }
           },
           {
@@ -1272,7 +1272,7 @@
             "in": "query",
             "schema": {
               "type": "string",
-              "pattern": "^[0-9a-f]{32}$"
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
             }
           }
         ],
@@ -1488,7 +1488,7 @@
               "Retry-After": {
                 "schema": {
                   "type": "string",
-                  "pattern": "^[0-9]+$"
+                  "pattern": "^[0-9]+(?![\\s\\S])"
                 },
                 "description": "Seconds before retrying."
               }
@@ -1576,7 +1576,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "pattern": "^[0-9a-f]{32}$"
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
             }
           },
           {
@@ -1585,7 +1585,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "pattern": "^[0-9a-f]{32}$"
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
             }
           }
         ],
@@ -1801,7 +1801,7 @@
               "Retry-After": {
                 "schema": {
                   "type": "string",
-                  "pattern": "^[0-9]+$"
+                  "pattern": "^[0-9]+(?![\\s\\S])"
                 },
                 "description": "Seconds before retrying."
               }
@@ -1889,7 +1889,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "pattern": "^[0-9a-f]{32}$"
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
             }
           },
           {
@@ -1898,7 +1898,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "pattern": "^[0-9a-f]{32}$"
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
             }
           }
         ],
@@ -2114,7 +2114,7 @@
               "Retry-After": {
                 "schema": {
                   "type": "string",
-                  "pattern": "^[0-9]+$"
+                  "pattern": "^[0-9]+(?![\\s\\S])"
                 },
                 "description": "Seconds before retrying."
               }
@@ -2202,7 +2202,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "pattern": "^[0-9a-f]{32}$"
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
             }
           },
           {
@@ -2211,7 +2211,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "pattern": "^[0-9a-f]{32}$"
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
             }
           }
         ],
@@ -2427,7 +2427,7 @@
               "Retry-After": {
                 "schema": {
                   "type": "string",
-                  "pattern": "^[0-9]+$"
+                  "pattern": "^[0-9]+(?![\\s\\S])"
                 },
                 "description": "Seconds before retrying."
               }
@@ -2525,7 +2525,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "pattern": "^[0-9a-f]{32}$"
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
             }
           },
           {
@@ -2534,7 +2534,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "pattern": "^[0-9a-f]{32}$"
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
             }
           }
         ],
@@ -2750,7 +2750,7 @@
               "Retry-After": {
                 "schema": {
                   "type": "string",
-                  "pattern": "^[0-9]+$"
+                  "pattern": "^[0-9]+(?![\\s\\S])"
                 },
                 "description": "Seconds before retrying."
               }
@@ -2848,7 +2848,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "pattern": "^[0-9a-f]{32}$"
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
             }
           }
         ],
@@ -3064,7 +3064,7 @@
               "Retry-After": {
                 "schema": {
                   "type": "string",
-                  "pattern": "^[0-9]+$"
+                  "pattern": "^[0-9]+(?![\\s\\S])"
                 },
                 "description": "Seconds before retrying."
               }
@@ -3150,7 +3150,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "pattern": "^[0-9a-f]{32}$"
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
             }
           }
         ],
@@ -3366,7 +3366,7 @@
               "Retry-After": {
                 "schema": {
                   "type": "string",
-                  "pattern": "^[0-9]+$"
+                  "pattern": "^[0-9]+(?![\\s\\S])"
                 },
                 "description": "Seconds before retrying."
               }
@@ -3464,7 +3464,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "pattern": "^[0-9a-f]{32}$"
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
             }
           },
           {
@@ -3473,7 +3473,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "pattern": "^[0-9a-f]{32}$"
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
             }
           }
         ],
@@ -3689,7 +3689,7 @@
               "Retry-After": {
                 "schema": {
                   "type": "string",
-                  "pattern": "^[0-9]+$"
+                  "pattern": "^[0-9]+(?![\\s\\S])"
                 },
                 "description": "Seconds before retrying."
               }
@@ -3785,7 +3785,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "pattern": "^[0-9a-f]{32}$"
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
             }
           },
           {
@@ -3794,7 +3794,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "pattern": "^[0-9a-f]{32}$"
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
             }
           }
         ],
@@ -4010,7 +4010,7 @@
               "Retry-After": {
                 "schema": {
                   "type": "string",
-                  "pattern": "^[0-9]+$"
+                  "pattern": "^[0-9]+(?![\\s\\S])"
                 },
                 "description": "Seconds before retrying."
               }
@@ -4108,7 +4108,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "pattern": "^[0-9a-f]{32}$"
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
             }
           },
           {
@@ -4117,7 +4117,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "pattern": "^[0-9a-f]{32}$"
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
             }
           }
         ],
@@ -4333,7 +4333,7 @@
               "Retry-After": {
                 "schema": {
                   "type": "string",
-                  "pattern": "^[0-9]+$"
+                  "pattern": "^[0-9]+(?![\\s\\S])"
                 },
                 "description": "Seconds before retrying."
               }
@@ -4419,7 +4419,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "pattern": "^[0-9a-f]{32}$"
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
             }
           },
           {
@@ -4428,7 +4428,7 @@
             "required": true,
             "schema": {
               "type": "string",
-              "pattern": "^[0-9a-f]{32}$"
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
             }
           }
         ],
@@ -4644,7 +4644,7 @@
               "Retry-After": {
                 "schema": {
                   "type": "string",
-                  "pattern": "^[0-9]+$"
+                  "pattern": "^[0-9]+(?![\\s\\S])"
                 },
                 "description": "Seconds before retrying."
               }
@@ -4740,7 +4740,7 @@
         "properties": {
           "account_id": {
             "type": "string",
-            "pattern": "^[0-9a-f]{32}$"
+            "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
           },
           "display_name": {
             "type": "string",
@@ -4780,7 +4780,7 @@
             "x-utf8-byte-length": {
               "max": 256
             },
-            "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]*$"
+            "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]*(?![\\s\\S])"
           },
           "bio": {
             "type": "string",
@@ -4788,7 +4788,7 @@
             "x-utf8-byte-length": {
               "max": 2048
             },
-            "pattern": "^[^\\u0000-\\u0008\\u000b-\\u001f\\u007f-\\u009f]*$"
+            "pattern": "^[^\\u0000-\\u0008\\u000b-\\u001f\\u007f-\\u009f]*(?![\\s\\S])"
           }
         },
         "required": [],
@@ -4804,7 +4804,7 @@
             "x-utf8-byte-length": {
               "max": 256
             },
-            "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]*$"
+            "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f]*(?![\\s\\S])"
           },
           "bio": {
             "type": "string",
@@ -4812,7 +4812,7 @@
             "x-utf8-byte-length": {
               "max": 2048
             },
-            "pattern": "^[^\\u0000-\\u0008\\u000b-\\u001f\\u007f-\\u009f]*$"
+            "pattern": "^[^\\u0000-\\u0008\\u000b-\\u001f\\u007f-\\u009f]*(?![\\s\\S])"
           },
           "reason": {
             "type": "string",
@@ -4822,7 +4822,7 @@
             },
             "minLength": 1,
             "description": "Safe explanation, no controls, outer whitespace, private values or secrets.",
-            "pattern": "^[^\\s\\u0000-\\u001f\\u007f-\\u009f](?:[^\\u0000-\\u001f\\u007f-\\u009f]*[^\\s\\u0000-\\u001f\\u007f-\\u009f])?$"
+            "pattern": "^[^\\s\\u0000-\\u001f\\u007f-\\u009f](?:[^\\u0000-\\u001f\\u007f-\\u009f]*[^\\s\\u0000-\\u001f\\u007f-\\u009f])?(?![\\s\\S])"
           }
         },
         "required": [
@@ -4847,7 +4847,7 @@
         "properties": {
           "account_id": {
             "type": "string",
-            "pattern": "^[0-9a-f]{32}$"
+            "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
           },
           "display_name": {
             "type": "string"
@@ -4903,14 +4903,20 @@
         "properties": {
           "permissions": {
             "type": "array",
-            "maxItems": 4,
+            "maxItems": 10,
             "uniqueItems": true,
             "items": {
               "enum": [
                 "users.read",
                 "users.private.read",
                 "users.profile.update",
-                "users.restrict"
+                "users.restrict",
+                "economy.policies.read",
+                "economy.policies.write",
+                "wallet.operations.read",
+                "wallet.adjust",
+                "withdrawals.review",
+                "agency.hosts.manage"
               ]
             }
           },
@@ -4929,7 +4935,7 @@
         "properties": {
           "role_id": {
             "type": "string",
-            "pattern": "^[0-9a-f]{32}$"
+            "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
           },
           "name": {
             "type": "string",
@@ -4940,14 +4946,20 @@
           },
           "permissions": {
             "type": "array",
-            "maxItems": 4,
+            "maxItems": 10,
             "uniqueItems": true,
             "items": {
               "enum": [
                 "users.read",
                 "users.private.read",
                 "users.profile.update",
-                "users.restrict"
+                "users.restrict",
+                "economy.policies.read",
+                "economy.policies.write",
+                "wallet.operations.read",
+                "wallet.adjust",
+                "withdrawals.review",
+                "agency.hosts.manage"
               ]
             }
           }
@@ -4969,18 +4981,24 @@
               "max": 64
             },
             "minLength": 1,
-            "pattern": "^[^\\s\\u0000-\\u001f\\u007f-\\u009f](?:[^\\u0000-\\u001f\\u007f-\\u009f]*[^\\s\\u0000-\\u001f\\u007f-\\u009f])?$"
+            "pattern": "^[^\\s\\u0000-\\u001f\\u007f-\\u009f](?:[^\\u0000-\\u001f\\u007f-\\u009f]*[^\\s\\u0000-\\u001f\\u007f-\\u009f])?(?![\\s\\S])"
           },
           "permissions": {
             "type": "array",
-            "maxItems": 4,
+            "maxItems": 10,
             "uniqueItems": true,
             "items": {
               "enum": [
                 "users.read",
                 "users.private.read",
                 "users.profile.update",
-                "users.restrict"
+                "users.restrict",
+                "economy.policies.read",
+                "economy.policies.write",
+                "wallet.operations.read",
+                "wallet.adjust",
+                "withdrawals.review",
+                "agency.hosts.manage"
               ]
             }
           },
@@ -4992,7 +5010,7 @@
             },
             "minLength": 1,
             "description": "Safe explanation, no controls, outer whitespace, private values or secrets.",
-            "pattern": "^[^\\s\\u0000-\\u001f\\u007f-\\u009f](?:[^\\u0000-\\u001f\\u007f-\\u009f]*[^\\s\\u0000-\\u001f\\u007f-\\u009f])?$"
+            "pattern": "^[^\\s\\u0000-\\u001f\\u007f-\\u009f](?:[^\\u0000-\\u001f\\u007f-\\u009f]*[^\\s\\u0000-\\u001f\\u007f-\\u009f])?(?![\\s\\S])"
           }
         },
         "required": [
@@ -5038,7 +5056,7 @@
             },
             "minLength": 1,
             "description": "Safe explanation, no controls, outer whitespace, private values or secrets.",
-            "pattern": "^[^\\s\\u0000-\\u001f\\u007f-\\u009f](?:[^\\u0000-\\u001f\\u007f-\\u009f]*[^\\s\\u0000-\\u001f\\u007f-\\u009f])?$"
+            "pattern": "^[^\\s\\u0000-\\u001f\\u007f-\\u009f](?:[^\\u0000-\\u001f\\u007f-\\u009f]*[^\\s\\u0000-\\u001f\\u007f-\\u009f])?(?![\\s\\S])"
           }
         },
         "required": [
@@ -5058,7 +5076,7 @@
             },
             "minLength": 1,
             "description": "Safe explanation, no controls, outer whitespace, private values or secrets.",
-            "pattern": "^[^\\s\\u0000-\\u001f\\u007f-\\u009f](?:[^\\u0000-\\u001f\\u007f-\\u009f]*[^\\s\\u0000-\\u001f\\u007f-\\u009f])?$"
+            "pattern": "^[^\\s\\u0000-\\u001f\\u007f-\\u009f](?:[^\\u0000-\\u001f\\u007f-\\u009f]*[^\\s\\u0000-\\u001f\\u007f-\\u009f])?(?![\\s\\S])"
           }
         },
         "required": [
@@ -5075,7 +5093,7 @@
             "uniqueItems": true,
             "items": {
               "type": "string",
-              "pattern": "^[0-9a-f]{32}$"
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
             }
           },
           "reason": {
@@ -5086,7 +5104,7 @@
             },
             "minLength": 1,
             "description": "Safe explanation, no controls, outer whitespace, private values or secrets.",
-            "pattern": "^[^\\s\\u0000-\\u001f\\u007f-\\u009f](?:[^\\u0000-\\u001f\\u007f-\\u009f]*[^\\s\\u0000-\\u001f\\u007f-\\u009f])?$"
+            "pattern": "^[^\\s\\u0000-\\u001f\\u007f-\\u009f](?:[^\\u0000-\\u001f\\u007f-\\u009f]*[^\\s\\u0000-\\u001f\\u007f-\\u009f])?(?![\\s\\S])"
           }
         },
         "required": [
@@ -5103,7 +5121,7 @@
             "maxItems": 100,
             "items": {
               "type": "string",
-              "pattern": "^[0-9a-f]{32}$"
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
             }
           }
         },

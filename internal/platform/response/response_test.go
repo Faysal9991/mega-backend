@@ -97,7 +97,7 @@ func TestSuccessContracts(t *testing.T) {
 	}
 }
 func TestErrorContractsAndMapping(t *testing.T) {
-	statuses := map[apperror.Code]int{apperror.InvalidRequest: 400, apperror.InvalidJSON: 400, apperror.UnsupportedMediaType: 415, apperror.ValidationFailed: 422, apperror.Unauthenticated: 401, apperror.Forbidden: 403, apperror.NotFound: 404, apperror.MethodNotAllowed: 405, apperror.Conflict: 409, apperror.PayloadTooLarge: 413, apperror.RateLimited: 429, apperror.ServiceUnavailable: 503, apperror.RequestTimeout: 504, apperror.Internal: 500}
+	statuses := map[apperror.Code]int{apperror.InvalidRequest: 400, apperror.InvalidJSON: 400, apperror.UnsupportedMediaType: 415, apperror.ValidationFailed: 422, apperror.Unauthenticated: 401, apperror.Forbidden: 403, apperror.NotFound: 404, apperror.MethodNotAllowed: 405, apperror.Conflict: 409, apperror.PayloadTooLarge: 413, apperror.RateLimited: 429, apperror.ServiceUnavailable: 503, apperror.RequestTimeout: 504, apperror.Internal: 500, apperror.FinancialConfigurationRequired: 409, apperror.InsufficientDiamonds: 409, apperror.VerifiedActivityUnavailable: 503, apperror.WithdrawalNotEligible: 403}
 	for _, code := range apperror.Codes() {
 		wr, r, rec, w, logs := setup(t)
 		err := wr.Error(w, r, apperror.New(code, errors.New("PRIVATE_SENTINEL")))

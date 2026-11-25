@@ -22,7 +22,9 @@ const (
 	Restrict      = "users.restrict"
 )
 
-func Catalog() []string { return []string{UsersRead, PrivateRead, ProfileUpdate, Restrict} }
+func Catalog() []string {
+	return []string{UsersRead, PrivateRead, ProfileUpdate, Restrict, "economy.policies.read", "economy.policies.write", "wallet.operations.read", "wallet.adjust", "withdrawals.review", "agency.hosts.manage"}
+}
 func ID() string {
 	var b [16]byte
 	if _, e := rand.Read(b[:]); e != nil {
@@ -231,7 +233,7 @@ func (s *Service) Roles(ctx context.Context, c Credentials) (out []Role, err err
 	return
 }
 func (s *Service) PutRole(ctx context.Context, c Credentials, id, name string, permissions []string, create bool, reason, correlation string) (out Role, err error) {
-	if !validText(name, 64) || !validAudit(reason, correlation) || permissions == nil || len(permissions) > 4 {
+	if !validText(name, 64) || !validAudit(reason, correlation) || permissions == nil || len(permissions) > len(Catalog()) {
 		return out, Failure(apperror.ValidationFailed)
 	}
 	seen := map[string]bool{}

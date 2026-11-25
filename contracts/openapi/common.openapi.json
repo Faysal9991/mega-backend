@@ -12,7 +12,7 @@
         "type": "string",
         "minLength": 1,
         "maxLength": 64,
-        "pattern": "^[A-Za-z0-9_-]+$",
+        "pattern": "^[A-Za-z0-9_-]+(?![\\s\\S])",
         "description": "Untrusted correlation only; same value as X-Request-ID."
       },
       "MachineCode": {
@@ -44,7 +44,11 @@
           "RATE_LIMITED",
           "SERVICE_UNAVAILABLE",
           "REQUEST_TIMEOUT",
-          "INTERNAL_ERROR"
+          "INTERNAL_ERROR",
+          "FINANCIAL_CONFIGURATION_REQUIRED",
+          "INSUFFICIENT_DIAMONDS",
+          "VERIFIED_ACTIVITY_UNAVAILABLE",
+          "WITHDRAWAL_NOT_ELIGIBLE"
         ]
       },
       "FieldError": {

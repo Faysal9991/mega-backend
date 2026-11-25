@@ -8,6 +8,7 @@ import (
 	accesspg "github.com/Faysal9991/mega-backend/internal/modules/access/postgres"
 	"github.com/Faysal9991/mega-backend/internal/modules/identity"
 	identitypg "github.com/Faysal9991/mega-backend/internal/modules/identity/postgres"
+	"github.com/Faysal9991/mega-backend/internal/modules/wallet"
 	"github.com/Faysal9991/mega-backend/internal/platform/config"
 	platform "github.com/Faysal9991/mega-backend/internal/platform/postgres"
 	"github.com/jackc/pgx/v5"
@@ -117,7 +118,7 @@ func step9RedisFixture(t *testing.T) (access.Credentials, string, func(bool)) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	r, e := service.PutRole(ctx, oc, "", "redis-fixture-"+owner, []string{access.UsersRead}, true, "fixture", "redis-role")
+	r, e := service.PutRole(ctx, oc, "", "redis-fixture-"+owner, []string{access.UsersRead, wallet.ReviewPermission}, true, "fixture", "redis-role")
 	if e != nil {
 		t.Fatal(e)
 	}

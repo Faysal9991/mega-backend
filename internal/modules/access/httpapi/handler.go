@@ -111,11 +111,10 @@ func (h *Handler) directory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p, e := h.s.Directory(r.Context(), credentials(r), q["cursor"], limit)
-	var next *string
-	if p.More {
-		next = &p.Next
+	if e == nil {
+		p, e = fitDirectoryPage(r, p)
 	}
-	h.write(w, r, 200, "USERS_FETCHED", p.Users, e, response.Options{Meta: &response.Meta{Pagination: response.Pagination{Limit: p.Limit, NextCursor: next, HasMore: p.More}}})
+	h.write(w, r, 200, "USERS_FETCHED", p.Users, e, directoryOptions(p))
 }
 func requestQuery(r *http.Request) (map[string]string, error) {
 	q, e := url.ParseQuery(r.URL.RawQuery)

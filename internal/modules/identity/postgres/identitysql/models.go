@@ -38,6 +38,35 @@ type AppAccessRolePermission struct {
 	Permission string
 }
 
+type AppAgencyHostAssociation struct {
+	ID             string
+	AccountID      string
+	AgencyID       string
+	Classification string
+	EffectiveFrom  pgtype.Timestamptz
+	EffectiveUntil pgtype.Timestamptz
+}
+
+type AppEconomyCommand struct {
+	ActorID        string
+	Kind           string
+	IdempotencyKey string
+	Fingerprint    string
+	Result         []byte
+}
+
+type AppEconomyPolicy struct {
+	Revision    pgtype.Int8
+	ID          string
+	Kind        string
+	Scope       string
+	PreviousID  pgtype.Text
+	EffectiveAt pgtype.Timestamptz
+	CreatedAt   pgtype.Timestamptz
+	ActorID     string
+	Config      []byte
+}
+
 type AppIdentityAccount struct {
 	ID           string
 	Status       string
@@ -113,4 +142,56 @@ type AppProfile struct {
 	DisplayName string
 	Bio         string
 	AvatarUrl   string
+}
+
+type AppWalletAccount struct {
+	ID      string
+	OwnerID pgtype.Text
+	Kind    string
+	Balance int64
+}
+
+type AppWalletEntry struct {
+	OperationID string
+	AccountID   string
+	Delta       int64
+}
+
+type AppWalletOperation struct {
+	ID             string
+	Kind           string
+	ActorID        string
+	TargetID       string
+	IdempotencyKey string
+	Fingerprint    string
+	Amount         int64
+	Fee            int64
+	PolicyID       pgtype.Text
+	PolicySnapshot []byte
+	Reference      string
+	CreatedAt      pgtype.Timestamptz
+}
+
+type AppWalletWithdrawal struct {
+	ID                  string
+	AccountID           string
+	ReserveOperationID  string
+	Amount              int64
+	Fee                 int64
+	Reserved            int64
+	PolicyID            string
+	EligibilitySnapshot []byte
+	State               string
+	CreatedAt           pgtype.Timestamptz
+}
+
+type AppWalletWithdrawalEvent struct {
+	ID             string
+	WithdrawalID   string
+	ActorID        string
+	Action         string
+	ResultingState string
+	IdempotencyKey string
+	Fingerprint    string
+	CreatedAt      pgtype.Timestamptz
 }

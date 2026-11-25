@@ -109,3 +109,8 @@ Password constraints use `x-utf8-byte-length: {min, max}` on setup, login and cu
 ## Step 9 profiles and scoped administration
 
 profiles.openapi.json defines the bounded profile, own-permission, admin user/restriction and protected-owner role/assignment APIs. Run validate_profiles.py in the same isolated Python validation environment as validate_identity.py. Shared profile_utf8.json assertions run through both Go profile policy and the byte-aware contract validator; profiles.json fixtures exercise strict public response projections. All ordinary errors reuse the common registry/envelopes. See PROFILES_AUTHORIZATION.md for permission, null/empty, concurrency and bootstrap semantics.
+
+
+## Financial batch
+
+`wallet.openapi.json` covers the single wallet, transfers, gated financial gifting, review-only withdrawal reservations and separately authorized economic administration. `validate_wallet.py` executes shared fixtures, strict actor/price/role/state injection negatives, int64 JSON-token/UTF-8 bounds and non-settling workflow contracts. It reuses the common safe error registry, including configuration-required/funds/activity/eligibility errors. No response denotes real fiat payout or verified LiveKit activity. Step 9 shared newline/control/identifier parity cases run in `validate_profiles.py` and Go fixtures; portable absolute-end assertions preserve LF/tab in bio while rejecting trailing LF in restricted strings.
