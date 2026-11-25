@@ -437,7 +437,9 @@ Readiness caches snapshots: outage/recovery detection can lag by the remaining 1
 
 No Redis, business module, infrastructure/PgBouncer setup, commit, push or deployment. Stop after the two Step 6 fixes for review.
 
-## Step 7 — optional Redis/disposable cache implementation and real-test gate
+## Step 7 — original implementation and historical real-test gate
+
+The focused acceptance audit appended below supersedes this section’s missing-credential blocker. Original execution evidence is retained as history.
 
 Date: 2026-11-25 (Asia/Dhaka). Initial HEAD 63992e40ae1ccf28dddc7dea1948ac1c65635a2d, working tree clean. The owner authorized Step 7 only and identified this as reviewed Step 6 behavior to preserve. Existing scoped approvals and pending review statuses were retained; no broader production/performance approval is inferred. FND-008 is implemented for review, with shared-endpoint acceptance explicitly blocked below.
 
@@ -491,3 +493,62 @@ Added internal/platform/config/redis.go and tests, internal/platform/rediscache 
 No performance/load/production availability claim. The process-scoped SDK logger suppresses other SDK clients' diagnostics; all clients must use this ownership boundary. Hard client limits do not replace a server maxmemory/eviction policy or fleet budget. Receive allocation is only bounded after decoding. Canceled Set/Delete may have executed; credentials/config are static and changed local credentials require appropriate restart/reconfiguration, not a new hot-reload mechanism.
 
 No authentication/session/rate-limit/wallet/job/PubSub/LiveKit business implementation, infrastructure/ACL/server mutation, FLUSHDB/FLUSHALL/KEYS/CONFIG SET, shared-server stop, commit, push or deployment. Stop at Step 7 review/real-test gate.
+
+## Step 7 focused acceptance audit — 2026-11-25 (Asia/Dhaka)
+
+Baseline: 8f32219, initially clean. Scope: original Step 7 requirements recorded in REDIS_CACHE.md, ADR 0007, roadmap and source contracts; no business/Step 8 implementation. Inspected actual config, adapter, API composition/lifecycle and installed go-redis v9.23.0 options.go, redis.go and internal/pool/pool.go. This audit supersedes the historical missing-credential blocker above. Credentials were supplied to child-process environments from ignored .env, parsing values without shell evaluation or printing them. Only REDIS_* and (for API tests) TEST_DB_* were supplied. No credentials entered argv, logs or tracked files.
+
+### Requirement verdicts after the fix
+
+| Acceptance requirement | Result | Evidence / limit |
+| --- | --- | --- |
+| Optional/default-disabled configuration; disabled means no credential lookup/client/network | PASS | Loader call tracking, nil-client/disabled operations, actual disabled API startup with invalid unread URL |
+| Strict typed configuration and constructor revalidation | PASS | Config invalid-input/boundary tests and constructor production-bypass rejection; invalid configuration precedes DB/client/listener |
+| One reusable private standalone client; explicit injection | PASS | Actual API run -> runWithDatabase -> runWithServices -> rediscache.Open; private client, no command escape API |
+| Hard physical connection cap, including auxiliary activity | PASS | PoolSize + MaxActiveConns, pipeline disabled, no idle prefill, shared timed TLS dial semaphore, FallbackDelay=-1; direct third-dial rejection/release tests at cap 2; simultaneous blocked commands remain capped; real concurrent pool 4 <= cap 8 |
+| Disabled command retries | PASS | Input MaxRetries=-1 normalizes to 0; pinned command loop inspected; LOADING delivered once; RESP2/no CSC/HIMPORT features avoid special replay paths |
+| Disabled immediate dial retries | PASS | DialerRetries=1; pinned loop uses attempt < DialerRetries. Later caller reconnects and bounded built-in circuit probe remain possible, as documented |
+| Bounded dial/pool/read/write/startup/operation timeouts | PASS | Every duration validated 1ms–10s; custom timed TLS dial and context-aware driver; blocked-operation timeout/earlier-deadline tests; optional startup bound |
+| Prompt cancellation with bounded residual work | PASS | Established socket cancellation returns safely while bounded worker retains admission; canceled real GET rejected; caller deadline never extended |
+| TLS-only, minimum TLS 1.2, chain/hostname verification default | PASS | Actual custom TLS dialer and ServerName inspected; redis:// and URL overrides rejected; untrusted local certificate rejected without insecure fallback |
+| Explicit dev/test bypass only; staging/production enforce verification | PASS | Config and constructor tests, including disabled production; real endpoint used existing explicit test bypass (encrypted, identity unverified) |
+| Credential/config/error/SDK log redaction | PASS | Config/Secret formatting + JSON tests; raw local server sentinel suppressed; SDK immutable discard logger; real API logs checked for supplied URL/DB password, no raw transport errors emitted |
+| Optional startup outage and later recovery | PASS | Controlled local TLS auth/network failure then recovery through the same client; real API local refused-port startup warning, serving continues; no shared-server disruption |
+| Health/readiness independent of Redis; preserve PostgreSQL gate | PASS | Actual PostgreSQL startup/readiness + live/ready HTTP 200 in real enabled, disabled and locally unavailable modes; existing PostgreSQL tests unchanged |
+| Graceful drain then cache Close once then PostgreSQL Close | PASS | Source defer order and local close-order assertion; actual composition-root context cancellation succeeds in all 3 modes; blocked adapter Close interrupts I/O and joins workers |
+| Versioned environment namespaces and bounded safe keys | PASS | Explicit prefix assertion, allowed ASCII/length validation; random integration/benchmark suffixes |
+| SET with bounded values and mandatory bounded whole-ms TTL | PASS | Source and limits tests, real SET; owned copy protects canceled caller reuse; no persistent TTL accepted |
+| GET hit, empty-value hit and MISS distinction | PASS | Controlled and real tests; no full models/business data cached |
+| Single-key DELETE and absence semantics | PASS | Local idempotent delete and real delete followed by MISS |
+| Actual TTL expiry | PASS | Real 100ms expiry tested after 200ms; deterministic local clock test |
+| Isolated real keys and cleanup | PASS | Crypto-random tracked namespace, TTL <=30s; independent cleanup context deletes exact keys and verifies MISS; benchmark cleanup also verified; no enumeration/global deletion |
+| Concurrent operations, fail-fast admission and race safety | PASS | Real 16-way GET: 4 hits/12 safe bounded rejections, no invalid results; blocked cap-2 test, mixed concurrent GET/SET/DELETE/Close, full race suite and tagged real race suite |
+| Sequential operations release admission before completion is visible | PASS | Confirmed FAIL before fix: 100,000 sequential execute calls at cap 1 spuriously returned CACHE_UNAVAILABLE. Fix releases slot before result publication; normal/panic paths now pass |
+| Bounded cache benchmark with latency/allocations separated from network | PASS | Measurements below; local dispatch versus warmed remote driver/adapter, no speedup inferred |
+| Build/uncached tests/race/vet/module/generation/format/diff checks | PASS | Actual commands below, all exit 0 |
+| No authoritative cache/business/Step 8 expansion | PASS | Source/diff review; Get/Set/Delete only, no auth/session/financial/jobs/PubSub/media implementation or contract changes |
+| Trusted identity handshake against the shared endpoint | NOT TESTED | Existing explicit test bypass was required; remote chain/hostname trust is not established. Default verified rejection tested locally |
+| Shared Redis maxmemory/eviction/least-privilege ACL and fleet limits | NOT TESTED | Documented operational prerequisites; no CONFIG/ACL inspection or infrastructure mutation authorized/performed |
+| Production/multi-instance capacity, reliability or performance | NOT TESTED | Small single-process synthetic tests only; no production SLO claim |
+
+No remaining confirmed Step 7 source defect from this audit. FND-008 remains implemented pending owner architectural acceptance; technical evidence does not imply owner approval.
+
+### Executed checks and measurements
+
+All final commands passed: `go build ./...`; `go test -count=1 ./...`; `go test -race -count=1 ./...`; `go vet ./...`; `go vet -tags=redis_integration ./cmd/api ./internal/platform/rediscache`; `go mod verify` (all modules verified); `make check-generated` (sqlc v1.31.1 diff); `gofmt -l cmd internal database` (empty); `git diff --check`. No additional lint/security tool is configured. No dependency or generated SQL changed; no tidy necessary. PostgreSQL destructive/migration integration suites were not rerun: this change does not touch them; actual API integration exercised authenticated test database/schema startup and readiness without migrations.
+
+With ignored local settings and `BIHO_REDIS_INTEGRATION_ACK=169.58.127.58:7200/0`: `go test -race -tags=redis_integration -run TestRedisIntegration -count=1 -v ./internal/platform/rediscache ./cmd/api` passed. Cache test: 7.09s; actual API test: 8.47s (enabled 3.66s, disabled 2.68s, unavailable 2.12s). Both suites include runtime/race instrumentation; these durations are not request-latency measurements. The API integration calls the actual run composition root, including real PostgreSQL startup and TCP HTTP; shutdown is driven by context cancellation rather than an OS signal. Signal delivery itself was not separately exercised.
+
+Synthetic benchmark environment: Go 1.26.3, darwin/arm64, Apple M4, default benchmark parallelism suffix 10, one serial caller, warmed connection, one 21-byte synthetic value, no race instrumentation. Remote sample size 20 per mode; nearest-rank quantiles, insufficient for reliable tail/SLO estimation. Remote TLS uses the explicit local testing bypass. No business dataset or production workload is represented.
+
+| Measured path | Samples | Mean/op | p50 / p95 / p99 | B/op | allocs/op |
+| --- | ---: | ---: | --- | ---: | ---: |
+| Local context + admitted worker/channel dispatch, no driver/network | 100,000 | 991.2 ns | Not collected | 576 | 8 |
+| Remote public adapter GET | 20 | 222.048 ms | 211.0 / 253.0 / 344.4 ms | 1,412 | 21 |
+| Same private driver GET, remote TLS/server/network included | 20 | 235.411 ms | 211.4 / 305.6 / 312.0 ms | 620 | 10 |
+
+Commands: `go test -run '^$' -bench BenchmarkAdapterDispatch -benchtime=100000x -benchmem -count=1 ./internal/platform/rediscache`; with the explicit Redis supplier, `go test -tags=redis_integration -run '^$' -bench BenchmarkRedisRemoteGet -benchtime=20x -benchmem -count=1 ./internal/platform/rediscache`. Dispatch excludes key/value conversion, driver encoding/decoding and socket work. Remote driver/adapter harnesses include their caller timeout context. Similar remote times show dominant remote I/O; independent samples cannot isolate network transit from Redis/TLS or justify subtraction/speedup claims. Client allocations alone do not measure server RSS/CPU/bytes.
+
+An initial 100-sample benchmark failed when its single shared 30-second fixture expired during the second mode. Cleanup completed without errors. Corrected the benchmark fixture lifecycle (refresh the owned key outside timing per mode), capped samples at 50, ran 20 per mode, and retained the short TTL safety constraint. Final measurements above use nearest-rank percentiles. No production adapter behavior was changed to accommodate the benchmark.
+
+Remaining limitations: receive-value size is checked after driver decoding/allocation; cancellation does not prove SET/DELETE did not execute; SDK logging policy is process-wide; per-process caps do not impose fleet/server resource limits. These preexisting constraints remain documented in REDIS_CACHE.md/ADR 0007. No shared-server stop, FLUSH/KEYS/CONFIG/ACL command, schema mutation, credential change, infrastructure change, commit, push or deployment occurred. Stop at Step 7 owner review.

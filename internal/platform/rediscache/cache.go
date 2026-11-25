@@ -188,13 +188,17 @@ func (c *Cache) execute(ctx context.Context, fn func(context.Context) result) (r
 	done := make(chan result, 1)
 	go func() {
 		defer c.workers.Done()
-		defer func() { <-c.slots }()
+		var r result
 		defer func() {
 			if recover() != nil {
-				done <- result{err: ErrCommand}
+				r = result{err: ErrCommand}
 			}
+			// Publish completion only after releasing admission. Otherwise a
+			// sequential caller can spuriously exhaust a single-slot cache.
+			<-c.slots
+			done <- r
 		}()
-		done <- fn(ctx)
+		r = fn(ctx)
 	}()
 	select {
 	case r := <-done:

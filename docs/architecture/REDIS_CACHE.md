@@ -1,6 +1,6 @@
 # Redis optional disposable cache — Step 7
 
-Status: implemented for review; real-endpoint verification evidence/blocks are recorded separately in FOUNDATION_VERIFICATION.md. Step 6 PostgreSQL transaction/readiness behavior at 63992e4 is preserved; no Redis dependency is added to liveness or PostgreSQL readiness.
+Status: implemented for review; real-endpoint acceptance audit results and limitations are recorded separately in FOUNDATION_VERIFICATION.md. Step 6 PostgreSQL transaction/readiness behavior at 63992e4 is preserved; no Redis dependency is added to liveness or PostgreSQL readiness.
 
 ## Configuration and explicit environment supply
 
@@ -52,7 +52,7 @@ Receive-allocation limitation: the Redis bulk reply/string is allocated by go-re
 
 ## Server and fleet requirements
 
-Budget maximum sockets as process replicas × configured hard cap, plus other clients/admin consumers; zero minimum idle is not a promise of zero established sockets. Include connection-churn/TLS/worker memory costs and bounded in-flight responses. Client workers and sockets are capped per instance, not automatically across deployments. No capacity/latency/throughput improvement was measured.
+Budget maximum sockets as process replicas × configured hard cap, plus other clients/admin consumers; zero minimum idle is not a promise of zero established sockets. Include connection-churn/TLS/worker memory costs and bounded in-flight responses. Client workers and sockets are capped per instance, not automatically across deployments. A bounded synthetic dispatch/remote GET benchmark is recorded in FOUNDATION_VERIFICATION.md; it establishes no production capacity or improvement claim.
 
 Use a disposable-cache service with finite maxmemory and an appropriate eviction policy (for example allkeys-lru/lfu), memory headroom and monitoring; size from measured datasets/workload. TTL is not a replacement for a memory limit, and maxmemory can exclude some buffers/overheads. Server OOM/eviction/outage must be safe cache loss. Do not share eviction policy with durable coordination in a future phase. A future least-privilege ACL should allow only required handshake/PING/Get/Set/Delete and the intended environment/version namespace; the supplied default ACL was not changed or assumed least privilege. This step neither inspects nor changes shared memory/eviction/ACL/server configuration. These memory/eviction caveats follow the [official Redis eviction documentation](https://redis.io/docs/latest/develop/reference/eviction/).
 
@@ -69,3 +69,12 @@ BIHO_REDIS_INTEGRATION_ACK=169.58.127.58:7200/0 \
 ```
 
 No FLUSHDB, FLUSHALL, KEYS, CONFIG SET, ACL mutation, shared-server restart or deployment is performed. Disruptive tests run only against local controlled doubles.
+
+
+## Focused acceptance follow-up
+
+The 2026-11-25 audit supersedes the historical missing-credential blocker. Real operations/expiry and tracked-key deletion followed by MISS verification pass, including opt-in API tests with actual PostgreSQL startup and Redis enabled/disabled/unavailable. Unavailability/recovery tests disturb only controlled local endpoints. The adapter now releases an operation slot before publishing completion; previously a sequential single-slot caller could spuriously receive CACHE_UNAVAILABLE. A 100,000-operation regression reproduced the defect before the fix. Panic completion releases admission in the same path.
+
+Opt-in API lifecycle test: `go test -race -tags=redis_integration -run TestRedisIntegration -count=1 -v ./internal/platform/rediscache ./cmd/api`. Supply only REDIS_* and TEST_DB_* settings from the existing ignored .env via an explicit trusted supplier, plus the same endpoint acknowledgment. The API test maps TEST_DB_* to DB_* in APP_ENV=test; it performs startup/readiness reads only, with no migration or schema changes. The disabled case supplies an invalid URL to confirm it is not read; the unavailable case uses a closed local port.
+
+Benchmarks: `go test -run '^$' -bench BenchmarkAdapterDispatch -benchtime=100000x -benchmem -count=1 ./internal/platform/rediscache`; under the same explicit Redis environment supplier, `go test -tags=redis_integration -run '^$' -bench BenchmarkRedisRemoteGet -benchtime=20x -benchmem -count=1 ./internal/platform/rediscache`. The remote benchmark enforces at most 50 samples per mode, owns one random 30-second-TTL key, refreshes it outside timing before each mode and verifies deletion/MISS in cleanup. Remote adapter/driver measurements include TLS/network/server time; dispatch measures only local context/worker/channel overhead. Do not subtract separate remote samples to estimate local adapter cost.

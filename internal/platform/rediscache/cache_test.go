@@ -427,3 +427,90 @@ func TestDisabledAndEarlierDeadline(t *testing.T) {
 	}
 	close(s.release)
 }
+
+// A completed operation must release admission before its result is visible.
+func TestSequentialSingleSlotOperations(t *testing.T) {
+	c := &Cache{cfg: config.RedisConfig{Enabled: true}, slots: make(chan struct{}, 1)}
+	defer c.Close()
+	for range 100000 {
+		if _, err := c.execute(context.Background(), func(context.Context) result { return result{} }); err != nil {
+			t.Fatal("completed operation still occupies the only admission slot", err)
+		}
+	}
+}
+
+func BenchmarkAdapterDispatch(b *testing.B) {
+	c := &Cache{cfg: config.RedisConfig{Enabled: true}, slots: make(chan struct{}, 1)}
+	defer c.Close()
+	b.ReportAllocs()
+	for b.Loop() {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		_, err := c.execute(ctx, func(context.Context) result { return result{value: "synthetic-cache-value"} })
+		cancel()
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func TestConcurrentOperationsAndClose(t *testing.T) {
+	s := newFakeRedis(t)
+	c := openTestCache(t, redisSettings(t, s, map[string]string{"REDIS_MAX_CONNS": "2"}), io.Discard)
+	var wg sync.WaitGroup
+	start := make(chan struct{})
+	for i := range 16 {
+		wg.Go(func() {
+			<-start
+			key := fmt.Sprintf("concurrent:%d", i)
+			for range 30 {
+				if err := c.Set(context.Background(), key, []byte("value"), time.Second); err != nil && !errors.Is(err, ErrUnavailable) {
+					t.Error("unexpected concurrent SET failure")
+				}
+				if _, _, err := c.Get(context.Background(), key); err != nil && !errors.Is(err, ErrUnavailable) {
+					t.Error("unexpected concurrent GET failure")
+				}
+				if err := c.Delete(context.Background(), key); err != nil && !errors.Is(err, ErrUnavailable) {
+					t.Error("unexpected concurrent DELETE failure")
+				}
+			}
+		})
+	}
+	close(start)
+	wg.Go(func() {
+		if err := c.Close(); err != nil {
+			t.Error(err)
+		}
+	})
+	wg.Go(func() {
+		if err := c.Close(); err != nil {
+			t.Error(err)
+		}
+	})
+	wg.Wait()
+	if len(c.slots) != 0 {
+		t.Fatal("admission leaked after concurrent close")
+	}
+}
+
+func TestOperationTimeoutAndPanicAdmission(t *testing.T) {
+	s := newFakeRedis(t)
+	c := openTestCache(t, redisSettings(t, s, map[string]string{"REDIS_OPERATION_TIMEOUT": "20ms"}), io.Discard)
+	s.block.Store(true)
+	start := time.Now()
+	if _, _, err := c.Get(context.Background(), "timeout"); !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatal("operation timeout not enforced", err)
+	}
+	if time.Since(start) > 200*time.Millisecond {
+		t.Fatal("operation timeout exceeded bound")
+	}
+	close(s.release)
+	local := &Cache{cfg: config.RedisConfig{Enabled: true}, slots: make(chan struct{}, 1)}
+	defer local.Close()
+	r, err := local.execute(context.Background(), func(context.Context) result { panic("PRIVATE_SENTINEL") })
+	if err != nil || !errors.Is(r.err, ErrCommand) {
+		t.Fatal("panic not classified safely")
+	}
+	if _, err := local.execute(context.Background(), func(context.Context) result { return result{} }); err != nil {
+		t.Fatal("panic leaked admission")
+	}
+}
