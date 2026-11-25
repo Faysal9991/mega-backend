@@ -63,3 +63,5 @@ Step 8 preserves all unrelated review statuses and existing edits. Scope-specifi
 | ADM-002 | Flexible staff/admin permissions | Owner Step 8 deferral | deferred | No staff grants/admin HTTP or universal user_type; future scoped permission specification required |
 | AGY-002 | Agency membership and audio/video host classifications | Owner Step 8 deferral | deferred | Distinct future business relationships; no workflows implemented |
 | NTF-002 | Push-token registration and delivery | Owner Step 8 deferral | deferred | No FCM registration/provider/delivery workflow implemented |
+
+Scoped review follow-up at 55ead83f: IDN-001 startup/HTTP failure handling and IDN-003 Unicode byte-contract regressions are corrected with actual evidence in STEP8_VERIFICATION.md. Existing authentication rules, session semantics, statuses and Step 7 scoped acceptance remain unchanged; Step 8 architectural review is still pending.

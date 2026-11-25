@@ -2,7 +2,9 @@ package identity
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/Faysal9991/mega-backend/internal/platform/apperror"
+	"os"
 	"strings"
 	"testing"
 )
@@ -64,5 +66,42 @@ func TestIdentifierNormalization(t *testing.T) {
 		if _, _, err := NormalizeIdentifier(bad); err == nil {
 			t.Fatal("ambiguous identifier accepted")
 		}
+	}
+}
+
+func TestPasswordUTF8ByteContract(t *testing.T) {
+	raw, err := os.ReadFile("../../../contracts/openapi/fixtures/password_utf8.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var cases []struct {
+		Name  string `json:"name"`
+		Value string `json:"value"`
+		Bytes int    `json:"utf8_bytes"`
+		Valid bool   `json:"valid_new_password"`
+	}
+	if err := json.Unmarshal(raw, &cases); err != nil {
+		t.Fatal(err)
+	}
+	passwords := NewPasswords()
+	for _, tc := range cases {
+		t.Run(tc.Name, func(t *testing.T) {
+			if len(tc.Value) != tc.Bytes || validPassword(tc.Value) != tc.Valid {
+				t.Fatal("runtime UTF-8 byte policy disagrees with shared contract fixture")
+			}
+			hash, err := passwords.Hash(context.Background(), tc.Value)
+			if !tc.Valid {
+				if apperror.Public(err).Code() != apperror.ValidationFailed {
+					t.Fatal("invalid byte length accepted")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if ok, err := passwords.Verify(context.Background(), tc.Value, hash); err != nil || !ok {
+				t.Fatal("Unicode password did not roundtrip")
+			}
+		})
 	}
 }

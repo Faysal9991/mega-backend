@@ -47,10 +47,14 @@ func (h *Handler) write(w http.ResponseWriter, r *http.Request, code string, dat
 		if apperror.Public(err).Code() == apperror.RateLimited {
 			w.Header().Set("Retry-After", "60")
 		}
-		_ = h.responses.Error(w, r, err)
+		if writeErr := h.responses.Error(w, r, err); writeErr != nil {
+			panic(http.ErrAbortHandler)
+		}
 		return
 	}
-	_ = h.responses.Success(w, r, 200, code, data, response.Options{})
+	if writeErr := h.responses.Success(w, r, 200, code, data, response.Options{}); writeErr != nil {
+		panic(http.ErrAbortHandler)
+	}
 }
 func (h *Handler) decode(w http.ResponseWriter, r *http.Request, dst any) bool {
 	if err := h.decoder.Decode(r, dst); err != nil {

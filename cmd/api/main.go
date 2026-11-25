@@ -49,8 +49,7 @@ func run(ctx context.Context, lookup config.LookupEnv, stdout, stderr io.Writer,
 			pool.Close()
 			return databaseRuntime{}, err
 		}
-		if err := repository.Ready(ctx); err != nil {
-			pool.Close()
+		if err := checkIdentitySchema(ctx, cfg.ConnectTimeout, repository.Ready, pool.Close); err != nil {
 			return databaseRuntime{}, err
 		}
 		service, err := identity.New(repository, identity.NewGoogle(authConfig.GoogleClientID, authConfig.GoogleAuthorizedParties...), identity.NewPasswords())
@@ -67,6 +66,25 @@ func run(ctx context.Context, lookup config.LookupEnv, stdout, stderr io.Writer,
 			return nil
 		}}, nil
 	})
+}
+
+// checkIdentitySchema owns failure cleanup for the already-open runtime pool.
+// PostgreSQL Open has completed its own budget; this subsequent query must also
+// be bounded and must retain an earlier process deadline/cancellation.
+func checkIdentitySchema(ctx context.Context, budget time.Duration, ready func(context.Context) error, closePool func()) error {
+	check, cancel := context.WithTimeout(ctx, budget)
+	defer cancel()
+	err := check.Err()
+	if err == nil {
+		err = ready(check)
+	}
+	if err == nil {
+		err = check.Err()
+	}
+	if err != nil {
+		closePool()
+	}
+	return err
 }
 
 type databaseRuntime struct {

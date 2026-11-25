@@ -4,12 +4,16 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"github.com/Faysal9991/mega-backend/internal/modules/identity"
 	"github.com/Faysal9991/mega-backend/internal/platform/config"
 	"github.com/Faysal9991/mega-backend/internal/platform/httpserver"
+	"github.com/Faysal9991/mega-backend/internal/platform/logging"
 	"github.com/go-chi/chi/v5"
 	"io"
 	"log/slog"
+	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
@@ -61,7 +65,12 @@ func TestIdentityHTTPContractsAndFailClosed(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cfg, err := config.Load(func(string) (string, bool) { return "", false })
+	cfg, err := config.Load(func(key string) (string, bool) {
+		if key == "LOG_FORMAT" {
+			return "json", true
+		}
+		return "", false
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -147,5 +156,102 @@ func TestIdentityHTTPContractsAndFailClosed(t *testing.T) {
 	// No Redis dependency is injected or consulted in any authentication path.
 	if repo.rates != 1 {
 		t.Fatal("abuse check did not precede expensive work")
+	}
+}
+
+type failingIdentityWriter struct {
+	header                         http.Header
+	status, headers, writes, bytes int
+	short                          bool
+}
+
+func (w *failingIdentityWriter) Header() http.Header    { return w.header }
+func (w *failingIdentityWriter) WriteHeader(status int) { w.status = status; w.headers++ }
+func (w *failingIdentityWriter) Write(p []byte) (int, error) {
+	w.writes++
+	if w.short {
+		w.bytes = len(p) - 1
+		return w.bytes, nil
+	}
+	return 0, errors.New("PRIVATE_WRITE_ERROR")
+}
+func TestIdentityResponseWriteFailureAborts(t *testing.T) {
+	for _, authorized := range []bool{true, false} {
+		for _, short := range []bool{false, true} {
+			t.Run(fmt.Sprintf("authorized=%t/short=%t", authorized, short), func(t *testing.T) {
+				repo := &fixtureRepo{}
+				service, err := identity.New(repo, identity.NewGoogle(""), unusedPasswords{})
+				if err != nil {
+					t.Fatal(err)
+				}
+				var logs bytes.Buffer
+				cfg, err := config.Load(func(key string) (string, bool) {
+					if key == "LOG_FORMAT" {
+						return "json", true
+					}
+					return "", false
+				})
+				if err != nil {
+					t.Fatal(err)
+				}
+				// Use production logging and the real request/commitment/recovery middleware.
+				logger, err := logging.New(cfg, &logs)
+				if err != nil {
+					t.Fatal(err)
+				}
+				handler, err := New(service, logger)
+				if err != nil {
+					t.Fatal(err)
+				}
+				router, err := httpserver.NewRouter(cfg.HTTP, logger, httpserver.NewLifecycle(nil), handler.Mount)
+				if err != nil {
+					t.Fatal(err)
+				}
+				request := httptest.NewRequest("GET", "/api/v1/identity/me", nil)
+				if authorized {
+					request.Header.Set("Authorization", "Bearer "+strings.Repeat("a", 43))
+					request.Header.Set("X-Installation-ID", strings.Repeat("b", 32))
+				}
+				writer := &failingIdentityWriter{header: make(http.Header), short: short}
+				func() {
+					defer func() {
+						if recover() != http.ErrAbortHandler {
+							t.Error("write failure did not preserve the abort sentinel")
+						}
+					}()
+					router.ServeHTTP(writer, request)
+				}()
+				wantStatus := http.StatusUnauthorized
+				if authorized {
+					wantStatus = http.StatusOK
+				}
+				if writer.headers != 1 || writer.writes != 1 || writer.status != wantStatus {
+					t.Fatal("committed response replaced or written twice")
+				}
+				if short && writer.bytes <= 0 || !short && writer.bytes != 0 {
+					t.Fatal("unexpected accepted byte count")
+				}
+				count := 0
+				for _, line := range strings.Split(strings.TrimSpace(logs.String()), "\n") {
+					var entry map[string]any
+					if err := json.Unmarshal([]byte(line), &entry); err != nil {
+						t.Fatal(err)
+					}
+					if entry["event"] == "http.handler_panicked" {
+						t.Fatal("abort classified as application panic")
+					}
+					if entry["event"] != "http.request_completed" {
+						continue
+					}
+					count++
+					if entry["outcome"] != "aborted" || entry["status"] != float64(wantStatus) || entry["response_bytes"] != float64(writer.bytes) {
+						t.Fatal("wrong completion accounting", entry)
+					}
+				}
+				if count != 1 || strings.Contains(logs.String(), "PRIVATE_WRITE_ERROR") {
+					t.Fatal("duplicate completion or raw write error exposed")
+				}
+			})
+		}
 	}
 }

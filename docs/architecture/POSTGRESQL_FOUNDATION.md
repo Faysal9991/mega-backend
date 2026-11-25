@@ -1,6 +1,6 @@
 # PostgreSQL foundation — Step 6
 
-Status: implemented for review. Uses the owner's existing Coolify testing server, PostgreSQL 18.7 observed after authentication. No local Compose service, proxy, infrastructure deployment or business schema is introduced.
+Status: implemented for review. Uses the owner's existing Coolify testing server, PostgreSQL 18.7 observed after authentication. No local Compose service, proxy or infrastructure deployment is introduced. Step 6 created only app; the current explicit Step 8 identity migration is described below.
 
 ## Connections, TLS and secrets
 
@@ -15,7 +15,7 @@ Database configuration is separate from the HTTP configuration snapshot. It vali
 | DB_HOST / DB_NAME / DB_USER / DB_PASSWORD / DB_SSLMODE | Explicit, nonempty; no credential defaults |
 | DB_PORT | Default 5432; 1–65535 |
 | DB_MAX_CONNS | Default 8; 1–32 per process, subject to lower role/fleet limits |
-| DB_CONNECT_TIMEOUT | Default 5s; 100ms–30s; also bounds startup ping/identity/schema checks |
+| DB_CONNECT_TIMEOUT | Default 5s; 100ms–30s; bounds startup ping/connection identity checks; identity schema Ready gets a subsequent bound using the same setting and preserves earlier caller cancellation/deadlines |
 | DB_SSLROOTCERT | Optional trusted CA file; required trust can also come from system roots |
 
 Development may use only biho_live_dev; test mode only biho_live_test; staging/production reject these development/test database names and postgres/template targets. Runtime Open additionally requires the role `<database>_app`, verifies authenticated database/role through generated sqlc code, and checks app schema USAGE before returning a usable pool. Configuration strings are operator input, not client API parameters. A dedicated migration role cannot be supplied to the API.
@@ -47,9 +47,9 @@ Pinned pgx v5.13.0, Goose v3.30.0 and sqlc v1.31.1. Go requirements from exact m
 
 `go run ./cmd/migrate` consumes only explicit MIGRATION_DB_* settings (same suffixes as DB_*, separate direct host/port/name/user/password/TLS). No fallback to runtime settings is allowed. Goose uses pgx's database/sql bridge only because Goose requires it; API queries use pgxpool directly. Its direct connection is limited to one open/idle connection and uses session advisory locking with bounded retries inside a two-minute CLI context. No global Goose setters/registry or raw migration logging are used. cmd/api never runs migrations.
 
-Migration 00001 creates app; Goose versions are stored in migration.goose_db_version. Up is repeatable and serialized. No business tables or speculative indexes exist. Down drops only empty app without CASCADE and is exposed only as DownTest, requiring test environment, exact biho_live_test database/migrator and authenticated identity verification before writes. No down CLI or development/production rollback command is provided. Future populated/deployed schemas need reviewed expand/backfill/validate/contract and backup/restore plans; this foundation is not a disaster-recovery or data-rollback proof.
+Migration 00001 creates app and migration 00002 adds the ten identity-owned tables and their explicit grants/indexes; current migration version is 2. Goose versions are stored in migration.goose_db_version. Up is repeatable and serialized. Down rolls back identity tables in FK order, then drops app without CASCADE and is exposed only as DownTest, requiring test environment, exact biho_live_test database/migrator and authenticated identity verification before writes. No down CLI or development/production rollback command is provided. Future populated/deployed schemas need reviewed expand/backfill/validate/contract and backup/restore plans; this foundation is not a disaster-recovery or data-rollback proof.
 
-Integration tests opt in through build tag integration and BIHO_INTEGRATION_ACK=biho_live_test, require TEST_DB_* and TEST_MIGRATION_DB_* settings, verify actual database/role, and fail rather than skip when explicit integration settings are absent/invalid. They create only named synthetic fixtures in the test database, remove them, and leave version 1/app present. Tests cover up/down/up, concurrent upgrades, a deliberately failing transactional migration with no surviving DDL/version effect, privilege enforcement, transactions/constraints, parameter precision, bounded acquisition and active-query cancellation. Neither postgres nor development receives destructive tests.
+Integration tests opt in through build tag integration and BIHO_INTEGRATION_ACK=biho_live_test, require TEST_DB_* and TEST_MIGRATION_DB_* settings, verify actual database/role, and fail rather than skip when explicit integration settings are absent/invalid. They create only named synthetic fixtures in the test database, remove them, and leave version 2/app plus identity schema present. Tests cover up/down/up, concurrent upgrades, a deliberately failing migration 3 with no surviving DDL/version effect, privilege enforcement, transactions/constraints, parameter precision, bounded acquisition and active-query cancellation. Neither postgres nor development receives destructive tests.
 
 Commands after injecting the appropriate process environment securely:
 
@@ -58,8 +58,8 @@ go run ./cmd/migrate
 make generate
 make check-generated
 go test -count=1 ./...
-BIHO_INTEGRATION_ACK=biho_live_test go test -tags=integration -count=1 ./internal/platform/postgres
-BIHO_INTEGRATION_ACK=biho_live_test go test -race -tags=integration -count=1 -cover ./...
+BIHO_INTEGRATION_ACK=biho_live_test go test -tags=integration -p=1 -count=1 ./internal/platform/postgres ./internal/modules/identity/postgres
+BIHO_INTEGRATION_ACK=biho_live_test go test -race -tags=integration -p=1 -count=1 -cover ./internal/platform/postgres ./internal/modules/identity/postgres
 ```
 
 ## Future PgBouncer transaction pooling — requirements only
@@ -86,3 +86,6 @@ Checks are synchronous and on demand: one Ping at a time, a 2s independent drive
 Cache-Control: no-store remains the wire policy; this internal availability cache only bounds database traffic. An outage/recovery may remain invisible for the remaining TTL plus the next check duration (nominally up to 1s+2s, subject to scheduler/transport behavior). Pool exhaustion can also make readiness 503. The check observes availability, not schema correctness or a production capacity guarantee. HTTP force-close does not instantly cancel an already shared detached check; it remains driver-timeout bounded. No runtime lifecycle recovery is possible after shutdown. A shutdown racing the final gate can still overlap an already-decided response; there is no listener-after-close 503 guarantee.
 
 Focused unit tests cover context/options, original error and SQLSTATE classification, cleanup timeouts/errors, panic identity, no retries, cache loss/recovery, canceled owner/waiter behavior, one coalesced check, a bounded real-waiter burst and overflow. Real isolated tests use only existing test app/migrator credentials, commit and rollback synthetic rows, cancel/panic with an open transaction, and verify cleanup/no pool leases. Readiness tests induce temporary pool exhaustion without stopping PostgreSQL or changing infrastructure, observe HTTP 503/live 200, release leases and observe recovery, and gate a successful real pool check across real HTTP shutdown to verify no restoration.
+
+
+Schema-mutating integration packages MUST run serially (`-p=1`); the foundation suite resets only the guarded test schema, so never run it concurrently with identity consumers. For a startup-check-only review, the read-only `BIHO_INTEGRATION_ACK=biho_live_test go test -race -tags=integration -p=1 -run '^TestIntegrationIdentitySchemaStartupBound$' -count=1 ./cmd/api` exercises actual schema reads and timeout/pool cleanup without migrations, fixture writes or schema reset. Supply only TEST_DB_* for that test, through the existing explicit ignored-file supplier. Missing schema/configuration fails, rather than silently migrating or selecting another database.
