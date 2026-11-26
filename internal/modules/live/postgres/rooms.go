@@ -130,11 +130,6 @@ func (r *Repository) roomCommand(ctx context.Context, tx pgx.Tx, q *livesql.Quer
 		if in.Hidden && !effective.Allows("room.join.hidden") {
 			return out, live.Fail(apperror.Forbidden)
 		}
-		if banned, e := q.LiveRestricted(ctx, actor); e != nil {
-			return out, e
-		} else if banned {
-			return out, live.Fail(apperror.Forbidden)
-		}
 		if ae == nil && am.State == "active" {
 			if in.Hidden && (am.Seat.Valid || am.Role == "host" || am.Role == "co_host") {
 				return out, live.Fail(apperror.Conflict)

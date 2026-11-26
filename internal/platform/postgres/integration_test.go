@@ -62,9 +62,44 @@ func TestIntegrationFoundation(t *testing.T) {
 	if err := migrator.Up(ctx); err != nil {
 		t.Fatal("idempotent migration", err)
 	}
-	if v, err := migrator.Version(ctx); err != nil || v != 11 {
+	if v, err := migrator.Version(ctx); err != nil || v != 12 {
 		t.Fatal("migration version")
 	}
+
+	// A published custom policy must survive the seed-only default correction.
+	func() {
+		const custom = "ffffffffffffffffffffffffffffff12"
+		var current string
+		if e := migrator.db.QueryRowContext(ctx, "SELECT policy_id FROM app.access_policy_head WHERE singleton").Scan(&current); e != nil || (current != "00000000000000000000000000000001" && current != "00000000000000000000000000000012") {
+			t.Fatal("custom policy test requires untouched default head")
+		}
+		defer func() {
+			cleanup, done := context.WithTimeout(context.Background(), 15*time.Second)
+			defer done()
+			if _, e := migrator.db.ExecContext(cleanup, "UPDATE app.access_policy_head SET policy_id='00000000000000000000000000000001',revision=revision+1 WHERE singleton AND policy_id=$1", custom); e != nil {
+				t.Error("tracked policy head recovery")
+			}
+			if _, e := migrator.db.ExecContext(cleanup, "DELETE FROM app.access_policy_versions WHERE id=$1", custom); e != nil {
+				t.Error("tracked policy version cleanup")
+			}
+		}()
+		if _, e := migrator.db.ExecContext(ctx, "INSERT INTO app.access_policy_versions(id,previous_id,roles) SELECT $1,'00000000000000000000000000000001',roles FROM app.access_policy_versions WHERE id=(SELECT policy_id FROM app.access_policy_head WHERE singleton)", custom); e != nil {
+			t.Fatal("custom policy fixture")
+		}
+		if _, e := migrator.db.ExecContext(ctx, "UPDATE app.access_policy_head SET policy_id=$1,revision=revision+1 WHERE singleton", custom); e != nil {
+			t.Fatal("custom head fixture")
+		}
+		if _, e := migrator.provider.DownTo(ctx, 11); e != nil {
+			t.Fatal("default-only rollback", e)
+		}
+		if e := migrator.Up(ctx); e != nil {
+			t.Fatal("custom policy upgrade", e)
+		}
+		var preserved string
+		if e := migrator.db.QueryRowContext(ctx, "SELECT policy_id FROM app.access_policy_head WHERE singleton").Scan(&preserved); e != nil || preserved != custom {
+			t.Fatal("default correction replaced custom policy")
+		}
+	}()
 	t.Log("stage: full rollback")
 	if err := migrator.DownTest(ctx); err != nil {
 		t.Fatal(err)
@@ -166,7 +201,7 @@ func TestIntegrationFoundation(t *testing.T) {
 		}
 		failingFS[name] = &fstest.MapFile{Data: body}
 	}
-	failingFS["00012_failure.sql"] = &fstest.MapFile{Data: []byte("-- +goose Up\nCREATE TABLE app.failed_upgrade_fixture(id bigint);\nSELECT 1/0;\n-- +goose Down\nDROP TABLE app.failed_upgrade_fixture;\n")}
+	failingFS["00013_failure.sql"] = &fstest.MapFile{Data: []byte("-- +goose Up\nCREATE TABLE app.failed_upgrade_fixture(id bigint);\nSELECT 1/0;\n-- +goose Down\nDROP TABLE app.failed_upgrade_fixture;\n")}
 	locker, err := lock.NewPostgresSessionLocker(lock.WithLockTimeout(1, 10))
 	if err != nil {
 		t.Fatal(err)
@@ -182,7 +217,7 @@ func TestIntegrationFoundation(t *testing.T) {
 	if err := migrator.db.QueryRowContext(ctx, "SELECT to_regclass('app.failed_upgrade_fixture') IS NULL").Scan(&rolledBack); err != nil || !rolledBack {
 		t.Fatal("failed upgrade retained DDL")
 	}
-	if v, err := migrator.Version(ctx); err != nil || v != 11 {
+	if v, err := migrator.Version(ctx); err != nil || v != 12 {
 		t.Fatal("failed upgrade changed version")
 	}
 

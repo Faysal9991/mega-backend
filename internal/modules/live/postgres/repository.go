@@ -164,6 +164,17 @@ func (r *Repository) Execute(ctx context.Context, c access.Credentials, in live.
 	}
 	err = r.guard.Authorized(ctx, c, permission, false, target, func(ctx context.Context, tx pgx.Tx, u access.Unit) error {
 		q := livesql.New(tx)
+		// Recheck the persisted restriction at the mutation boundary, before
+		// idempotency replay. A protected owner has no live-ban exemption.
+		if in.Kind == "live.ban" || strings.HasPrefix(in.Kind, "room.") || strings.HasPrefix(in.Kind, "seat.") || strings.HasPrefix(in.Kind, "member.") {
+			banned, e := q.LiveRestricted(ctx, u.Actor())
+			if e != nil {
+				return e
+			}
+			if banned {
+				return live.Fail(apperror.Forbidden)
+			}
+		}
 		if in.Kind != "policy.publish" {
 			limits, e := r.effective(ctx, q)
 			if e != nil {

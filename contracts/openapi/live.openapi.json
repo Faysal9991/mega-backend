@@ -7707,7 +7707,8 @@
               }
             }
           }
-        }
+        },
+        "description": " Globally live-banned actors cannot moderate rooms or issue/lift global live bans, including command retries. No protected-owner bypass is authorized; protected owners cannot be targeted by this API."
       }
     },
     "/rooms/{id}/seats/self": {

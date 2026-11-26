@@ -541,7 +541,8 @@
               }
             }
           }
-        }
+        },
+        "description": " Room Admin defaults are kick, mute, seat removal and self-leave only. Additional room powers require explicit audited policy publication; assigned global staff authority is separate."
       }
     },
     "/admin/users/{account_id}/capabilities": {

@@ -212,6 +212,19 @@ func TestIntegrationConsolidatedCapabilitiesPackages(t *testing.T) {
 		return v
 	}
 	oc, mc2, uc := creds[owner], creds[mod], creds[user]
+	t.Run("review live restriction across HTTP instances", func(t *testing.T) {
+		testReviewLiveRestriction(t, ctx, operator, pool, app, limits, creds, rooms, owner, mod, user)
+	})
+	t.Run("review room defaults and immediate policy changes", func(t *testing.T) {
+		testReviewRoomPolicy(t, ctx, operator, pool, app, limits, creds, room2, owner, user, second, mod, originalPolicy, &policyIDs)
+	})
+	// Load measurement is explicitly opt-in; keep the normal financial/security
+	// regression run within its existing scenario budget.
+	if os.Getenv("BIHO_AUTH_LOCK_BENCHMARK") == "1" {
+		t.Run("review concurrent HTTP global lock benchmark", func(t *testing.T) {
+			testReviewLockBenchmark(t, ctx, operator, pool, app, limits, creds, []string{host1, host2, user, second})
+		})
+	}
 	t.Run("global moderation hidden projections self seats and revocation", func(t *testing.T) {
 		for _, room := range rooms {
 			in := command("member.mute", room, user)

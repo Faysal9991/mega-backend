@@ -22,7 +22,7 @@ func Capabilities() []Capability {
 func RoomDefaults() map[string][]string {
 	full := []string{"room.close", "room.participant.kick", "room.participant.mute", "room.participant.seat_remove", "room.participant.ban", "room.seat.lock", "room.seat.unlock", "room.seat.self_join", "room.seat.self_leave", "room.title.update", "room.announcement.update", "room.admin.assign", "room.moderator.assign", "room.settings.update", "room.moderation_history.read"}
 	moderate := []string{"room.participant.kick", "room.participant.mute", "room.participant.seat_remove", "room.participant.ban", "room.seat.self_leave"}
-	return map[string][]string{"host": full, "admin": slices.Clone(full), "co_host": slices.Clone(moderate), "moderator": slices.Clone(moderate), "audience": {"room.seat.self_leave"}}
+	return map[string][]string{"host": full, "admin": {"room.participant.kick", "room.participant.mute", "room.participant.seat_remove", "room.seat.self_leave"}, "co_host": slices.Clone(moderate), "moderator": slices.Clone(moderate), "audience": {"room.seat.self_leave"}}
 }
 func ModeratorDefaults() []string {
 	return []string{"room.enter", "room.enter.private", "room.join.hidden", "room.participant.kick", "room.participant.mute", "room.participant.seat_remove", "room.seat.self_join", "room.seat.self_leave", "live.participant.global_ban"}
@@ -37,6 +37,13 @@ func PackagePower(action string) bool {
 }
 func (e Effective) Allows(action string) bool {
 	return slices.Contains(e.Permissions, action)
+}
+
+// LiveRestrictedAction identifies live participation and moderation authority.
+// Configuration, financial and agency authority remain separate; no owner
+// bypass of a persisted global live restriction is implied.
+func LiveRestrictedAction(action string) bool {
+	return strings.HasPrefix(action, "room.") || action == "live.rooms.moderate" || action == "live.participant.global_ban"
 }
 
 type PolicyChange struct {

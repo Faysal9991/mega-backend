@@ -51,3 +51,31 @@ func TestExecutableAndDatabaseCapabilityCatalogAgree(t *testing.T) {
 		}
 	}
 }
+
+func TestGlobalModeratorDefaultBoundary(t *testing.T) {
+	for _, action := range []string{"room.close", "room.admin.assign", "room.moderator.assign", "room.participant.ban", "live.rooms.moderate"} {
+		if slices.Contains(ModeratorDefaults(), action) {
+			t.Fatalf("unapproved global moderator default %s", action)
+		}
+	}
+	for _, action := range []string{"room.participant.kick", "room.participant.mute", "room.close", "room.admin.assign", "room.participant.ban", "live.rooms.moderate", "live.participant.global_ban"} {
+		if !LiveRestrictedAction(action) {
+			t.Fatalf("restriction bypass %s", action)
+		}
+	}
+	for _, action := range []string{"wallet.adjust", "packages.purchase", "capabilities.manage", "agencies.manage"} {
+		if LiveRestrictedAction(action) {
+			t.Fatalf("unrelated authority removed %s", action)
+		}
+	}
+}
+
+func TestRoomAdminDefaultBoundary(t *testing.T) {
+	want := []string{"room.participant.kick", "room.participant.mute", "room.participant.seat_remove", "room.seat.self_leave"}
+	if !slices.Equal(RoomDefaults()["admin"], want) {
+		t.Fatal("room admin defaults exceed approved set")
+	}
+	if !slices.Contains(RoomDefaults()["host"], "room.close") || !slices.Contains(RoomDefaults()["host"], "room.admin.assign") {
+		t.Fatal("host authority changed")
+	}
+}

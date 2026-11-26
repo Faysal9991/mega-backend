@@ -100,6 +100,14 @@ func resolveWithOwners(ctx context.Context, tx pgx.Tx, actor, room string, owner
 	}
 	// Mandatory participation restrictions dominate every ordinary source, including
 	// protected-owner grants. Protected configuration authority remains separate.
+	if policy.ActorLiveBanned {
+		for p := range grants {
+			if access.LiveRestrictedAction(p) {
+				delete(grants, p)
+				denied[p] = true
+			}
+		}
+	}
 	blocked := policy.ActorLiveBanned || !grants["room.enter"]
 	if room != "" {
 		blocked = blocked || resource.RoomState != "open" || resource.MemberState == "banned" || resource.MemberState == "kicked" || (resource.Visibility != "public" && resource.OwnerID != actor && (resource.MemberState != "active" || resource.PrivateEntry) && !grants["room.enter.private"])
