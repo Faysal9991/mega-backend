@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Faysal9991/mega-backend/internal/modules/access"
+	accesspg "github.com/Faysal9991/mega-backend/internal/modules/access/postgres"
 	"github.com/Faysal9991/mega-backend/internal/modules/access/postgres/accesssql"
 	"github.com/Faysal9991/mega-backend/internal/modules/live"
 	"github.com/Faysal9991/mega-backend/internal/modules/live/postgres/livesql"
@@ -129,6 +130,18 @@ func (r *Repository) Ingest(ctx context.Context, event live.Event) error {
 			}
 			// Unknown identities are removed through durable server-authored intent.
 			return q.Enqueue(ctx, livesql.EnqueueParams{ID: access.ID(), RoomID: v.ID, Kind: "participant", Target: event.AccountID})
+		}
+		if m.Hidden || m.SelfSeated || m.PrivateEntry {
+			effective, e := accesspg.Resolve(ctx, tx, event.AccountID, v.ID)
+			if e != nil {
+				return e
+			}
+			if !effective.Allows("room.enter") || m.Hidden && !effective.Allows("room.join.hidden") || m.SelfSeated && !effective.Allows("room.seat.self_join") {
+				if e = q.EndTombstone(ctx, livesql.EndTombstoneParams{ParticipantSid: event.ParticipantSID, RoomID: v.ID, AccountID: event.AccountID, EndedAt: now}); e != nil {
+					return e
+				}
+				return q.Enqueue(ctx, livesql.EnqueueParams{ID: access.ID(), RoomID: v.ID, Kind: "participant", Target: event.AccountID})
+			}
 		}
 		aid, classification := "", ""
 		qualifies := false

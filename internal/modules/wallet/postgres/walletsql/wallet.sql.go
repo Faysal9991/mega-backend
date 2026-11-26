@@ -403,6 +403,17 @@ func (q *Queries) Operation(ctx context.Context, id string) (OperationRow, error
 	return i, err
 }
 
+const packageAccountingConfigured = `-- name: PackageAccountingConfigured :one
+SELECT EXISTS(SELECT 1 FROM app.package_financial_policies WHERE id='00000000000000000000000000000002' AND mode='platform_full_no_vat')
+`
+
+func (q *Queries) PackageAccountingConfigured(ctx context.Context) (bool, error) {
+	row := q.db.QueryRow(ctx, packageAccountingConfigured)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const participant = `-- name: Participant :one
 SELECT EXISTS(SELECT 1 FROM app.wallet_entries e JOIN app.wallet_accounts a ON a.id=e.account_id WHERE e.operation_id=$1 AND a.owner_id=$2)
 `

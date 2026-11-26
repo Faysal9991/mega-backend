@@ -74,8 +74,8 @@ func (c *Client) Participant(ctx context.Context, r live.Room, m live.Member) er
 		}
 		return e
 	}
-	publish := live.CanPublish(r, m)
-	permission := &livekit.ParticipantPermission{CanSubscribe: true, CanPublish: publish, CanPublishData: false, CanUpdateMetadata: false}
+	publish := live.CanPublish(r, m) && !m.Hidden
+	permission := &livekit.ParticipantPermission{CanSubscribe: true, CanPublish: publish, CanPublishData: false, CanUpdateMetadata: false, Hidden: m.Hidden}
 	if publish {
 		permission.CanPublishSources = sources(r)
 	}
@@ -108,8 +108,8 @@ func (c *Client) Snapshot(ctx context.Context, r live.Room) (live.Snapshot, erro
 	return live.Snapshot{Exists: true, Participants: out}, nil
 }
 func (c *Client) Token(g live.Grant, ttl time.Duration) (string, error) {
-	publish, yes, no := live.CanPublish(g.Room, g.Member), true, false
-	grant := &auth.VideoGrant{RoomJoin: true, Room: g.Room.SessionID, CanPublish: &publish, CanSubscribe: &yes, CanPublishData: &no, CanUpdateOwnMetadata: &no}
+	publish, yes, no := live.CanPublish(g.Room, g.Member) && !g.Member.Hidden, true, false
+	grant := &auth.VideoGrant{RoomJoin: true, Room: g.Room.SessionID, CanPublish: &publish, CanSubscribe: &yes, CanPublishData: &no, CanUpdateOwnMetadata: &no, Hidden: g.Member.Hidden}
 	if publish {
 		grant.SetCanPublishSources(sources(g.Room))
 	}

@@ -26,6 +26,8 @@ import (
 	livehttp "github.com/Faysal9991/mega-backend/internal/modules/live/httpapi"
 	livepg "github.com/Faysal9991/mega-backend/internal/modules/live/postgres"
 	liveprovider "github.com/Faysal9991/mega-backend/internal/modules/live/provider"
+	packagehttp "github.com/Faysal9991/mega-backend/internal/modules/packages/httpapi"
+	packagepg "github.com/Faysal9991/mega-backend/internal/modules/packages/postgres"
 	"github.com/Faysal9991/mega-backend/internal/modules/wallet"
 	wallethttp "github.com/Faysal9991/mega-backend/internal/modules/wallet/httpapi"
 	walletpg "github.com/Faysal9991/mega-backend/internal/modules/wallet/postgres"
@@ -112,6 +114,11 @@ func run(ctx context.Context, lookup config.LookupEnv, stdout, stderr io.Writer,
 			return databaseRuntime{}, err
 		}
 		financial.WithRoomGifts(deliveryRepo)
+		packageRepo, err := packagepg.New(pool, financial)
+		if err != nil {
+			pool.Close()
+			return databaseRuntime{}, err
+		}
 
 		if err := checkIdentitySchema(ctx, cfg.ConnectTimeout, func(check context.Context) error {
 			if err := repository.Ready(check); err != nil {
@@ -123,7 +130,10 @@ func run(ctx context.Context, lookup config.LookupEnv, stdout, stderr io.Writer,
 			if err := liveRepo.Ready(check); err != nil {
 				return err
 			}
-			return deliveryRepo.Ready(check)
+			if err := deliveryRepo.Ready(check); err != nil {
+				return err
+			}
+			return packageRepo.Ready(check)
 		}, pool.Close); err != nil {
 			return databaseRuntime{}, err
 		}
@@ -156,6 +166,11 @@ func run(ctx context.Context, lookup config.LookupEnv, stdout, stderr io.Writer,
 				return err
 			}
 			ah.Mount(router)
+			ph, err := packagehttp.New(packageRepo, ar, logger)
+			if err != nil {
+				return err
+			}
+			ph.Mount(router)
 			wh, err := wallethttp.New(wallet.New(financial), logger)
 			if err != nil {
 				return err

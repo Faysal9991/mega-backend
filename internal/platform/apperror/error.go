@@ -31,16 +31,19 @@ const (
 	InsufficientDiamonds           Code = "INSUFFICIENT_DIAMONDS"
 	VerifiedActivityUnavailable    Code = "VERIFIED_ACTIVITY_UNAVAILABLE"
 	WithdrawalNotEligible          Code = "WITHDRAWAL_NOT_ELIGIBLE"
+	LiveListRestartRequired        Code = "LIVE_LIST_RESTART_REQUIRED"
 	MaxFields                           = 20
 )
 
 // Codes returns a fresh registry slice; callers cannot mutate shared definitions.
 func Codes() []Code {
-	return []Code{InvalidRequest, InvalidJSON, UnsupportedMediaType, ValidationFailed, Unauthenticated, Forbidden, NotFound, MethodNotAllowed, Conflict, PayloadTooLarge, RateLimited, ServiceUnavailable, RequestTimeout, Internal, FinancialConfigurationRequired, InsufficientDiamonds, VerifiedActivityUnavailable, WithdrawalNotEligible}
+	return []Code{InvalidRequest, InvalidJSON, UnsupportedMediaType, ValidationFailed, Unauthenticated, Forbidden, NotFound, MethodNotAllowed, Conflict, PayloadTooLarge, RateLimited, ServiceUnavailable, RequestTimeout, Internal, FinancialConfigurationRequired, InsufficientDiamonds, VerifiedActivityUnavailable, WithdrawalNotEligible, LiveListRestartRequired}
 }
 
 func (code Code) Message() string {
 	switch code {
+	case LiveListRestartRequired:
+		return "Live room list changed; restart pagination"
 	case FinancialConfigurationRequired:
 		return "Financial configuration required"
 	case InsufficientDiamonds:

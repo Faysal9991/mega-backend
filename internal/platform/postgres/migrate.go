@@ -55,14 +55,14 @@ func (m *Migrator) Close() error {
 }
 func (m *Migrator) Up(ctx context.Context) error {
 	if _, err := m.provider.Up(ctx); err != nil {
-		return errors.New("postgres: migration upgrade failed")
+		return safeFailure("migration upgrade", err)
 	}
 	return nil
 }
 func (m *Migrator) Version(ctx context.Context) (int64, error) {
 	v, err := m.provider.GetDBVersion(ctx)
 	if err != nil {
-		return 0, errors.New("postgres: migration status failed")
+		return 0, safeFailure("migration status", err)
 	}
 	return v, nil
 }

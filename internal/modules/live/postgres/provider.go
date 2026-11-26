@@ -6,11 +6,13 @@ import (
 	"time"
 
 	"github.com/Faysal9991/mega-backend/internal/modules/access"
+	accesspg "github.com/Faysal9991/mega-backend/internal/modules/access/postgres"
 	"github.com/Faysal9991/mega-backend/internal/modules/access/postgres/accesssql"
 	"github.com/Faysal9991/mega-backend/internal/modules/live"
 	"github.com/Faysal9991/mega-backend/internal/modules/live/postgres/livesql"
 	"github.com/Faysal9991/mega-backend/internal/platform/apperror"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 // Flush claims just one ordered intent. A bounded provider call runs with no
@@ -19,7 +21,7 @@ func (r *Repository) Flush(ctx context.Context, id string, p live.Provider) erro
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 	q := livesql.New(r.pool)
-	op, e := q.Claim(ctx, id)
+	op, e := q.Claim(ctx, livesql.ClaimParams{RoomID: id, LeaseToken: access.ID()})
 	if errors.Is(e, pgx.ErrNoRows) {
 		pending, err := q.Pending(ctx, id)
 		if err != nil {
@@ -62,9 +64,36 @@ func (r *Repository) Flush(ctx context.Context, id string, p live.Provider) erro
 			e = readErr
 		} else {
 			if readErr == nil {
-				m = livesql.AppLiveMember{RoomID: state.RoomID, AccountID: state.AccountID, Role: state.Role, State: state.State, Muted: state.Muted, Seat: state.Seat, InvitedSeat: state.InvitedSeat, UpdatedAt: state.UpdatedAt}
-				if !state.AccountActive || live.CanPublish(room(v), member(m)) && (!state.AgencyActive || !limits.Compatibility.Allows(state.Classification, v.Kind)) {
+				m = livesql.AppLiveMember{RoomID: state.RoomID, AccountID: state.AccountID, Role: state.Role, State: state.State, Muted: state.Muted, Seat: state.Seat, InvitedSeat: state.InvitedSeat, UpdatedAt: state.UpdatedAt, Hidden: state.Hidden, SelfSeated: state.SelfSeated, PrivateEntry: state.PrivateEntry}
+				if !state.AccountActive || live.CanPublish(room(v), member(m)) && !m.SelfSeated && (!state.AgencyActive || !limits.Compatibility.Allows(state.Classification, v.Kind)) {
 					m.State = "left"
+				}
+			}
+			if readErr == nil {
+				authErr := r.tx.Within(ctx, pgx.TxOptions{}, func(ctx context.Context, tx pgx.Tx) error {
+					if e := accesssql.New(tx).LockSecurity(ctx); e != nil {
+						return e
+					}
+					effective, e := accesspg.Resolve(ctx, tx, m.AccountID, id)
+					if e != nil {
+						return e
+					}
+					banned, e := livesql.New(tx).LiveRestricted(ctx, m.AccountID)
+					if e != nil {
+						return e
+					}
+					if banned || !effective.Allows("room.enter") || m.Hidden && !effective.Allows("room.join.hidden") {
+						m.State = "left"
+					}
+					if m.SelfSeated && !effective.Allows("room.seat.self_join") {
+						m.Seat = pgtype.Int4{}
+						m.SelfSeated = false
+					}
+					return nil
+				})
+				if authErr != nil {
+					e = authErr
+					break
 				}
 			}
 			e = call(func(remote context.Context) error { return p.Participant(remote, room(v), member(m)) })
@@ -73,7 +102,7 @@ func (r *Repository) Flush(ctx context.Context, id string, p live.Provider) erro
 	if e != nil {
 		cleanup, done := context.WithTimeout(context.WithoutCancel(ctx), time.Second)
 		defer done()
-		if retryErr := q.Retry(cleanup, op.ID); retryErr != nil {
+		if retryErr := q.Retry(cleanup, livesql.RetryParams{ID: op.ID, LeaseToken: op.LeaseToken}); retryErr != nil {
 			return safe(retryErr)
 		}
 		return live.Fail(apperror.ServiceUnavailable)
@@ -99,7 +128,11 @@ func (r *Repository) Flush(ctx context.Context, id string, p live.Provider) erro
 				return e
 			}
 		}
-		return q.Complete(ctx, op.ID)
+		_, e = q.Complete(ctx, livesql.CompleteParams{ID: op.ID, LeaseToken: op.LeaseToken})
+		if errors.Is(e, pgx.ErrNoRows) {
+			return live.Fail(apperror.ServiceUnavailable)
+		}
+		return e
 	})
 	if e != nil {
 		return safe(e)

@@ -2059,7 +2059,8 @@
             "in": "query",
             "schema": {
               "type": "string",
-              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+              "maxLength": 128,
+              "description": "Opaque actor-bound snapshot cursor. LIVE_LIST_RESTART_REQUIRED (409) on revision changes or at first expiry/start boundary, maximum 30 seconds."
             }
           },
           {
@@ -2864,7 +2865,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Empty"
+                "$ref": "#/components/schemas/RoomJoin"
               }
             }
           }
@@ -7494,6 +7495,1455 @@
           }
         }
       }
+    },
+    "/live-participants/{target}/ban": {
+      "put": {
+        "operationId": "cmd_global_live_ban",
+        "parameters": [
+          {
+            "name": "X-Installation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "x-utf8-byte-length": {
+                "min": 1,
+                "max": 128
+              }
+            }
+          },
+          {
+            "in": "path",
+            "name": "target",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/global_live_banEnvelope"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Accepted durable intent; provider state may remain pending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/global_live_banEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "description": "Retry delay in seconds",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[0-9]+$"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "description": "Retry delay in seconds",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[0-9]+$"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GlobalLiveBan"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rooms/{id}/seats/self": {
+      "post": {
+        "operationId": "cmd_seat_self_join",
+        "parameters": [
+          {
+            "name": "X-Installation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "x-utf8-byte-length": {
+                "min": 1,
+                "max": 128
+              }
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/seat_self_joinEnvelope"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Accepted durable intent; provider state may remain pending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/seat_self_joinEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "description": "Retry delay in seconds",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[0-9]+$"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "description": "Retry delay in seconds",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[0-9]+$"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SelfSeat"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rooms/{id}/seats/lock": {
+      "post": {
+        "operationId": "cmd_seat_lock",
+        "parameters": [
+          {
+            "name": "X-Installation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "x-utf8-byte-length": {
+                "min": 1,
+                "max": 128
+              }
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/seat_lockEnvelope"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Accepted durable intent; provider state may remain pending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/seat_lockEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "description": "Retry delay in seconds",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[0-9]+$"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "description": "Retry delay in seconds",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[0-9]+$"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Empty"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rooms/{id}/seats/unlock": {
+      "post": {
+        "operationId": "cmd_seat_unlock",
+        "parameters": [
+          {
+            "name": "X-Installation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "x-utf8-byte-length": {
+                "min": 1,
+                "max": 128
+              }
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/seat_unlockEnvelope"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Accepted durable intent; provider state may remain pending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/seat_unlockEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "description": "Retry delay in seconds",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[0-9]+$"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "description": "Retry delay in seconds",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[0-9]+$"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Empty"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rooms/{id}/settings": {
+      "patch": {
+        "operationId": "cmd_room_settings",
+        "parameters": [
+          {
+            "name": "X-Installation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "x-utf8-byte-length": {
+                "min": 1,
+                "max": 128
+              }
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/room_settingsEnvelope"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Accepted durable intent; provider state may remain pending",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/room_settingsEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "description": "Retry delay in seconds",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[0-9]+$"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "description": "Retry delay in seconds",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[0-9]+$"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoomSettings"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rooms/{id}/moderation-history": {
+      "get": {
+        "operationId": "room_moderation_history",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "x-integer-json-token": true
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 128,
+              "description": "Opaque actor-bound snapshot cursor. LIVE_LIST_RESTART_REQUIRED (409) on revision changes or at first expiry/start boundary, maximum 30 seconds."
+            }
+          },
+          {
+            "name": "X-Installation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/room_historyEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "description": "Retry delay in seconds",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[0-9]+$"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "description": "Retry delay in seconds",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[0-9]+$"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/admin/live-participants/{id}/ban": {
+      "get": {
+        "operationId": "global_live_ban_status",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+            }
+          },
+          {
+            "name": "X-Installation-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GlobalLiveBanStatusEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "description": "Retry delay in seconds",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[0-9]+$"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "description": "Retry delay in seconds",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[0-9]+$"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Safe error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -7710,7 +9160,8 @@
             "enum": [
               "co_host",
               "audience",
-              "moderator"
+              "moderator",
+              "admin"
             ]
           },
           "reason": {
@@ -7949,6 +9400,25 @@
                 "type": "null"
               }
             ]
+          },
+          "visibility": {
+            "enum": [
+              "public",
+              "private",
+              "hidden"
+            ]
+          },
+          "announcement": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 1024,
+            "x-utf8-byte-length": {
+              "min": 0,
+              "max": 1024
+            }
+          },
+          "seats_locked": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -7962,7 +9432,8 @@
           "seats",
           "created_at",
           "closed_at"
-        ]
+        ],
+        "description": "Current reads include visibility/announcement/seats_locked; immutable command outcomes created before migration10 may omit these additive fields."
       },
       "Member": {
         "type": "object",
@@ -7978,7 +9449,8 @@
               "host",
               "co_host",
               "audience",
-              "moderator"
+              "moderator",
+              "admin"
             ]
           },
           "state": {
@@ -8004,6 +9476,9 @@
             "minimum": 0,
             "maximum": 32,
             "x-integer-json-token": true
+          },
+          "hidden": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -9588,7 +11063,7 @@
             "type": "array",
             "maxItems": 50,
             "items": {
-              "$ref": "#/components/schemas/Room"
+              "$ref": "#/components/schemas/RankedRoom"
             }
           },
           "request_id": {
@@ -9945,6 +11420,730 @@
           "provider_pending",
           "pending_operations",
           "operations_has_more"
+        ]
+      },
+      "RoomJoin": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "hidden": {
+            "type": "boolean"
+          }
+        },
+        "required": []
+      },
+      "RankedRoom": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "room_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+          },
+          "session_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+          },
+          "owner_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+          },
+          "room_type": {
+            "type": "string",
+            "enum": [
+              "audio",
+              "video"
+            ]
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "x-utf8-byte-length": {
+              "min": 1,
+              "max": 128
+            }
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "opening",
+              "open",
+              "closing",
+              "closed"
+            ]
+          },
+          "capacity": {
+            "type": "integer",
+            "minimum": 2,
+            "maximum": 500,
+            "x-integer-json-token": true
+          },
+          "seats": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 32,
+            "x-integer-json-token": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "closed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "visibility": {
+            "enum": [
+              "public",
+              "private",
+              "hidden"
+            ]
+          },
+          "announcement": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 1024,
+            "x-utf8-byte-length": {
+              "min": 0,
+              "max": 1024
+            }
+          },
+          "seats_locked": {
+            "type": "boolean"
+          },
+          "live_listing_priority": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000000,
+            "x-integer-json-token": true
+          }
+        },
+        "required": [
+          "room_id",
+          "session_id",
+          "owner_id",
+          "room_type",
+          "title",
+          "state",
+          "capacity",
+          "seats",
+          "created_at",
+          "closed_at",
+          "visibility",
+          "announcement",
+          "seats_locked",
+          "live_listing_priority"
+        ]
+      },
+      "GlobalLiveBan": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "banned": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "x-utf8-byte-length": {
+              "min": 1,
+              "max": 256
+            }
+          }
+        },
+        "required": [
+          "banned",
+          "reason"
+        ]
+      },
+      "SelfSeat": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "seat": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 32,
+            "x-integer-json-token": true
+          }
+        },
+        "required": []
+      },
+      "RoomSettings": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "x-utf8-byte-length": {
+              "min": 1,
+              "max": 128
+            }
+          },
+          "announcement": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 1024,
+            "x-utf8-byte-length": {
+              "min": 0,
+              "max": 1024
+            }
+          },
+          "visibility": {
+            "enum": [
+              "public",
+              "private",
+              "hidden"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "x-utf8-byte-length": {
+              "min": 1,
+              "max": 256
+            }
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "title"
+            ]
+          },
+          {
+            "required": [
+              "announcement"
+            ]
+          },
+          {
+            "required": [
+              "visibility"
+            ]
+          }
+        ]
+      },
+      "global_live_banResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "account_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{32}$"
+              },
+              "global_live_banned": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "account_id",
+              "global_live_banned"
+            ]
+          },
+          "room_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+          },
+          "operation_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+          },
+          "provider_state": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "synchronized"
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ]
+      },
+      "global_live_banEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "LIVE_COMMAND_ACCEPTED"
+          },
+          "data": {
+            "$ref": "#/components/schemas/global_live_banResult"
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      },
+      "seat_self_joinResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Member"
+          },
+          "room_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+          },
+          "operation_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+          },
+          "provider_state": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "synchronized"
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ]
+      },
+      "seat_self_joinEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "LIVE_COMMAND_ACCEPTED"
+          },
+          "data": {
+            "$ref": "#/components/schemas/seat_self_joinResult"
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      },
+      "seat_lockResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "room_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{32}$"
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "x-utf8-byte-length": {
+                  "min": 1,
+                  "max": 128
+                }
+              },
+              "announcement": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 1024,
+                "x-utf8-byte-length": {
+                  "min": 0,
+                  "max": 1024
+                }
+              },
+              "visibility": {
+                "enum": [
+                  "public",
+                  "private",
+                  "hidden"
+                ]
+              },
+              "seats_locked": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "room_id",
+              "title",
+              "announcement",
+              "visibility",
+              "seats_locked"
+            ]
+          },
+          "room_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+          },
+          "operation_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+          },
+          "provider_state": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "synchronized"
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ]
+      },
+      "seat_lockEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "LIVE_COMMAND_ACCEPTED"
+          },
+          "data": {
+            "$ref": "#/components/schemas/seat_lockResult"
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      },
+      "seat_unlockResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "room_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{32}$"
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "x-utf8-byte-length": {
+                  "min": 1,
+                  "max": 128
+                }
+              },
+              "announcement": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 1024,
+                "x-utf8-byte-length": {
+                  "min": 0,
+                  "max": 1024
+                }
+              },
+              "visibility": {
+                "enum": [
+                  "public",
+                  "private",
+                  "hidden"
+                ]
+              },
+              "seats_locked": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "room_id",
+              "title",
+              "announcement",
+              "visibility",
+              "seats_locked"
+            ]
+          },
+          "room_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+          },
+          "operation_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+          },
+          "provider_state": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "synchronized"
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ]
+      },
+      "seat_unlockEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "LIVE_COMMAND_ACCEPTED"
+          },
+          "data": {
+            "$ref": "#/components/schemas/seat_unlockResult"
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      },
+      "room_settingsResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "room_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{32}$"
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "x-utf8-byte-length": {
+                  "min": 1,
+                  "max": 128
+                }
+              },
+              "announcement": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 1024,
+                "x-utf8-byte-length": {
+                  "min": 0,
+                  "max": 1024
+                }
+              },
+              "visibility": {
+                "enum": [
+                  "public",
+                  "private",
+                  "hidden"
+                ]
+              },
+              "seats_locked": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "room_id",
+              "title",
+              "announcement",
+              "visibility",
+              "seats_locked"
+            ]
+          },
+          "room_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+          },
+          "operation_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}(?![\\s\\S])"
+          },
+          "provider_state": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "synchronized"
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ]
+      },
+      "room_settingsEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "LIVE_COMMAND_ACCEPTED"
+          },
+          "data": {
+            "$ref": "#/components/schemas/room_settingsResult"
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      },
+      "ModerationEvent": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "actor_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "action": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "x-utf8-byte-length": {
+              "min": 1,
+              "max": 64
+            }
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "x-utf8-byte-length": {
+              "min": 1,
+              "max": 256
+            }
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "event_id",
+          "actor_id",
+          "action",
+          "reason",
+          "occurred_at"
+        ]
+      },
+      "room_historyEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "LIVE_RESOURCE_FETCHED"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ModerationEvent"
+            },
+            "maxItems": 50
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          },
+          "meta": {
+            "$ref": "common.openapi.json#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id",
+          "meta"
+        ]
+      },
+      "GlobalLiveBanStatusEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "LIVE_RESOURCE_FETCHED"
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "account_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{32}$"
+              },
+              "global_live_banned": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "account_id",
+              "global_live_banned"
+            ]
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "request_id",
+          "data"
         ]
       }
     },

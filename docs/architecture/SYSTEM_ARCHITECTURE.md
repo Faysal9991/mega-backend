@@ -118,3 +118,7 @@ Owner request at baseline 645c75c authorizes live-room management, agency workfl
 ## Authorized delivery extension
 
 The c749cec owner batch adds delivery contracts/application adapters and a separately owned cmd/worker for gift data, push and asset GC outboxes. Wallet alone posts finances; Live resolves room eligibility; Profile alone attaches avatar URLs; Identity owns sessions/restrictions and atomically invokes binding/notification effects. The API imports only S3 provider code; Firebase initializes in the worker. No network/image work holds financial or authority transactions. See ADR 0014 / DELIVERY_BATCH.md for ordering, leases, bounds, private-media configuration and explicit real-provider/review gates.
+
+## Consolidated capability/package extension
+
+ADR0015 extends Access as the one PostgreSQL-authoritative capability resolver; Live consumes scoped decisions and owns room/member/provider effects. Packages owns catalog/version/entitlement writes; its small activation adapter binds to Wallet's transaction. Wallet alone owns financial purchase posting, conserved ledger and immutable platform profit. No parallel permission engine, balance cache or financial writer is added. The existing worker now owns bounded live privilege recovery/fenced provider intent drain alongside its delivery dispatcher; all provider I/O follows transaction completion. See CONSOLIDATED_BATCH_VERIFICATION.md for actual checks and remaining independent/E2E/load gates.

@@ -62,9 +62,10 @@ func TestIntegrationFoundation(t *testing.T) {
 	if err := migrator.Up(ctx); err != nil {
 		t.Fatal("idempotent migration", err)
 	}
-	if v, err := migrator.Version(ctx); err != nil || v != 9 {
+	if v, err := migrator.Version(ctx); err != nil || v != 11 {
 		t.Fatal("migration version")
 	}
+	t.Log("stage: full rollback")
 	if err := migrator.DownTest(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -78,9 +79,43 @@ func TestIntegrationFoundation(t *testing.T) {
 		t.Fatal("upgrade to identity", err)
 	}
 	fixtureID := "1234567890abcdef1234567890abcdef"
+	fixturePresent := false
+	defer func() {
+		if !fixturePresent {
+			return
+		}
+		cleanup, done := context.WithTimeout(context.Background(), 60*time.Second)
+		defer done()
+		if e := migrator.Up(cleanup); e != nil {
+			t.Error("tracked fixture recovery upgrade", e)
+			return
+		}
+		tx, e := migrator.db.BeginTx(cleanup, nil)
+		if e != nil {
+			t.Error("tracked fixture cleanup begin")
+			return
+		}
+		defer tx.Rollback()
+		var safe bool
+		e = tx.QueryRowContext(cleanup, `SELECT EXISTS(SELECT 1 FROM app.profiles WHERE account_id=$1 AND display_name IN ('বাংলা','') AND avatar_url='https://example.invalid/old') AND NOT EXISTS(SELECT 1 FROM app.identity_google WHERE account_id=$1) AND NOT EXISTS(SELECT 1 FROM app.identity_sessions WHERE account_id=$1) AND NOT EXISTS(SELECT 1 FROM app.wallet_operations WHERE actor_id=$1 OR target_id=$1) AND NOT EXISTS(SELECT 1 FROM app.wallet_accounts WHERE owner_id=$1 AND balance<>0) AND NOT EXISTS(SELECT 1 FROM app.wallet_entries e JOIN app.wallet_accounts a ON a.id=e.account_id WHERE a.owner_id=$1)`, fixtureID).Scan(&safe)
+		if e != nil || !safe {
+			t.Error("tracked fixture financial/auth guard")
+			return
+		}
+		if _, e = tx.ExecContext(cleanup, "DELETE FROM app.identity_accounts WHERE id=$1", fixtureID); e != nil {
+			t.Error("tracked fixture cleanup")
+			return
+		}
+		if e = tx.Commit(); e != nil {
+			t.Error("tracked fixture cleanup commit")
+		}
+	}()
+
 	if _, err := migrator.db.ExecContext(ctx, "INSERT INTO app.identity_accounts(id,display_name,avatar_url) VALUES($1,'বাংলা','https://example.invalid/old')", fixtureID); err != nil {
 		t.Fatal(err)
 	}
+	fixturePresent = true
+	t.Log("stage: populated backfill upgrade")
 	if err := migrator.Up(ctx); err != nil {
 		t.Fatal("backfill upgrade", err)
 	}
@@ -100,6 +135,8 @@ func TestIntegrationFoundation(t *testing.T) {
 	if _, err := migrator.db.ExecContext(ctx, "DELETE FROM app.identity_accounts WHERE id=$1", fixtureID); err != nil {
 		t.Fatal(err)
 	}
+	fixturePresent = false
+	t.Log("stage: concurrent re-upgrade")
 	secondMigrator, err := NewMigrator(migration)
 	if err != nil {
 		t.Fatal(err)
@@ -116,54 +153,20 @@ func TestIntegrationFoundation(t *testing.T) {
 		t.Fatal(err)
 	}
 	// A failed transactional upgrade must leave neither its DDL nor version 10.
-	initial, err := fs.ReadFile(migrations.Source(), "00001_application_schema.sql")
-	if err != nil {
-		t.Fatal(err)
+
+	failingFS := fstest.MapFS{}
+	names, e := fs.Glob(migrations.Source(), "*.sql")
+	if e != nil {
+		t.Fatal(e)
 	}
-	identityMigration, err := fs.ReadFile(migrations.Source(), "00002_identity.sql")
-	if err != nil {
-		t.Fatal(err)
+	for _, name := range names {
+		body, e := fs.ReadFile(migrations.Source(), name)
+		if e != nil {
+			t.Fatal(e)
+		}
+		failingFS[name] = &fstest.MapFile{Data: body}
 	}
-	profileMigration, err := fs.ReadFile(migrations.Source(), "00003_profiles_access.sql")
-	if err != nil {
-		t.Fatal(err)
-	}
-	walletMigration, err := fs.ReadFile(migrations.Source(), "00004_wallet_economy.sql")
-	if err != nil {
-		t.Fatal(err)
-	}
-	liveMigration, err := fs.ReadFile(migrations.Source(), "00005_live_agency.sql")
-	if err != nil {
-		t.Fatal(err)
-	}
-	policyMigration, err := fs.ReadFile(migrations.Source(), "00006_live_policy.sql")
-	if err != nil {
-		t.Fatal(err)
-	}
-	restrictionMigration, err := fs.ReadFile(migrations.Source(), "00007_live_restriction_history.sql")
-	if err != nil {
-		t.Fatal(err)
-	}
-	contextMigration, err := fs.ReadFile(migrations.Source(), "00008_agency_activity_contexts.sql")
-	if err != nil {
-		t.Fatal(err)
-	}
-	deliveryMigration, err := fs.ReadFile(migrations.Source(), "00009_delivery.sql")
-	if err != nil {
-		t.Fatal(err)
-	}
-	failingFS := fstest.MapFS{
-		"00009_delivery.sql":                 &fstest.MapFile{Data: deliveryMigration},
-		"00008_agency_activity_contexts.sql": &fstest.MapFile{Data: contextMigration},
-		"00007_live_restriction_history.sql": &fstest.MapFile{Data: restrictionMigration},
-		"00006_live_policy.sql":              &fstest.MapFile{Data: policyMigration},
-		"00005_live_agency.sql":              &fstest.MapFile{Data: liveMigration},
-		"00004_wallet_economy.sql":           &fstest.MapFile{Data: walletMigration},
-		"00003_profiles_access.sql":          &fstest.MapFile{Data: profileMigration},
-		"00001_application_schema.sql":       &fstest.MapFile{Data: initial},
-		"00002_identity.sql":                 &fstest.MapFile{Data: identityMigration},
-		"00010_failure.sql":                  &fstest.MapFile{Data: []byte("-- +goose Up\nCREATE TABLE app.failed_upgrade_fixture(id bigint);\nSELECT 1/0;\n-- +goose Down\nDROP TABLE app.failed_upgrade_fixture;\n")},
-	}
+	failingFS["00012_failure.sql"] = &fstest.MapFile{Data: []byte("-- +goose Up\nCREATE TABLE app.failed_upgrade_fixture(id bigint);\nSELECT 1/0;\n-- +goose Down\nDROP TABLE app.failed_upgrade_fixture;\n")}
 	locker, err := lock.NewPostgresSessionLocker(lock.WithLockTimeout(1, 10))
 	if err != nil {
 		t.Fatal(err)
@@ -179,10 +182,11 @@ func TestIntegrationFoundation(t *testing.T) {
 	if err := migrator.db.QueryRowContext(ctx, "SELECT to_regclass('app.failed_upgrade_fixture') IS NULL").Scan(&rolledBack); err != nil || !rolledBack {
 		t.Fatal("failed upgrade retained DDL")
 	}
-	if v, err := migrator.Version(ctx); err != nil || v != 9 {
+	if v, err := migrator.Version(ctx); err != nil || v != 11 {
 		t.Fatal("failed upgrade changed version")
 	}
 
+	t.Log("stage: runtime identity and least privilege")
 	pool, err := Open(ctx, app)
 	if err != nil {
 		t.Fatal(err)

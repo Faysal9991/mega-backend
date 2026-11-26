@@ -7,6 +7,8 @@ package accesssql
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const addPermission = `-- name: AddPermission :exec
@@ -97,12 +99,149 @@ func (q *Queries) Bootstrap(ctx context.Context, accountID string) error {
 	return err
 }
 
+const bumpCapabilityRevision = `-- name: BumpCapabilityRevision :exec
+UPDATE app.access_policy_head SET revision=revision+1 WHERE singleton
+`
+
+func (q *Queries) BumpCapabilityRevision(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, bumpCapabilityRevision)
+	return err
+}
+
+const capabilityOverrides = `-- name: CapabilityOverrides :many
+SELECT action,allowed FROM app.access_overrides WHERE account_id=$1 AND room_id IN ('',$2::text) AND expires_at>clock_timestamp() ORDER BY action,allowed
+`
+
+type CapabilityOverridesParams struct {
+	AccountID string
+	RoomID    string
+}
+
+type CapabilityOverridesRow struct {
+	Action  string
+	Allowed bool
+}
+
+func (q *Queries) CapabilityOverrides(ctx context.Context, arg CapabilityOverridesParams) ([]CapabilityOverridesRow, error) {
+	rows, err := q.db.Query(ctx, capabilityOverrides, arg.AccountID, arg.RoomID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CapabilityOverridesRow{}
+	for rows.Next() {
+		var i CapabilityOverridesRow
+		if err := rows.Scan(&i.Action, &i.Allowed); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const capabilityPackages = `-- name: CapabilityPackages :many
+SELECT DISTINCT c.action FROM app.package_entitlements e JOIN app.package_catalog p ON p.id=e.package_id JOIN app.package_versions v ON v.id=p.current_version JOIN app.access_capabilities c ON c.action=ANY(v.powers) AND c.package_safe WHERE e.account_id=$1 AND e.starts_at<=clock_timestamp() AND e.expires_at>clock_timestamp() AND v.active AND NOT EXISTS(SELECT 1 FROM app.package_revocations r WHERE r.entitlement_id=e.id) ORDER BY c.action
+`
+
+func (q *Queries) CapabilityPackages(ctx context.Context, accountID string) ([]string, error) {
+	rows, err := q.db.Query(ctx, capabilityPackages, accountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var action string
+		if err := rows.Scan(&action); err != nil {
+			return nil, err
+		}
+		items = append(items, action)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const capabilityPolicy = `-- name: CapabilityPolicy :one
+SELECT h.policy_id,h.revision,v.roles,EXISTS(SELECT 1 FROM app.live_global_bans b WHERE b.account_id=$1::text AND b.active) AS actor_live_banned FROM app.access_policy_head h JOIN app.access_policy_versions v ON v.id=h.policy_id WHERE h.singleton
+`
+
+type CapabilityPolicyRow struct {
+	PolicyID        string
+	Revision        int64
+	Roles           []byte
+	ActorLiveBanned bool
+}
+
+func (q *Queries) CapabilityPolicy(ctx context.Context, actor string) (CapabilityPolicyRow, error) {
+	row := q.db.QueryRow(ctx, capabilityPolicy, actor)
+	var i CapabilityPolicyRow
+	err := row.Scan(
+		&i.PolicyID,
+		&i.Revision,
+		&i.Roles,
+		&i.ActorLiveBanned,
+	)
+	return i, err
+}
+
+const capabilityRoomRole = `-- name: CapabilityRoomRole :one
+SELECT r.owner_id,r.state AS room_state,r.visibility,COALESCE(CASE WHEN m.state='active' THEN m.role END,'')::text AS role,COALESCE(m.state,'')::text AS member_state,COALESCE(m.private_entry,false)::boolean AS private_entry FROM app.live_rooms r LEFT JOIN app.live_members m ON m.room_id=r.id AND m.account_id=$2 WHERE r.id=$1
+`
+
+type CapabilityRoomRoleParams struct {
+	ID        string
+	AccountID string
+}
+
+type CapabilityRoomRoleRow struct {
+	OwnerID      string
+	RoomState    string
+	Visibility   string
+	Role         string
+	MemberState  string
+	PrivateEntry bool
+}
+
+func (q *Queries) CapabilityRoomRole(ctx context.Context, arg CapabilityRoomRoleParams) (CapabilityRoomRoleRow, error) {
+	row := q.db.QueryRow(ctx, capabilityRoomRole, arg.ID, arg.AccountID)
+	var i CapabilityRoomRoleRow
+	err := row.Scan(
+		&i.OwnerID,
+		&i.RoomState,
+		&i.Visibility,
+		&i.Role,
+		&i.MemberState,
+		&i.PrivateEntry,
+	)
+	return i, err
+}
+
 const clearAssignments = `-- name: ClearAssignments :exec
 DELETE FROM app.access_assignments WHERE account_id=$1
 `
 
 func (q *Queries) ClearAssignments(ctx context.Context, accountID string) error {
 	_, err := q.db.Exec(ctx, clearAssignments, accountID)
+	return err
+}
+
+const deleteOverride = `-- name: DeleteOverride :exec
+DELETE FROM app.access_overrides WHERE account_id=$1 AND room_id=$2 AND action=$3
+`
+
+type DeleteOverrideParams struct {
+	AccountID string
+	RoomID    string
+	Action    string
+}
+
+func (q *Queries) DeleteOverride(ctx context.Context, arg DeleteOverrideParams) error {
+	_, err := q.db.Exec(ctx, deleteOverride, arg.AccountID, arg.RoomID, arg.Action)
 	return err
 }
 
@@ -180,6 +319,21 @@ func (q *Queries) GoogleLinked(ctx context.Context, accountID string) (bool, err
 	return exists, err
 }
 
+const insertCapabilityPolicy = `-- name: InsertCapabilityPolicy :exec
+INSERT INTO app.access_policy_versions(id,previous_id,roles) VALUES($1,$2,$3::text::jsonb)
+`
+
+type InsertCapabilityPolicyParams struct {
+	ID         string
+	PreviousID pgtype.Text
+	Roles      string
+}
+
+func (q *Queries) InsertCapabilityPolicy(ctx context.Context, arg InsertCapabilityPolicyParams) error {
+	_, err := q.db.Exec(ctx, insertCapabilityPolicy, arg.ID, arg.PreviousID, arg.Roles)
+	return err
+}
+
 const lockSecurity = `-- name: LockSecurity :exec
 SELECT pg_advisory_xact_lock(772341909)
 `
@@ -254,6 +408,29 @@ func (q *Queries) Private(ctx context.Context, id string) (PrivateRow, error) {
 	return i, err
 }
 
+const putOverride = `-- name: PutOverride :exec
+INSERT INTO app.access_overrides(account_id,room_id,action,allowed,expires_at) VALUES($1,$2,$3,$4,$5) ON CONFLICT(account_id,room_id,action) DO UPDATE SET allowed=EXCLUDED.allowed,expires_at=EXCLUDED.expires_at
+`
+
+type PutOverrideParams struct {
+	AccountID string
+	RoomID    string
+	Action    string
+	Allowed   bool
+	ExpiresAt pgtype.Timestamptz
+}
+
+func (q *Queries) PutOverride(ctx context.Context, arg PutOverrideParams) error {
+	_, err := q.db.Exec(ctx, putOverride,
+		arg.AccountID,
+		arg.RoomID,
+		arg.Action,
+		arg.Allowed,
+		arg.ExpiresAt,
+	)
+	return err
+}
+
 const putRole = `-- name: PutRole :exec
 INSERT INTO app.access_roles(id,name) VALUES($1,$2) ON CONFLICT(id) DO UPDATE SET name=EXCLUDED.name
 `
@@ -307,6 +484,22 @@ func (q *Queries) Roles(ctx context.Context) ([]RolesRow, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const switchCapabilityPolicy = `-- name: SwitchCapabilityPolicy :one
+UPDATE app.access_policy_head SET policy_id=$1,revision=revision+1 WHERE singleton AND policy_id=$2 RETURNING revision
+`
+
+type SwitchCapabilityPolicyParams struct {
+	PolicyID   string
+	PolicyID_2 string
+}
+
+func (q *Queries) SwitchCapabilityPolicy(ctx context.Context, arg SwitchCapabilityPolicyParams) (int64, error) {
+	row := q.db.QueryRow(ctx, switchCapabilityPolicy, arg.PolicyID, arg.PolicyID_2)
+	var revision int64
+	err := row.Scan(&revision)
+	return revision, err
 }
 
 const user = `-- name: User :one

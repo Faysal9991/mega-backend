@@ -73,7 +73,10 @@
           "capacity": 20,
           "seats": 5,
           "created_at": "2026-11-25T00:00:00Z",
-          "closed_at": null
+          "closed_at": null,
+          "visibility": "public",
+          "announcement": "",
+          "seats_locked": false
         },
         "room_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "operation_id": "dddddddddddddddddddddddddddddddd",

@@ -52,3 +52,5 @@ SELECT fingerprint,result FROM app.economy_commands WHERE actor_id=$1 AND kind=$
 INSERT INTO app.economy_commands(actor_id,kind,idempotency_key,fingerprint,result) VALUES(sqlc.arg(actor_id),sqlc.arg(kind),sqlc.arg(idempotency_key),sqlc.arg(fingerprint),sqlc.arg(result)::text::jsonb);
 -- name: Clock :one
 SELECT clock_timestamp()::timestamptz AS now;
+-- name: PackageAccountingConfigured :one
+SELECT EXISTS(SELECT 1 FROM app.package_financial_policies WHERE id='00000000000000000000000000000002' AND mode='platform_full_no_vat');

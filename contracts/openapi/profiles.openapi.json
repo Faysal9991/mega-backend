@@ -4903,7 +4903,7 @@
         "properties": {
           "permissions": {
             "type": "array",
-            "maxItems": 19,
+            "maxItems": 45,
             "uniqueItems": true,
             "items": {
               "enum": [
@@ -4925,12 +4925,101 @@
                 "media.manage",
                 "notifications.announce",
                 "deliveries.read",
-                "deliveries.retry"
+                "deliveries.retry",
+                "capabilities.manage",
+                "packages.manage",
+                "packages.entitlements.manage",
+                "packages.purchases.read",
+                "room.enter",
+                "room.enter.private",
+                "room.join.hidden",
+                "room.close",
+                "room.participant.kick",
+                "room.participant.mute",
+                "room.participant.seat_remove",
+                "room.participant.ban",
+                "live.participant.global_ban",
+                "room.seat.lock",
+                "room.seat.unlock",
+                "room.seat.self_join",
+                "room.seat.self_leave",
+                "room.title.update",
+                "room.announcement.update",
+                "room.admin.assign",
+                "room.moderator.assign",
+                "room.settings.update",
+                "room.moderation_history.read",
+                "benefit.badge",
+                "benefit.entrance",
+                "packages.purchase"
               ]
             }
           },
           "protected_owner": {
             "type": "boolean"
+          },
+          "policy_version": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 96,
+            "x-utf8-byte-length": {
+              "min": 1,
+              "max": 96
+            }
+          },
+          "denied": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "users.read",
+                "users.private.read",
+                "users.profile.update",
+                "users.restrict",
+                "economy.policies.read",
+                "economy.policies.write",
+                "wallet.operations.read",
+                "wallet.adjust",
+                "withdrawals.review",
+                "agency.hosts.manage",
+                "agencies.manage",
+                "live.rooms.moderate",
+                "live.activity.read",
+                "live.policies.manage",
+                "gifts.manage",
+                "media.manage",
+                "notifications.announce",
+                "deliveries.read",
+                "deliveries.retry",
+                "capabilities.manage",
+                "packages.manage",
+                "packages.entitlements.manage",
+                "packages.purchases.read",
+                "room.enter",
+                "room.enter.private",
+                "room.join.hidden",
+                "room.close",
+                "room.participant.kick",
+                "room.participant.mute",
+                "room.participant.seat_remove",
+                "room.participant.ban",
+                "live.participant.global_ban",
+                "room.seat.lock",
+                "room.seat.unlock",
+                "room.seat.self_join",
+                "room.seat.self_leave",
+                "room.title.update",
+                "room.announcement.update",
+                "room.admin.assign",
+                "room.moderator.assign",
+                "room.settings.update",
+                "room.moderation_history.read",
+                "benefit.badge",
+                "benefit.entrance",
+                "packages.purchase"
+              ]
+            },
+            "maxItems": 45,
+            "uniqueItems": true
           }
         },
         "required": [
@@ -4955,7 +5044,7 @@
           },
           "permissions": {
             "type": "array",
-            "maxItems": 19,
+            "maxItems": 45,
             "uniqueItems": true,
             "items": {
               "enum": [
@@ -4977,7 +5066,33 @@
                 "media.manage",
                 "notifications.announce",
                 "deliveries.read",
-                "deliveries.retry"
+                "deliveries.retry",
+                "capabilities.manage",
+                "packages.manage",
+                "packages.entitlements.manage",
+                "packages.purchases.read",
+                "room.enter",
+                "room.enter.private",
+                "room.join.hidden",
+                "room.close",
+                "room.participant.kick",
+                "room.participant.mute",
+                "room.participant.seat_remove",
+                "room.participant.ban",
+                "live.participant.global_ban",
+                "room.seat.lock",
+                "room.seat.unlock",
+                "room.seat.self_join",
+                "room.seat.self_leave",
+                "room.title.update",
+                "room.announcement.update",
+                "room.admin.assign",
+                "room.moderator.assign",
+                "room.settings.update",
+                "room.moderation_history.read",
+                "benefit.badge",
+                "benefit.entrance",
+                "packages.purchase"
               ]
             }
           }
@@ -5003,7 +5118,7 @@
           },
           "permissions": {
             "type": "array",
-            "maxItems": 19,
+            "maxItems": 45,
             "uniqueItems": true,
             "items": {
               "enum": [
@@ -5025,7 +5140,33 @@
                 "media.manage",
                 "notifications.announce",
                 "deliveries.read",
-                "deliveries.retry"
+                "deliveries.retry",
+                "capabilities.manage",
+                "packages.manage",
+                "packages.entitlements.manage",
+                "packages.purchases.read",
+                "room.enter",
+                "room.enter.private",
+                "room.join.hidden",
+                "room.close",
+                "room.participant.kick",
+                "room.participant.mute",
+                "room.participant.seat_remove",
+                "room.participant.ban",
+                "live.participant.global_ban",
+                "room.seat.lock",
+                "room.seat.unlock",
+                "room.seat.self_join",
+                "room.seat.self_leave",
+                "room.title.update",
+                "room.announcement.update",
+                "room.admin.assign",
+                "room.moderator.assign",
+                "room.settings.update",
+                "room.moderation_history.read",
+                "benefit.badge",
+                "benefit.entrance",
+                "packages.purchase"
               ]
             }
           },

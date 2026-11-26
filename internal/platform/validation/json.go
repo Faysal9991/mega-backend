@@ -16,8 +16,9 @@ import (
 )
 
 type Decoder struct {
-	maxBytes  int64
-	snakeCase bool
+	maxBytes    int64
+	snakeCase   bool
+	rejectNulls bool
 }
 
 func NewDecoder(maxBytes int64) (*Decoder, error) {
@@ -81,7 +82,7 @@ func (d *Decoder) Decode(r *http.Request, dst any) error {
 	if first != json.Delim('{') {
 		return apperror.New(apperror.InvalidRequest, nil)
 	}
-	if err := object(probe, 0, d.snakeCase); err != nil {
+	if err := object(probe, 0, d.snakeCase, d.rejectNulls); err != nil {
 		return apperror.New(apperror.InvalidJSON, err)
 	}
 	if _, err := probe.Token(); err != io.EOF {
@@ -96,7 +97,7 @@ func (d *Decoder) Decode(r *http.Request, dst any) error {
 	return nil
 }
 
-func object(decoder *json.Decoder, depth int, snakeCase bool) error {
+func object(decoder *json.Decoder, depth int, snakeCase, rejectNulls bool) error {
 	seen := map[string]bool{}
 	for decoder.More() {
 		key, err := decoder.Token()
@@ -119,7 +120,7 @@ func object(decoder *json.Decoder, depth int, snakeCase bool) error {
 			return errors.New("duplicate object key")
 		}
 		seen[folded] = true
-		if err := jsonValue(decoder, depth+1, snakeCase); err != nil {
+		if err := jsonValue(decoder, depth+1, snakeCase, rejectNulls); err != nil {
 			return err
 		}
 	}
@@ -133,7 +134,7 @@ func object(decoder *json.Decoder, depth int, snakeCase bool) error {
 	return nil
 }
 
-func jsonValue(decoder *json.Decoder, depth int, snakeCase bool) error {
+func jsonValue(decoder *json.Decoder, depth int, snakeCase, rejectNulls bool) error {
 	if depth > 64 {
 		return errors.New("JSON nesting limit exceeded")
 	}
@@ -141,12 +142,15 @@ func jsonValue(decoder *json.Decoder, depth int, snakeCase bool) error {
 	if err != nil {
 		return err
 	}
+	if rejectNulls && token == nil {
+		return errors.New("null is not supported by this command contract")
+	}
 	switch token {
 	case json.Delim('{'):
-		return object(decoder, depth, snakeCase)
+		return object(decoder, depth, snakeCase, rejectNulls)
 	case json.Delim('['):
 		for decoder.More() {
-			if err := jsonValue(decoder, depth+1, snakeCase); err != nil {
+			if err := jsonValue(decoder, depth+1, snakeCase, rejectNulls); err != nil {
 				return err
 			}
 		}
@@ -182,5 +186,16 @@ func NewSnakeCaseDecoder(maxBytes int64) (*Decoder, error) {
 		return nil, e
 	}
 	d.snakeCase = true
+	return d, nil
+}
+
+// NewNonNullSnakeCaseDecoder is opt-in for command contracts whose fields must
+// be omitted or carry a value; it preserves established nullable endpoints.
+func NewNonNullSnakeCaseDecoder(maxBytes int64) (*Decoder, error) {
+	d, e := NewSnakeCaseDecoder(maxBytes)
+	if e != nil {
+		return nil, e
+	}
+	d.rejectNulls = true
 	return d, nil
 }

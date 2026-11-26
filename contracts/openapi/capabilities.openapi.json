@@ -1,0 +1,4156 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Biho dynamic capabilities and packages",
+    "version": "1.0.0",
+    "description": "PostgreSQL-authoritative powers. Packages cannot grant protected staff moderation. Current benefits apply to active subscribers; immutable purchased periods and prices remain unchanged. Profit is 100% platform diamonds with no VAT/commission (owner approved)."
+  },
+  "servers": [
+    {
+      "url": "/api/v1"
+    }
+  ],
+  "security": [
+    {
+      "bearer": []
+    }
+  ],
+  "paths": {
+    "/identity/me/powers": {
+      "get": {
+        "operationId": "effective_powers",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Installation-ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          },
+          {
+            "in": "query",
+            "name": "room_id",
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success after authoritative commit where applicable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/effective_powersEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/capabilities": {
+      "get": {
+        "operationId": "capability_catalog",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Installation-ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success after authoritative commit where applicable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/capability_catalogEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/capabilities/room-policy": {
+      "get": {
+        "operationId": "room_policy_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Installation-ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success after authoritative commit where applicable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/room_policy_getEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "room_policy_publish",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Installation-ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success after authoritative commit where applicable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/room_policy_publishEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoomPolicyChange"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/users/{account_id}/capabilities": {
+      "put": {
+        "operationId": "direct_capability_override",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Installation-ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          },
+          {
+            "in": "path",
+            "name": "account_id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success after authoritative commit where applicable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/direct_capability_overrideEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Override"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/global-moderator-roles": {
+      "post": {
+        "operationId": "global_moderator_role_create",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Installation-ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success after authoritative commit where applicable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/global_moderator_role_createEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModeratorRoleRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/packages": {
+      "get": {
+        "operationId": "packages_available",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Installation-ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "x-integer-json-token": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success after authoritative commit where applicable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/packages_availableEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/packages": {
+      "get": {
+        "operationId": "packages_admin",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Installation-ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "x-integer-json-token": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success after authoritative commit where applicable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/packages_adminEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "package_create",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Installation-ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success after authoritative commit where applicable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/package_createEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SavePackage"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/identity/me/packages": {
+      "get": {
+        "operationId": "own_entitlements",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Installation-ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "x-integer-json-token": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success after authoritative commit where applicable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/own_entitlementsEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/identity/me/package-purchases": {
+      "get": {
+        "operationId": "own_package_purchases",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Installation-ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "x-integer-json-token": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success after authoritative commit where applicable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/own_package_purchasesEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/package-purchases": {
+      "get": {
+        "operationId": "package_purchases_admin",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Installation-ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "x-integer-json-token": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success after authoritative commit where applicable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/package_purchases_adminEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/packages/{id}/history": {
+      "get": {
+        "operationId": "package_history",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Installation-ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "x-integer-json-token": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success after authoritative commit where applicable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/package_historyEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/packages/{id}/subscribers": {
+      "get": {
+        "operationId": "package_subscribers",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Installation-ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "x-integer-json-token": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success after authoritative commit where applicable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/package_subscribersEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/packages/{id}": {
+      "get": {
+        "operationId": "package_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Installation-ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success after authoritative commit where applicable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/package_getEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/packages/{id}/purchases": {
+      "post": {
+        "operationId": "package_purchase",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Installation-ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success after authoritative commit where applicable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/package_purchaseEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Empty"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/packages/{id}": {
+      "put": {
+        "operationId": "package_update",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Installation-ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success after authoritative commit where applicable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/package_updateEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SavePackage"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/packages/{id}/entitlements": {
+      "post": {
+        "operationId": "direct_entitlement_grant",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Installation-ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success after authoritative commit where applicable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/direct_entitlement_grantEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GrantPackage"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/package-entitlements/{id}/revocations": {
+      "post": {
+        "operationId": "direct_entitlement_revoke",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Installation-ID",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success after authoritative commit where applicable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/direct_entitlement_revokeEnvelope"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Safe error; no provider/SQL/credential detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "common.openapi.json#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevokePackage"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "schemas": {
+      "PackageChange": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{0,31}$"
+          },
+          "previous_version_id": {
+            "type": "string",
+            "pattern": "^([0-9a-f]{32})?$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "x-utf8-byte-length": {
+              "min": 1,
+              "max": 128
+            }
+          },
+          "description": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 1024,
+            "x-utf8-byte-length": {
+              "min": 0,
+              "max": 1024
+            }
+          },
+          "diamond_price": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9223372036854775807,
+            "x-integer-json-token": true
+          },
+          "duration_seconds": {
+            "type": "integer",
+            "minimum": 60,
+            "maximum": 31536000,
+            "x-integer-json-token": true
+          },
+          "powers": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "room.enter",
+                "room.seat.self_join",
+                "room.seat.self_leave",
+                "benefit.badge",
+                "benefit.entrance"
+              ]
+            },
+            "maxItems": 5,
+            "uniqueItems": true
+          },
+          "badge_asset_id": {
+            "type": "string",
+            "pattern": "^([0-9a-f]{32})?$"
+          },
+          "entrance_asset_id": {
+            "type": "string",
+            "pattern": "^([0-9a-f]{32})?$"
+          },
+          "live_listing_priority": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000000,
+            "x-integer-json-token": true
+          },
+          "active": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "previous_version_id",
+          "name",
+          "diamond_price",
+          "duration_seconds",
+          "powers",
+          "live_listing_priority",
+          "active"
+        ]
+      },
+      "Package": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{0,31}$"
+          },
+          "previous_version_id": {
+            "type": "string",
+            "pattern": "^([0-9a-f]{32})?$",
+            "description": "Echoed write predecessor; may be omitted on current/history projections."
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "x-utf8-byte-length": {
+              "min": 1,
+              "max": 128
+            }
+          },
+          "description": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 1024,
+            "x-utf8-byte-length": {
+              "min": 0,
+              "max": 1024
+            }
+          },
+          "diamond_price": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9223372036854775807,
+            "x-integer-json-token": true
+          },
+          "duration_seconds": {
+            "type": "integer",
+            "minimum": 60,
+            "maximum": 31536000,
+            "x-integer-json-token": true
+          },
+          "powers": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "room.enter",
+                "room.seat.self_join",
+                "room.seat.self_leave",
+                "benefit.badge",
+                "benefit.entrance"
+              ]
+            },
+            "maxItems": 5,
+            "uniqueItems": true
+          },
+          "badge_asset_id": {
+            "type": "string",
+            "pattern": "^([0-9a-f]{32})?$"
+          },
+          "entrance_asset_id": {
+            "type": "string",
+            "pattern": "^([0-9a-f]{32})?$"
+          },
+          "live_listing_priority": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000000,
+            "x-integer-json-token": true
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "package_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "version_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation time of this immutable configuration version."
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "description",
+          "diamond_price",
+          "duration_seconds",
+          "powers",
+          "badge_asset_id",
+          "entrance_asset_id",
+          "live_listing_priority",
+          "active",
+          "package_id",
+          "version_id",
+          "created_at"
+        ]
+      },
+      "SavePackage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "definition": {
+            "$ref": "#/components/schemas/PackageChange"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "x-utf8-byte-length": {
+              "min": 1,
+              "max": 256
+            }
+          }
+        },
+        "required": [
+          "definition",
+          "reason"
+        ]
+      },
+      "GrantPackage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "x-utf8-byte-length": {
+              "min": 1,
+              "max": 256
+            }
+          }
+        },
+        "required": [
+          "account_id",
+          "reason"
+        ]
+      },
+      "RevokePackage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "x-utf8-byte-length": {
+              "min": 1,
+              "max": 256
+            }
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
+      "Empty": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {},
+        "required": []
+      },
+      "Entitlement": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "entitlement_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "account_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "package_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "starts_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "source": {
+            "enum": [
+              "direct",
+              "purchase"
+            ]
+          },
+          "powers": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "room.enter",
+                "room.seat.self_join",
+                "room.seat.self_leave",
+                "benefit.badge",
+                "benefit.entrance"
+              ]
+            },
+            "maxItems": 5
+          }
+        },
+        "required": [
+          "entitlement_id",
+          "account_id",
+          "package_id",
+          "starts_at",
+          "expires_at",
+          "source",
+          "powers"
+        ]
+      },
+      "Purchase": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "operation_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "package_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "version_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "entitlement_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "diamond_price": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9223372036854775807,
+            "x-integer-json-token": true
+          },
+          "financial_status": {
+            "const": "committed"
+          },
+          "account_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "starts_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "operation_id",
+          "package_id",
+          "version_id",
+          "entitlement_id",
+          "diamond_price",
+          "financial_status",
+          "account_id",
+          "created_at",
+          "starts_at",
+          "expires_at"
+        ]
+      },
+      "Roles": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "host": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "room.enter",
+                "room.enter.private",
+                "room.join.hidden",
+                "room.close",
+                "room.participant.kick",
+                "room.participant.mute",
+                "room.participant.seat_remove",
+                "room.participant.ban",
+                "room.seat.lock",
+                "room.seat.unlock",
+                "room.seat.self_join",
+                "room.seat.self_leave",
+                "room.title.update",
+                "room.announcement.update",
+                "room.admin.assign",
+                "room.moderator.assign",
+                "room.settings.update",
+                "room.moderation_history.read"
+              ]
+            },
+            "maxItems": 32,
+            "uniqueItems": true
+          },
+          "admin": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "room.enter",
+                "room.enter.private",
+                "room.join.hidden",
+                "room.close",
+                "room.participant.kick",
+                "room.participant.mute",
+                "room.participant.seat_remove",
+                "room.participant.ban",
+                "room.seat.lock",
+                "room.seat.unlock",
+                "room.seat.self_join",
+                "room.seat.self_leave",
+                "room.title.update",
+                "room.announcement.update",
+                "room.admin.assign",
+                "room.moderator.assign",
+                "room.settings.update",
+                "room.moderation_history.read"
+              ]
+            },
+            "maxItems": 32,
+            "uniqueItems": true
+          },
+          "co_host": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "room.enter",
+                "room.enter.private",
+                "room.join.hidden",
+                "room.close",
+                "room.participant.kick",
+                "room.participant.mute",
+                "room.participant.seat_remove",
+                "room.participant.ban",
+                "room.seat.lock",
+                "room.seat.unlock",
+                "room.seat.self_join",
+                "room.seat.self_leave",
+                "room.title.update",
+                "room.announcement.update",
+                "room.admin.assign",
+                "room.moderator.assign",
+                "room.settings.update",
+                "room.moderation_history.read"
+              ]
+            },
+            "maxItems": 32,
+            "uniqueItems": true
+          },
+          "moderator": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "room.enter",
+                "room.enter.private",
+                "room.join.hidden",
+                "room.close",
+                "room.participant.kick",
+                "room.participant.mute",
+                "room.participant.seat_remove",
+                "room.participant.ban",
+                "room.seat.lock",
+                "room.seat.unlock",
+                "room.seat.self_join",
+                "room.seat.self_leave",
+                "room.title.update",
+                "room.announcement.update",
+                "room.admin.assign",
+                "room.moderator.assign",
+                "room.settings.update",
+                "room.moderation_history.read"
+              ]
+            },
+            "maxItems": 32,
+            "uniqueItems": true
+          },
+          "audience": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "room.enter",
+                "room.enter.private",
+                "room.join.hidden",
+                "room.close",
+                "room.participant.kick",
+                "room.participant.mute",
+                "room.participant.seat_remove",
+                "room.participant.ban",
+                "room.seat.lock",
+                "room.seat.unlock",
+                "room.seat.self_join",
+                "room.seat.self_leave",
+                "room.title.update",
+                "room.announcement.update",
+                "room.admin.assign",
+                "room.moderator.assign",
+                "room.settings.update",
+                "room.moderation_history.read"
+              ]
+            },
+            "maxItems": 32,
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "host",
+          "admin",
+          "co_host",
+          "moderator",
+          "audience"
+        ]
+      },
+      "RoomPolicyChange": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "previous_policy_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "roles": {
+            "$ref": "#/components/schemas/Roles"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "x-utf8-byte-length": {
+              "min": 1,
+              "max": 256
+            }
+          }
+        },
+        "required": [
+          "previous_policy_id",
+          "roles",
+          "reason"
+        ]
+      },
+      "RoomPolicy": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "policy_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{32}$"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9223372036854775807,
+            "x-integer-json-token": true
+          },
+          "roles": {
+            "$ref": "#/components/schemas/Roles"
+          }
+        },
+        "required": [
+          "policy_id",
+          "revision",
+          "roles"
+        ]
+      },
+      "Override": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "users.read",
+              "users.private.read",
+              "users.profile.update",
+              "users.restrict",
+              "economy.policies.read",
+              "economy.policies.write",
+              "wallet.operations.read",
+              "wallet.adjust",
+              "withdrawals.review",
+              "agency.hosts.manage",
+              "agencies.manage",
+              "live.rooms.moderate",
+              "live.activity.read",
+              "live.policies.manage",
+              "gifts.manage",
+              "media.manage",
+              "notifications.announce",
+              "deliveries.read",
+              "deliveries.retry",
+              "capabilities.manage",
+              "packages.manage",
+              "packages.entitlements.manage",
+              "packages.purchases.read",
+              "room.enter",
+              "room.enter.private",
+              "room.join.hidden",
+              "room.close",
+              "room.participant.kick",
+              "room.participant.mute",
+              "room.participant.seat_remove",
+              "room.participant.ban",
+              "live.participant.global_ban",
+              "room.seat.lock",
+              "room.seat.unlock",
+              "room.seat.self_join",
+              "room.seat.self_leave",
+              "room.title.update",
+              "room.announcement.update",
+              "room.admin.assign",
+              "room.moderator.assign",
+              "room.settings.update",
+              "room.moderation_history.read",
+              "benefit.badge",
+              "benefit.entrance",
+              "packages.purchase"
+            ]
+          },
+          "room_id": {
+            "type": "string",
+            "pattern": "^([0-9a-f]{32})?$"
+          },
+          "allowed": {
+            "type": "boolean"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "remove": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "x-utf8-byte-length": {
+              "min": 1,
+              "max": 256
+            }
+          }
+        },
+        "required": [
+          "action",
+          "room_id",
+          "reason"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "remove": {
+                  "const": true
+                }
+              },
+              "required": [
+                "remove"
+              ]
+            },
+            "else": {
+              "required": [
+                "allowed",
+                "expires_at"
+              ]
+            }
+          }
+        ]
+      },
+      "ModeratorRoleRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "x-utf8-byte-length": {
+              "min": 1,
+              "max": 64
+            }
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "x-utf8-byte-length": {
+              "min": 1,
+              "max": 256
+            }
+          }
+        },
+        "required": [
+          "name",
+          "reason"
+        ]
+      },
+      "Effective": {
+        "$ref": "profiles.openapi.json#/components/schemas/Effective"
+      },
+      "CapabilityCatalog": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "enum": [
+                    "users.read",
+                    "users.private.read",
+                    "users.profile.update",
+                    "users.restrict",
+                    "economy.policies.read",
+                    "economy.policies.write",
+                    "wallet.operations.read",
+                    "wallet.adjust",
+                    "withdrawals.review",
+                    "agency.hosts.manage",
+                    "agencies.manage",
+                    "live.rooms.moderate",
+                    "live.activity.read",
+                    "live.policies.manage",
+                    "gifts.manage",
+                    "media.manage",
+                    "notifications.announce",
+                    "deliveries.read",
+                    "deliveries.retry",
+                    "capabilities.manage",
+                    "packages.manage",
+                    "packages.entitlements.manage",
+                    "packages.purchases.read",
+                    "room.enter",
+                    "room.enter.private",
+                    "room.join.hidden",
+                    "room.close",
+                    "room.participant.kick",
+                    "room.participant.mute",
+                    "room.participant.seat_remove",
+                    "room.participant.ban",
+                    "live.participant.global_ban",
+                    "room.seat.lock",
+                    "room.seat.unlock",
+                    "room.seat.self_join",
+                    "room.seat.self_leave",
+                    "room.title.update",
+                    "room.announcement.update",
+                    "room.admin.assign",
+                    "room.moderator.assign",
+                    "room.settings.update",
+                    "room.moderation_history.read",
+                    "benefit.badge",
+                    "benefit.entrance",
+                    "packages.purchase"
+                  ]
+                },
+                "package_safe": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "action",
+                "package_safe"
+              ]
+            },
+            "maxItems": 45
+          },
+          "global_moderator_default_capabilities": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "users.read",
+                "users.private.read",
+                "users.profile.update",
+                "users.restrict",
+                "economy.policies.read",
+                "economy.policies.write",
+                "wallet.operations.read",
+                "wallet.adjust",
+                "withdrawals.review",
+                "agency.hosts.manage",
+                "agencies.manage",
+                "live.rooms.moderate",
+                "live.activity.read",
+                "live.policies.manage",
+                "gifts.manage",
+                "media.manage",
+                "notifications.announce",
+                "deliveries.read",
+                "deliveries.retry",
+                "capabilities.manage",
+                "packages.manage",
+                "packages.entitlements.manage",
+                "packages.purchases.read",
+                "room.enter",
+                "room.enter.private",
+                "room.join.hidden",
+                "room.close",
+                "room.participant.kick",
+                "room.participant.mute",
+                "room.participant.seat_remove",
+                "room.participant.ban",
+                "live.participant.global_ban",
+                "room.seat.lock",
+                "room.seat.unlock",
+                "room.seat.self_join",
+                "room.seat.self_leave",
+                "room.title.update",
+                "room.announcement.update",
+                "room.admin.assign",
+                "room.moderator.assign",
+                "room.settings.update",
+                "room.moderation_history.read",
+                "benefit.badge",
+                "benefit.entrance",
+                "packages.purchase"
+              ]
+            },
+            "maxItems": 45
+          }
+        },
+        "required": [
+          "capabilities",
+          "global_moderator_default_capabilities"
+        ]
+      },
+      "Role": {
+        "$ref": "profiles.openapi.json#/components/schemas/Role"
+      },
+      "effective_powersEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "CAPABILITY_RESOURCE_COMPLETED"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Effective"
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      },
+      "capability_catalogEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "CAPABILITY_RESOURCE_COMPLETED"
+          },
+          "data": {
+            "$ref": "#/components/schemas/CapabilityCatalog"
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      },
+      "room_policy_getEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "CAPABILITY_RESOURCE_COMPLETED"
+          },
+          "data": {
+            "$ref": "#/components/schemas/RoomPolicy"
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      },
+      "room_policy_publishEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "CAPABILITY_RESOURCE_COMPLETED"
+          },
+          "data": {
+            "$ref": "#/components/schemas/RoomPolicy"
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      },
+      "direct_capability_overrideEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "CAPABILITY_RESOURCE_COMPLETED"
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {},
+            "required": []
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      },
+      "global_moderator_role_createEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "CAPABILITY_RESOURCE_COMPLETED"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Role"
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      },
+      "packages_availableEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "CAPABILITY_RESOURCE_COMPLETED"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Package"
+            },
+            "maxItems": 50
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          },
+          "meta": {
+            "$ref": "common.openapi.json#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id",
+          "meta"
+        ]
+      },
+      "packages_adminEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "CAPABILITY_RESOURCE_COMPLETED"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Package"
+            },
+            "maxItems": 50
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          },
+          "meta": {
+            "$ref": "common.openapi.json#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id",
+          "meta"
+        ]
+      },
+      "own_entitlementsEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "CAPABILITY_RESOURCE_COMPLETED"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Entitlement"
+            },
+            "maxItems": 50
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          },
+          "meta": {
+            "$ref": "common.openapi.json#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id",
+          "meta"
+        ]
+      },
+      "own_package_purchasesEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "CAPABILITY_RESOURCE_COMPLETED"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Purchase"
+            },
+            "maxItems": 50
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          },
+          "meta": {
+            "$ref": "common.openapi.json#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id",
+          "meta"
+        ]
+      },
+      "package_purchases_adminEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "CAPABILITY_RESOURCE_COMPLETED"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Purchase"
+            },
+            "maxItems": 50
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          },
+          "meta": {
+            "$ref": "common.openapi.json#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id",
+          "meta"
+        ]
+      },
+      "package_historyEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "CAPABILITY_RESOURCE_COMPLETED"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Package"
+            },
+            "maxItems": 50
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          },
+          "meta": {
+            "$ref": "common.openapi.json#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id",
+          "meta"
+        ]
+      },
+      "package_subscribersEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "CAPABILITY_RESOURCE_COMPLETED"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Entitlement"
+            },
+            "maxItems": 50
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          },
+          "meta": {
+            "$ref": "common.openapi.json#/components/schemas/Meta"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id",
+          "meta"
+        ]
+      },
+      "package_getEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "CAPABILITY_RESOURCE_COMPLETED"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Package"
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      },
+      "package_purchaseEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "CAPABILITY_RESOURCE_COMPLETED"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Purchase"
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      },
+      "package_createEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "CAPABILITY_RESOURCE_COMPLETED"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Package"
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      },
+      "package_updateEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "CAPABILITY_RESOURCE_COMPLETED"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Package"
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      },
+      "direct_entitlement_grantEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "CAPABILITY_RESOURCE_COMPLETED"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Entitlement"
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      },
+      "direct_entitlement_revokeEnvelope": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "code": {
+            "const": "CAPABILITY_RESOURCE_COMPLETED"
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "entitlement_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{32}$"
+              },
+              "status": {
+                "const": "revoked"
+              }
+            },
+            "required": [
+              "entitlement_id",
+              "status"
+            ]
+          },
+          "request_id": {
+            "$ref": "common.openapi.json#/components/schemas/RequestID"
+          }
+        },
+        "required": [
+          "success",
+          "code",
+          "data",
+          "request_id"
+        ]
+      }
+    }
+  }
+}

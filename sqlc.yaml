@@ -72,3 +72,12 @@ sql:
         out: internal/modules/delivery/postgres/deliverysql
         sql_package: pgx/v5
         emit_empty_slices: true
+  - engine: postgresql
+    schema: database/migrations
+    queries: database/queries/packages
+    gen:
+      go:
+        package: packagessql
+        out: internal/modules/packages/postgres/packagessql
+        sql_package: pgx/v5
+        emit_empty_slices: true

@@ -48,7 +48,8 @@
           "FINANCIAL_CONFIGURATION_REQUIRED",
           "INSUFFICIENT_DIAMONDS",
           "VERIFIED_ACTIVITY_UNAVAILABLE",
-          "WITHDRAWAL_NOT_ELIGIBLE"
+          "WITHDRAWAL_NOT_ELIGIBLE",
+          "LIVE_LIST_RESTART_REQUIRED"
         ]
       },
       "FieldError": {

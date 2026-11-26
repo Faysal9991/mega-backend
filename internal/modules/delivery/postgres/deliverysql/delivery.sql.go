@@ -114,7 +114,7 @@ func (q *Queries) AssetQuota(ctx context.Context, ownerID string) (AssetQuotaRow
 }
 
 const assetReferenced = `-- name: AssetReferenced :one
-SELECT EXISTS(SELECT 1 FROM app.delivery_asset_links WHERE asset_id=$1) OR EXISTS(SELECT 1 FROM app.gift_versions WHERE thumbnail_asset_id=$1) AS referenced
+SELECT EXISTS(SELECT 1 FROM app.delivery_asset_links WHERE asset_id=$1) OR EXISTS(SELECT 1 FROM app.gift_versions WHERE thumbnail_asset_id=$1) OR EXISTS(SELECT 1 FROM app.package_versions WHERE badge_asset_id=$1 OR entrance_asset_id=$1) AS referenced
 `
 
 func (q *Queries) AssetReferenced(ctx context.Context, assetID string) (pgtype.Bool, error) {
@@ -944,7 +944,7 @@ func (q *Queries) QueuePush(ctx context.Context, id string) error {
 }
 
 const ready = `-- name: Ready :one
-SELECT to_regclass('app.delivery_outbox') IS NOT NULL AND to_regclass('app.room_gifts') IS NOT NULL AND to_regclass('app.push_devices') IS NOT NULL
+SELECT to_regclass('app.delivery_outbox') IS NOT NULL AND to_regclass('app.room_gifts') IS NOT NULL AND to_regclass('app.push_devices') IS NOT NULL AND to_regclass('app.package_versions') IS NOT NULL AND to_regclass('app.access_policy_head') IS NOT NULL AND EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='app' AND table_name='live_members' AND column_name='private_entry') AND EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='app' AND table_name='live_operations' AND column_name='lease_token')
 `
 
 func (q *Queries) Ready(ctx context.Context) (pgtype.Bool, error) {

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Faysal9991/mega-backend/internal/modules/access"
+	accesspg "github.com/Faysal9991/mega-backend/internal/modules/access/postgres"
 	"github.com/Faysal9991/mega-backend/internal/modules/live"
 	"github.com/Faysal9991/mega-backend/internal/modules/live/postgres/livesql"
 	"github.com/Faysal9991/mega-backend/internal/platform/apperror"
@@ -18,6 +19,8 @@ func (r *Repository) Read(ctx context.Context, c access.Credentials, in live.Que
 	defer cancel()
 	p := ""
 	switch in.Kind {
+	case "global.ban":
+		p = "live.participant.global_ban"
 	case "policy":
 		p = live.PolicyManage
 	case "admin.rooms", "admin.room":
@@ -33,6 +36,38 @@ func (r *Repository) Read(ctx context.Context, c access.Credentials, in live.Que
 		q := livesql.New(tx)
 		limit := int32(in.Limit + 1)
 		switch in.Kind {
+		case "global.ban":
+			if _, e := q.AccountActive(ctx, in.ID); e != nil {
+				return e
+			}
+			banned, e := q.LiveRestricted(ctx, in.ID)
+			if e != nil {
+				return e
+			}
+			out.Data = map[string]any{"account_id": in.ID, "global_live_banned": banned}
+
+		case "room.history":
+			effective, e := accesspg.Resolve(ctx, tx, u.Actor(), in.ID)
+			if e != nil {
+				return e
+			}
+			if !effective.Allows("room.moderation_history.read") {
+				return live.Fail(apperror.Forbidden)
+			}
+			rows, e := q.RoomHistory(ctx, livesql.RoomHistoryParams{Target: in.ID, ID: in.Cursor, PageLimit: limit})
+			if e != nil {
+				return e
+			}
+			items := []map[string]any{}
+			for i, v := range rows {
+				if i == in.Limit {
+					out.More = true
+					break
+				}
+				items = append(items, map[string]any{"event_id": v.ID, "actor_id": v.Actor, "action": v.Action, "reason": v.Reason, "occurred_at": v.OccurredAt.Time.UTC()})
+				out.Next = v.ID
+			}
+			out.Data = items
 		case "policy":
 			v, e := q.LatestLivePolicy(ctx)
 			if errors.Is(e, pgx.ErrNoRows) {
@@ -50,7 +85,11 @@ func (r *Repository) Read(ctx context.Context, c access.Credentials, in live.Que
 			}
 			p.CreatedAt = v.CreatedAt.Time.UTC()
 			out.Data = p
-		case "rooms", "admin.rooms":
+		case "rooms":
+			var e error
+			out, e = discovery(ctx, q, u, in)
+			return e
+		case "admin.rooms":
 			rows, e := q.Rooms(ctx, livesql.RoomsParams{ID: in.Cursor, Admin: in.Kind == "admin.rooms", PageLimit: limit})
 			if e != nil {
 				return e
@@ -71,6 +110,13 @@ func (r *Repository) Read(ctx context.Context, c access.Credentials, in live.Que
 				return e
 			}
 			if in.Kind == "room" {
+				effective, e := accesspg.Resolve(ctx, tx, u.Actor(), in.ID)
+				if e != nil {
+					return e
+				}
+				if !effective.Allows("room.enter") {
+					return live.Fail(apperror.Forbidden)
+				}
 				m, e := q.Member(ctx, livesql.MemberParams{RoomID: in.ID, AccountID: u.Actor()})
 				if e != nil {
 					return e
@@ -85,6 +131,9 @@ func (r *Repository) Read(ctx context.Context, c access.Credentials, in live.Que
 			}
 			items := []live.Member{}
 			for _, m := range rows {
+				if in.Kind == "room" && m.Hidden {
+					continue
+				}
 				items = append(items, member(m))
 			}
 			pending, e := q.Pending(ctx, in.ID)

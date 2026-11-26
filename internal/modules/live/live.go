@@ -69,24 +69,30 @@ func (p Limits) Validate() error {
 }
 
 type Room struct {
-	ID        string     `json:"room_id"`
-	SessionID string     `json:"session_id"`
-	OwnerID   string     `json:"owner_id"`
-	Kind      string     `json:"room_type"`
-	Title     string     `json:"title"`
-	State     string     `json:"state"`
-	Capacity  int32      `json:"capacity"`
-	Seats     int32      `json:"seats"`
-	CreatedAt time.Time  `json:"created_at"`
-	ClosedAt  *time.Time `json:"closed_at"`
+	ID           string     `json:"room_id"`
+	SessionID    string     `json:"session_id"`
+	OwnerID      string     `json:"owner_id"`
+	Kind         string     `json:"room_type"`
+	Title        string     `json:"title"`
+	State        string     `json:"state"`
+	Capacity     int32      `json:"capacity"`
+	Seats        int32      `json:"seats"`
+	CreatedAt    time.Time  `json:"created_at"`
+	ClosedAt     *time.Time `json:"closed_at"`
+	Visibility   string     `json:"visibility"`
+	Announcement string     `json:"announcement"`
+	SeatsLocked  bool       `json:"seats_locked"`
 }
 type Member struct {
-	AccountID   string `json:"account_id"`
-	Role        string `json:"role"`
-	State       string `json:"state"`
-	Muted       bool   `json:"muted"`
-	Seat        int32  `json:"seat"`
-	InvitedSeat int32  `json:"invited_seat"`
+	AccountID    string `json:"account_id"`
+	Role         string `json:"role"`
+	State        string `json:"state"`
+	Muted        bool   `json:"muted"`
+	Hidden       bool   `json:"hidden,omitempty"`
+	SelfSeated   bool   `json:"-"`
+	PrivateEntry bool   `json:"-"`
+	Seat         int32  `json:"seat"`
+	InvitedSeat  int32  `json:"invited_seat"`
 }
 type Agency struct {
 	ID        string    `json:"agency_id"`
@@ -121,21 +127,27 @@ type Policy struct {
 }
 
 type Command struct {
-	Admin          bool
-	Policy         *Policy
-	Kind           string
-	ID             string
-	Target         string
-	Key            string
-	Reason         string
-	Name           string
-	Classification string
-	Status         string
-	Role           string
-	Seat           int32
-	Capacity       int32
-	Seats          int32
-	Muted          bool
+	Admin           bool
+	Policy          *Policy
+	Kind            string
+	ID              string
+	Target          string
+	Key             string
+	Reason          string
+	Name            string
+	Classification  string
+	Status          string
+	Role            string
+	Seat            int32
+	Capacity        int32
+	Seats           int32
+	Muted           bool
+	Hidden          bool   `json:"Hidden,omitempty"`
+	Visibility      string `json:"Visibility,omitempty"`
+	Announcement    string `json:"Announcement,omitempty"`
+	TitleSet        bool   `json:"TitleSet,omitempty"`
+	AnnouncementSet bool   `json:"AnnouncementSet,omitempty"`
+	VisibilitySet   bool   `json:"VisibilitySet,omitempty"`
 }
 
 func Text(s string, max int) bool {
@@ -154,14 +166,14 @@ func (c Command) Validate(l Limits) error {
 		return Fail(apperror.ValidationFailed)
 	}
 	switch c.Kind {
-	case "agency.create", "room.create", "host.leave", "policy.publish":
+	case "live.ban", "agency.create", "room.create", "host.leave", "policy.publish":
 	default:
 		if c.Kind != "host.classify" && !access.ValidID(c.ID) {
 			return Fail(apperror.ValidationFailed)
 		}
 	}
 	switch c.Kind {
-	case "manager.add", "manager.remove", "host.classify", "seat.invite", "seat.remove", "member.role", "member.mute", "member.kick", "member.ban", "member.unban":
+	case "live.ban", "manager.add", "manager.remove", "host.classify", "seat.invite", "seat.remove", "member.role", "member.mute", "member.kick", "member.ban", "member.unban":
 		if !access.ValidID(c.Target) {
 			return Fail(apperror.ValidationFailed)
 		}
@@ -191,15 +203,23 @@ func (c Command) Validate(l Limits) error {
 		if c.Status != "audio" && c.Status != "video" || !Text(c.Name, 128) || c.Capacity < 2 || c.Capacity > int32(l.Capacity) || c.Seats < 0 || c.Seats > int32(l.Seats) || c.Status == "video" && c.Seats != 0 {
 			return Fail(apperror.ValidationFailed)
 		}
+	case "seat.self_join":
+		if c.Seat < 0 || c.Seat > int32(l.Seats) {
+			return Fail(apperror.ValidationFailed)
+		}
+	case "room.settings":
+		if !c.TitleSet && !c.AnnouncementSet && !c.VisibilitySet || c.TitleSet && !Text(c.Name, 128) || c.Announcement != "" && !Text(c.Announcement, 1024) || c.VisibilitySet && c.Visibility != "public" && c.Visibility != "private" && c.Visibility != "hidden" {
+			return Fail(apperror.ValidationFailed)
+		}
 	case "seat.invite":
 		if c.Seat < 1 || c.Seat > int32(l.Seats) {
 			return Fail(apperror.ValidationFailed)
 		}
 	case "member.role":
-		if c.Role != "co_host" && c.Role != "moderator" && c.Role != "audience" {
+		if c.Role != "admin" && c.Role != "co_host" && c.Role != "moderator" && c.Role != "audience" {
 			return Fail(apperror.ValidationFailed)
 		}
-	case "manager.add", "manager.remove", "host.leave", "room.close", "room.join", "room.leave", "seat.accept", "seat.release", "seat.remove", "member.mute", "member.kick", "member.ban", "member.unban":
+	case "live.ban", "seat.lock", "seat.unlock", "manager.add", "manager.remove", "host.leave", "room.close", "room.join", "room.leave", "seat.accept", "seat.release", "seat.remove", "member.mute", "member.kick", "member.ban", "member.unban":
 	default:
 		return Fail(apperror.ValidationFailed)
 	}
@@ -236,7 +256,10 @@ type Grant struct {
 }
 
 func CanPublish(r Room, m Member) bool {
-	return m.State == "active" && !m.Muted && (m.Role == "host" || m.Role == "co_host" || r.Kind == "audio" && m.Seat > 0)
+	if m.Hidden {
+		return false
+	}
+	return m.State == "active" && !m.Muted && (m.Role == "host" || m.Role == "co_host" || r.Kind == "audio" && m.Seat > 0 || r.Kind == "video" && m.SelfSeated && m.Seat > 0)
 }
 
 type Event struct {
@@ -296,7 +319,7 @@ func (s *Service) Execute(ctx context.Context, c access.Credentials, in Command)
 	return out, e
 }
 func (s *Service) Read(ctx context.Context, c access.Credentials, q Query) (Page, error) {
-	if q.Limit < 1 || q.Limit > 50 || q.Cursor != "" && (q.Kind != "activity" && !access.ValidID(q.Cursor) || q.Kind == "activity" && !Text(q.Cursor, 128)) || q.ID != "" && !access.ValidID(q.ID) {
+	if q.Limit < 1 || q.Limit > 50 || q.Cursor != "" && (q.Kind != "activity" && q.Kind != "rooms" && !access.ValidID(q.Cursor) || q.Kind == "rooms" && !validRoomCursor(q.Cursor) || q.Kind == "activity" && !Text(q.Cursor, 128)) || q.ID != "" && !access.ValidID(q.ID) {
 		return Page{}, Fail(apperror.ValidationFailed)
 	}
 	return s.store.Read(ctx, c, q)
@@ -336,3 +359,5 @@ func (s *Service) Reconcile(ctx context.Context, c access.Credentials, id string
 	}
 	return s.store.Reconcile(ctx, c, id, s.provider)
 }
+
+func validRoomCursor(s string) bool { _, ok := ParseListCursor(s); return ok }

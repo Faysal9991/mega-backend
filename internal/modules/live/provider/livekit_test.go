@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -13,6 +14,8 @@ import (
 
 	"github.com/Faysal9991/mega-backend/internal/modules/live"
 	"github.com/livekit/protocol/auth"
+	"github.com/livekit/protocol/livekit"
+	"google.golang.org/protobuf/proto"
 )
 
 const testSecret = "synthetic-provider-secret-for-tests-only-000000"
@@ -141,5 +144,62 @@ func TestSnapshotDistinguishesMissingAndEmptyRoom(t *testing.T) {
 				t.Fatal("provider absence conflated with empty room", e)
 			}
 		})
+	}
+}
+
+func TestHiddenTokenCannotPublishOrAdminister(t *testing.T) {
+	c := New("https://example.invalid", "fixture-key", testSecret)
+	token, e := c.Token(live.Grant{Room: live.Room{SessionID: "hidden-session", Kind: "audio"}, Member: live.Member{State: "active", Role: "audience", Seat: 1, Hidden: true}, Identity: "auditable-identity"}, time.Minute)
+	if e != nil {
+		t.Fatal(e)
+	}
+	v, e := auth.ParseAPIToken(token)
+	if e != nil {
+		t.Fatal(e)
+	}
+	_, claims, e := v.Verify(testSecret)
+	if e != nil {
+		t.Fatal(e)
+	}
+	g := claims.Video
+	if g == nil || !g.Hidden || g.RoomAdmin || g.RoomCreate || g.RoomList || g.CanPublish == nil || *g.CanPublish || g.CanPublishData == nil || *g.CanPublishData || g.Room != "hidden-session" || claims.Identity != "auditable-identity" {
+		t.Fatal("unsafe hidden grants")
+	}
+}
+
+func TestHiddenParticipantUpdateUsesOfficialPermission(t *testing.T) {
+	seen := make(chan bool, 1)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		var body livekit.UpdateParticipantRequest
+		raw, e := io.ReadAll(io.LimitReader(r.Body, 8192))
+		if e == nil {
+			e = proto.Unmarshal(raw, &body)
+		}
+		seen <- e == nil && body.Room == "controlled-session" && body.Identity == "auditable" && body.Permission != nil && body.Permission.Hidden && !body.Permission.CanPublish && !body.Permission.CanPublishData
+		response, e := proto.Marshal(&livekit.ParticipantInfo{Identity: "auditable"})
+		if e != nil {
+			t.Error("controlled proto response")
+			w.WriteHeader(500)
+			return
+		}
+		w.Header().Set("Content-Type", "application/protobuf")
+		_, _ = w.Write(response)
+
+	}))
+	defer server.Close()
+	c := New(server.URL, "fixture-key", testSecret)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	if e := c.Participant(ctx, live.Room{SessionID: "controlled-session", Kind: "audio"}, live.Member{AccountID: "auditable", State: "active", Role: "audience", Seat: 1, Hidden: true}); e != nil {
+		t.Fatal(e)
+	}
+	select {
+	case valid := <-seen:
+		if !valid {
+			t.Fatal("hidden permission not transmitted safely")
+		}
+	case <-ctx.Done():
+		t.Fatal("provider request absent")
 	}
 }

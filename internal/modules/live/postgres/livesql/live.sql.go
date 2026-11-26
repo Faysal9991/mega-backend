@@ -112,6 +112,17 @@ func (q *Queries) Activity(ctx context.Context, arg ActivityParams) ([]ActivityR
 	return items, nil
 }
 
+const actorListSnapshots = `-- name: ActorListSnapshots :one
+SELECT count(*) FROM (SELECT id FROM app.live_list_snapshots WHERE actor_id=$1 AND expires_at>clock_timestamp() LIMIT 6) bounded
+`
+
+func (q *Queries) ActorListSnapshots(ctx context.Context, actorID string) (int64, error) {
+	row := q.db.QueryRow(ctx, actorListSnapshots, actorID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const addManager = `-- name: AddManager :exec
 INSERT INTO app.agency_managers(agency_id,account_id) VALUES($1,$2) ON CONFLICT DO NOTHING
 `
@@ -385,25 +396,75 @@ func (q *Queries) BindProviderSID(ctx context.Context, arg BindProviderSIDParams
 	return provider_sid, err
 }
 
-const claim = `-- name: Claim :one
-UPDATE app.live_operations SET state='running',lease_until=clock_timestamp()+interval '30 seconds',attempts=attempts+1 WHERE id=(SELECT id FROM app.live_operations WHERE app.live_operations.room_id=$1 AND state<>'done' ORDER BY sequence LIMIT 1) AND (state='pending' OR lease_until<clock_timestamp()) AND attempts<100 RETURNING id,room_id,kind,target
+const capabilityMembers = `-- name: CapabilityMembers :many
+SELECT room_id,account_id,hidden,self_seated,private_entry FROM app.live_members WHERE state='active' AND (hidden OR self_seated OR private_entry) AND (room_id,account_id)>($1::text,$2::text) ORDER BY room_id,account_id LIMIT 10
 `
 
-type ClaimRow struct {
-	ID     string
-	RoomID string
-	Kind   string
-	Target string
+type CapabilityMembersParams struct {
+	RoomID    string
+	AccountID string
 }
 
-func (q *Queries) Claim(ctx context.Context, roomID string) (ClaimRow, error) {
-	row := q.db.QueryRow(ctx, claim, roomID)
+type CapabilityMembersRow struct {
+	RoomID       string
+	AccountID    string
+	Hidden       bool
+	SelfSeated   bool
+	PrivateEntry bool
+}
+
+func (q *Queries) CapabilityMembers(ctx context.Context, arg CapabilityMembersParams) ([]CapabilityMembersRow, error) {
+	rows, err := q.db.Query(ctx, capabilityMembers, arg.RoomID, arg.AccountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CapabilityMembersRow{}
+	for rows.Next() {
+		var i CapabilityMembersRow
+		if err := rows.Scan(
+			&i.RoomID,
+			&i.AccountID,
+			&i.Hidden,
+			&i.SelfSeated,
+			&i.PrivateEntry,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const claim = `-- name: Claim :one
+UPDATE app.live_operations SET state='running',lease_until=clock_timestamp()+interval '30 seconds',lease_token=$2,attempts=attempts+1 WHERE id=(SELECT id FROM app.live_operations WHERE app.live_operations.room_id=$1 AND state<>'done' ORDER BY sequence LIMIT 1) AND (state='pending' OR lease_until<clock_timestamp()) AND attempts<100 RETURNING id,room_id,kind,target,lease_token
+`
+
+type ClaimParams struct {
+	RoomID     string
+	LeaseToken string
+}
+
+type ClaimRow struct {
+	ID         string
+	RoomID     string
+	Kind       string
+	Target     string
+	LeaseToken string
+}
+
+func (q *Queries) Claim(ctx context.Context, arg ClaimParams) (ClaimRow, error) {
+	row := q.db.QueryRow(ctx, claim, arg.RoomID, arg.LeaseToken)
 	var i ClaimRow
 	err := row.Scan(
 		&i.ID,
 		&i.RoomID,
 		&i.Kind,
 		&i.Target,
+		&i.LeaseToken,
 	)
 	return i, err
 }
@@ -428,13 +489,20 @@ func (q *Queries) CloseMembers(ctx context.Context, roomID string) error {
 	return err
 }
 
-const complete = `-- name: Complete :exec
-UPDATE app.live_operations SET state='done',lease_until=NULL WHERE id=$1 AND state='running'
+const complete = `-- name: Complete :one
+UPDATE app.live_operations SET state='done',lease_until=NULL WHERE id=$1 AND lease_token=$2 AND state='running' RETURNING id
 `
 
-func (q *Queries) Complete(ctx context.Context, id string) error {
-	_, err := q.db.Exec(ctx, complete, id)
-	return err
+type CompleteParams struct {
+	ID         string
+	LeaseToken string
+}
+
+func (q *Queries) Complete(ctx context.Context, arg CompleteParams) (string, error) {
+	row := q.db.QueryRow(ctx, complete, arg.ID, arg.LeaseToken)
+	var id string
+	err := row.Scan(&id)
+	return id, err
 }
 
 const createAgency = `-- name: CreateAgency :one
@@ -458,8 +526,29 @@ func (q *Queries) CreateAgency(ctx context.Context, arg CreateAgencyParams) (App
 	return i, err
 }
 
+const createListSnapshot = `-- name: CreateListSnapshot :exec
+INSERT INTO app.live_list_snapshots(id,actor_id,revision,expires_at) VALUES($1,$2,$3,$4)
+`
+
+type CreateListSnapshotParams struct {
+	ID        string
+	ActorID   string
+	Revision  int64
+	ExpiresAt pgtype.Timestamptz
+}
+
+func (q *Queries) CreateListSnapshot(ctx context.Context, arg CreateListSnapshotParams) error {
+	_, err := q.db.Exec(ctx, createListSnapshot,
+		arg.ID,
+		arg.ActorID,
+		arg.Revision,
+		arg.ExpiresAt,
+	)
+	return err
+}
+
 const createRoom = `-- name: CreateRoom :one
-INSERT INTO app.live_rooms(id,session_id,owner_id,kind,title,state,capacity,seats) VALUES($1,$2,$3,$4,$5,'opening',$6,$7) RETURNING id,session_id,provider_sid,owner_id,kind,title,state,capacity,seats,created_at,closed_at
+INSERT INTO app.live_rooms(id,session_id,owner_id,kind,title,state,capacity,seats) VALUES($1,$2,$3,$4,$5,'opening',$6,$7) RETURNING id,session_id,provider_sid,owner_id,kind,title,state,capacity,seats,created_at,closed_at,visibility,announcement,seats_locked
 `
 
 type CreateRoomParams struct {
@@ -495,6 +584,9 @@ func (q *Queries) CreateRoom(ctx context.Context, arg CreateRoomParams) (AppLive
 		&i.Seats,
 		&i.CreatedAt,
 		&i.ClosedAt,
+		&i.Visibility,
+		&i.Announcement,
+		&i.SeatsLocked,
 	)
 	return i, err
 }
@@ -524,7 +616,7 @@ func (q *Queries) Decide(ctx context.Context, arg DecideParams) (AppHostApplicat
 }
 
 const desiredParticipant = `-- name: DesiredParticipant :one
-SELECT m.room_id,m.account_id,m.role,m.state,m.muted,m.seat,m.invited_seat,m.updated_at,
+SELECT m.room_id,m.account_id,m.role,m.state,m.muted,m.seat,m.invited_seat,m.updated_at,m.hidden,m.self_seated,m.private_entry,
  COALESCE(a.classification,'')::text AS classification,
  COALESCE(g.status='active',false)::boolean AS agency_active,
  (i.status='active')::boolean AS account_active
@@ -548,6 +640,9 @@ type DesiredParticipantRow struct {
 	Seat           pgtype.Int4
 	InvitedSeat    pgtype.Int4
 	UpdatedAt      pgtype.Timestamptz
+	Hidden         bool
+	SelfSeated     bool
+	PrivateEntry   bool
 	Classification string
 	AgencyActive   bool
 	AccountActive  bool
@@ -565,11 +660,133 @@ func (q *Queries) DesiredParticipant(ctx context.Context, arg DesiredParticipant
 		&i.Seat,
 		&i.InvitedSeat,
 		&i.UpdatedAt,
+		&i.Hidden,
+		&i.SelfSeated,
+		&i.PrivateEntry,
 		&i.Classification,
 		&i.AgencyActive,
 		&i.AccountActive,
 	)
 	return i, err
+}
+
+const discovery = `-- name: Discovery :many
+WITH eligible AS (
+ SELECT r.id,r.session_id,r.owner_id,r.kind,r.title,r.state,r.capacity,r.seats,r.created_at,r.closed_at,r.visibility,r.announcement,r.seats_locked,COALESCE(max(v.listing_priority),0)::integer AS listing_priority
+ FROM app.live_rooms r JOIN app.identity_accounts a ON a.id=r.owner_id AND a.status='active'
+ LEFT JOIN app.package_entitlements e ON e.account_id=r.owner_id AND e.starts_at<=$5::timestamptz AND e.expires_at>$5::timestamptz AND NOT EXISTS(SELECT 1 FROM app.package_revocations x WHERE x.entitlement_id=e.id)
+ LEFT JOIN app.package_catalog p ON p.id=e.package_id LEFT JOIN app.package_versions v ON v.id=p.current_version AND v.active
+ WHERE r.state='open' AND r.visibility='public' AND EXISTS(SELECT 1 FROM app.live_members host WHERE host.room_id=r.id AND host.account_id=r.owner_id AND host.role='host' AND host.state='active')
+ AND NOT EXISTS(SELECT 1 FROM app.live_global_bans b WHERE b.active AND b.account_id IN (r.owner_id,$6::text))
+ AND NOT EXISTS(SELECT 1 FROM app.live_members m WHERE m.room_id=r.id AND m.account_id=$6::text AND m.state IN ('banned','kicked'))
+ AND NOT EXISTS(SELECT 1 FROM app.access_overrides o WHERE o.account_id=$6::text AND o.room_id IN ('',r.id) AND o.action='room.enter' AND NOT o.allowed AND o.expires_at>$5::timestamptz)
+ GROUP BY r.id
+)
+SELECT id, session_id, owner_id, kind, title, state, capacity, seats, created_at, closed_at, visibility, announcement, seats_locked, listing_priority FROM eligible WHERE $1::boolean OR listing_priority<$2::integer OR listing_priority=$2::integer AND id>$3::text ORDER BY listing_priority DESC,id LIMIT $4
+`
+
+type DiscoveryParams struct {
+	FirstPage bool
+	Priority  int32
+	Cursor    string
+	PageLimit int32
+	AsOf      pgtype.Timestamptz
+	Actor     string
+}
+
+type DiscoveryRow struct {
+	ID              string
+	SessionID       string
+	OwnerID         string
+	Kind            string
+	Title           string
+	State           string
+	Capacity        int32
+	Seats           int32
+	CreatedAt       pgtype.Timestamptz
+	ClosedAt        pgtype.Timestamptz
+	Visibility      string
+	Announcement    string
+	SeatsLocked     bool
+	ListingPriority int32
+}
+
+func (q *Queries) Discovery(ctx context.Context, arg DiscoveryParams) ([]DiscoveryRow, error) {
+	rows, err := q.db.Query(ctx, discovery,
+		arg.FirstPage,
+		arg.Priority,
+		arg.Cursor,
+		arg.PageLimit,
+		arg.AsOf,
+		arg.Actor,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []DiscoveryRow{}
+	for rows.Next() {
+		var i DiscoveryRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.SessionID,
+			&i.OwnerID,
+			&i.Kind,
+			&i.Title,
+			&i.State,
+			&i.Capacity,
+			&i.Seats,
+			&i.CreatedAt,
+			&i.ClosedAt,
+			&i.Visibility,
+			&i.Announcement,
+			&i.SeatsLocked,
+			&i.ListingPriority,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const discoveryClock = `-- name: DiscoveryClock :one
+SELECT clock_timestamp()::timestamptz AS now,h.revision,LEAST(clock_timestamp()+interval '30 seconds',
+ COALESCE((SELECT min(e.expires_at) FROM app.package_entitlements e WHERE e.expires_at>clock_timestamp() AND e.expires_at<=clock_timestamp()+interval '30 seconds' AND EXISTS(SELECT 1 FROM app.live_rooms r WHERE r.owner_id=e.account_id AND r.state='open' AND r.visibility='public')),'infinity'::timestamptz),
+ COALESCE((SELECT min(e.starts_at) FROM app.package_entitlements e WHERE e.starts_at>clock_timestamp() AND e.starts_at<=clock_timestamp()+interval '30 seconds' AND EXISTS(SELECT 1 FROM app.live_rooms r WHERE r.owner_id=e.account_id AND r.state='open' AND r.visibility='public')),'infinity'::timestamptz),
+ COALESCE((SELECT min(o.expires_at) FROM app.access_overrides o WHERE o.account_id=$1::text AND o.action='room.enter' AND o.expires_at>clock_timestamp()),'infinity'::timestamptz))::timestamptz AS expires_at FROM app.live_discovery_head h WHERE singleton
+`
+
+type DiscoveryClockRow struct {
+	Now       pgtype.Timestamptz
+	Revision  int64
+	ExpiresAt pgtype.Timestamptz
+}
+
+func (q *Queries) DiscoveryClock(ctx context.Context, actor string) (DiscoveryClockRow, error) {
+	row := q.db.QueryRow(ctx, discoveryClock, actor)
+	var i DiscoveryClockRow
+	err := row.Scan(&i.Now, &i.Revision, &i.ExpiresAt)
+	return i, err
+}
+
+const discoveryStillValid = `-- name: DiscoveryStillValid :one
+SELECT revision=$1 AND clock_timestamp()<$2::timestamptz AS valid FROM app.live_discovery_head WHERE singleton
+`
+
+type DiscoveryStillValidParams struct {
+	Revision int64
+	Column2  pgtype.Timestamptz
+}
+
+func (q *Queries) DiscoveryStillValid(ctx context.Context, arg DiscoveryStillValidParams) (pgtype.Bool, error) {
+	row := q.db.QueryRow(ctx, discoveryStillValid, arg.Revision, arg.Column2)
+	var valid pgtype.Bool
+	err := row.Scan(&valid)
+	return valid, err
 }
 
 const endPresence = `-- name: EndPresence :exec
@@ -837,8 +1054,22 @@ func (q *Queries) InvalidateRoomPresence(ctx context.Context, roomID string) err
 	return err
 }
 
+const invalidateScopedParticipation = `-- name: InvalidateScopedParticipation :exec
+UPDATE app.live_presence SET valid_until=LEAST(COALESCE(valid_until,clock_timestamp()),clock_timestamp()) WHERE account_id=$1 AND room_id=ANY($2::text[]) AND ended_at IS NULL
+`
+
+type InvalidateScopedParticipationParams struct {
+	AccountID string
+	Column2   []string
+}
+
+func (q *Queries) InvalidateScopedParticipation(ctx context.Context, arg InvalidateScopedParticipationParams) error {
+	_, err := q.db.Exec(ctx, invalidateScopedParticipation, arg.AccountID, arg.Column2)
+	return err
+}
+
 const joinMember = `-- name: JoinMember :one
-INSERT INTO app.live_members(room_id,account_id,role,state) VALUES($1,$2,$3,'active') ON CONFLICT(room_id,account_id) DO UPDATE SET state='active',role=EXCLUDED.role,seat=NULL,invited_seat=NULL,muted=false,updated_at=clock_timestamp() WHERE app.live_members.state='left' RETURNING room_id,account_id,role,state,muted,seat,invited_seat,updated_at
+INSERT INTO app.live_members(room_id,account_id,role,state) VALUES($1,$2,$3,'active') ON CONFLICT(room_id,account_id) DO UPDATE SET state='active',role=EXCLUDED.role,seat=NULL,invited_seat=NULL,muted=false,updated_at=clock_timestamp() WHERE app.live_members.state='left' RETURNING room_id,account_id,role,state,muted,seat,invited_seat,updated_at,hidden,self_seated,private_entry
 `
 
 type JoinMemberParams struct {
@@ -859,6 +1090,9 @@ func (q *Queries) JoinMember(ctx context.Context, arg JoinMemberParams) (AppLive
 		&i.Seat,
 		&i.InvitedSeat,
 		&i.UpdatedAt,
+		&i.Hidden,
+		&i.SelfSeated,
+		&i.PrivateEntry,
 	)
 	return i, err
 }
@@ -894,6 +1128,38 @@ func (q *Queries) LeaveRestrictedRooms(ctx context.Context, arg LeaveRestrictedR
 	return err
 }
 
+const listSnapshot = `-- name: ListSnapshot :one
+SELECT id,actor_id,revision,expires_at FROM app.live_list_snapshots WHERE id=$1 AND actor_id=$2 AND expires_at>clock_timestamp()
+`
+
+type ListSnapshotParams struct {
+	ID      string
+	ActorID string
+}
+
+func (q *Queries) ListSnapshot(ctx context.Context, arg ListSnapshotParams) (AppLiveListSnapshot, error) {
+	row := q.db.QueryRow(ctx, listSnapshot, arg.ID, arg.ActorID)
+	var i AppLiveListSnapshot
+	err := row.Scan(
+		&i.ID,
+		&i.ActorID,
+		&i.Revision,
+		&i.ExpiresAt,
+	)
+	return i, err
+}
+
+const liveRestricted = `-- name: LiveRestricted :one
+SELECT EXISTS(SELECT 1 FROM app.live_global_bans WHERE account_id=$1 AND active)
+`
+
+func (q *Queries) LiveRestricted(ctx context.Context, accountID string) (bool, error) {
+	row := q.db.QueryRow(ctx, liveRestricted, accountID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const manager = `-- name: Manager :one
 SELECT EXISTS(SELECT 1 FROM app.agency_managers WHERE agency_id=$1 AND account_id=$2)
 `
@@ -911,7 +1177,7 @@ func (q *Queries) Manager(ctx context.Context, arg ManagerParams) (bool, error) 
 }
 
 const member = `-- name: Member :one
-SELECT room_id,account_id,role,state,muted,seat,invited_seat,updated_at FROM app.live_members WHERE room_id=$1 AND account_id=$2
+SELECT room_id,account_id,role,state,muted,seat,invited_seat,updated_at,hidden,self_seated,private_entry FROM app.live_members WHERE room_id=$1 AND account_id=$2
 `
 
 type MemberParams struct {
@@ -931,12 +1197,38 @@ func (q *Queries) Member(ctx context.Context, arg MemberParams) (AppLiveMember, 
 		&i.Seat,
 		&i.InvitedSeat,
 		&i.UpdatedAt,
+		&i.Hidden,
+		&i.SelfSeated,
+		&i.PrivateEntry,
 	)
 	return i, err
 }
 
+const memberFlags = `-- name: MemberFlags :exec
+UPDATE app.live_members SET hidden=$3,self_seated=$4,private_entry=$5 WHERE room_id=$1 AND account_id=$2
+`
+
+type MemberFlagsParams struct {
+	RoomID       string
+	AccountID    string
+	Hidden       bool
+	SelfSeated   bool
+	PrivateEntry bool
+}
+
+func (q *Queries) MemberFlags(ctx context.Context, arg MemberFlagsParams) error {
+	_, err := q.db.Exec(ctx, memberFlags,
+		arg.RoomID,
+		arg.AccountID,
+		arg.Hidden,
+		arg.SelfSeated,
+		arg.PrivateEntry,
+	)
+	return err
+}
+
 const members = `-- name: Members :many
-SELECT room_id,account_id,role,state,muted,seat,invited_seat,updated_at FROM app.live_members WHERE room_id=$1 AND state='active' ORDER BY account_id LIMIT 501
+SELECT room_id,account_id,role,state,muted,seat,invited_seat,updated_at,hidden,self_seated,private_entry FROM app.live_members WHERE room_id=$1 AND state='active' ORDER BY account_id LIMIT 501
 `
 
 func (q *Queries) Members(ctx context.Context, roomID string) ([]AppLiveMember, error) {
@@ -957,6 +1249,9 @@ func (q *Queries) Members(ctx context.Context, roomID string) ([]AppLiveMember, 
 			&i.Seat,
 			&i.InvitedSeat,
 			&i.UpdatedAt,
+			&i.Hidden,
+			&i.SelfSeated,
+			&i.PrivateEntry,
 		); err != nil {
 			return nil, err
 		}
@@ -1049,6 +1344,30 @@ func (q *Queries) Pending(ctx context.Context, roomID string) (bool, error) {
 	return exists, err
 }
 
+const pendingRoomIDs = `-- name: PendingRoomIDs :many
+WITH candidates AS(SELECT o.room_id,o.sequence FROM app.live_operations o WHERE o.state<>'done' AND o.attempts<100 AND NOT EXISTS(SELECT 1 FROM app.live_operations x WHERE x.room_id=o.room_id AND x.state<>'done' AND x.attempts>=100) ORDER BY o.sequence LIMIT 100) SELECT room_id FROM candidates GROUP BY room_id ORDER BY min(sequence),room_id LIMIT 10
+`
+
+func (q *Queries) PendingRoomIDs(ctx context.Context) ([]string, error) {
+	rows, err := q.db.Query(ctx, pendingRoomIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var room_id string
+		if err := rows.Scan(&room_id); err != nil {
+			return nil, err
+		}
+		items = append(items, room_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const presence = `-- name: Presence :one
 SELECT participant_sid,room_id,account_id,association_id,classification,started_at,ended_at,qualifying,valid_until FROM app.live_presence WHERE participant_sid=$1
 `
@@ -1068,6 +1387,15 @@ func (q *Queries) Presence(ctx context.Context, participantSid string) (AppLiveP
 		&i.ValidUntil,
 	)
 	return i, err
+}
+
+const pruneListSnapshots = `-- name: PruneListSnapshots :exec
+DELETE FROM app.live_list_snapshots WHERE id IN(SELECT id FROM app.live_list_snapshots WHERE expires_at<=clock_timestamp() ORDER BY expires_at,id LIMIT 100)
+`
+
+func (q *Queries) PruneListSnapshots(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, pruneListSnapshots)
+	return err
 }
 
 const publishLivePolicy = `-- name: PublishLivePolicy :one
@@ -1158,7 +1486,7 @@ func (q *Queries) RemoveManager(ctx context.Context, arg RemoveManagerParams) er
 }
 
 const resetExhausted = `-- name: ResetExhausted :exec
-UPDATE app.live_operations SET attempts=0,state='pending',lease_until=NULL WHERE id=(SELECT id FROM app.live_operations WHERE app.live_operations.room_id=$1 AND attempts>=100 AND (state='pending' OR lease_until<clock_timestamp()) ORDER BY sequence LIMIT 1)
+UPDATE app.live_operations SET attempts=0,state='pending',lease_until=NULL,lease_token='' WHERE id=(SELECT id FROM app.live_operations WHERE app.live_operations.room_id=$1 AND attempts>=100 AND (state='pending' OR lease_until<clock_timestamp()) ORDER BY sequence LIMIT 1)
 `
 
 func (q *Queries) ResetExhausted(ctx context.Context, roomID string) error {
@@ -1196,16 +1524,21 @@ func (q *Queries) RestrictionHistory(ctx context.Context, accountID string) ([]R
 }
 
 const retry = `-- name: Retry :exec
-UPDATE app.live_operations SET state='pending',lease_until=NULL WHERE id=$1 AND state='running'
+UPDATE app.live_operations SET state='pending',lease_until=NULL WHERE id=$1 AND lease_token=$2 AND state='running'
 `
 
-func (q *Queries) Retry(ctx context.Context, id string) error {
-	_, err := q.db.Exec(ctx, retry, id)
+type RetryParams struct {
+	ID         string
+	LeaseToken string
+}
+
+func (q *Queries) Retry(ctx context.Context, arg RetryParams) error {
+	_, err := q.db.Exec(ctx, retry, arg.ID, arg.LeaseToken)
 	return err
 }
 
 const room = `-- name: Room :one
-SELECT id,session_id,provider_sid,owner_id,kind,title,state,capacity,seats,created_at,closed_at FROM app.live_rooms WHERE id=$1
+SELECT id,session_id,provider_sid,owner_id,kind,title,state,capacity,seats,created_at,closed_at,visibility,announcement,seats_locked FROM app.live_rooms WHERE id=$1
 `
 
 func (q *Queries) Room(ctx context.Context, id string) (AppLiveRoom, error) {
@@ -1223,8 +1556,78 @@ func (q *Queries) Room(ctx context.Context, id string) (AppLiveRoom, error) {
 		&i.Seats,
 		&i.CreatedAt,
 		&i.ClosedAt,
+		&i.Visibility,
+		&i.Announcement,
+		&i.SeatsLocked,
 	)
 	return i, err
+}
+
+const roomHistory = `-- name: RoomHistory :many
+SELECT id,actor,action,reason,occurred_at FROM app.access_audit WHERE target=$1 AND id>$2 ORDER BY id LIMIT $3
+`
+
+type RoomHistoryParams struct {
+	Target    string
+	ID        string
+	PageLimit int32
+}
+
+type RoomHistoryRow struct {
+	ID         string
+	Actor      string
+	Action     string
+	Reason     string
+	OccurredAt pgtype.Timestamptz
+}
+
+func (q *Queries) RoomHistory(ctx context.Context, arg RoomHistoryParams) ([]RoomHistoryRow, error) {
+	rows, err := q.db.Query(ctx, roomHistory, arg.Target, arg.ID, arg.PageLimit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []RoomHistoryRow{}
+	for rows.Next() {
+		var i RoomHistoryRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Actor,
+			&i.Action,
+			&i.Reason,
+			&i.OccurredAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const roomSettings = `-- name: RoomSettings :exec
+UPDATE app.live_rooms SET title=$2,announcement=$3,visibility=$4,seats_locked=$5 WHERE id=$1
+`
+
+type RoomSettingsParams struct {
+	ID           string
+	Title        string
+	Announcement string
+	Visibility   string
+	SeatsLocked  bool
+}
+
+func (q *Queries) RoomSettings(ctx context.Context, arg RoomSettingsParams) error {
+	_, err := q.db.Exec(ctx, roomSettings,
+		arg.ID,
+		arg.Title,
+		arg.Announcement,
+		arg.Visibility,
+		arg.SeatsLocked,
+	)
+	return err
 }
 
 const roomState = `-- name: RoomState :exec
@@ -1242,7 +1645,7 @@ func (q *Queries) RoomState(ctx context.Context, arg RoomStateParams) error {
 }
 
 const rooms = `-- name: Rooms :many
-SELECT id,session_id,provider_sid,owner_id,kind,title,state,capacity,seats,created_at,closed_at FROM app.live_rooms WHERE id>$1 AND ($2::boolean OR state='open') ORDER BY id LIMIT $3
+SELECT id,session_id,provider_sid,owner_id,kind,title,state,capacity,seats,created_at,closed_at,visibility,announcement,seats_locked FROM app.live_rooms WHERE id>$1 AND ($2::boolean OR state='open') ORDER BY id LIMIT $3
 `
 
 type RoomsParams struct {
@@ -1272,6 +1675,9 @@ func (q *Queries) Rooms(ctx context.Context, arg RoomsParams) ([]AppLiveRoom, er
 			&i.Seats,
 			&i.CreatedAt,
 			&i.ClosedAt,
+			&i.Visibility,
+			&i.Announcement,
+			&i.SeatsLocked,
 		); err != nil {
 			return nil, err
 		}
@@ -1307,7 +1713,7 @@ func (q *Queries) Save(ctx context.Context, arg SaveParams) error {
 }
 
 const sessionRoom = `-- name: SessionRoom :one
-SELECT id,session_id,provider_sid,owner_id,kind,title,state,capacity,seats,created_at,closed_at FROM app.live_rooms WHERE session_id=$1
+SELECT id,session_id,provider_sid,owner_id,kind,title,state,capacity,seats,created_at,closed_at,visibility,announcement,seats_locked FROM app.live_rooms WHERE session_id=$1
 `
 
 func (q *Queries) SessionRoom(ctx context.Context, sessionID string) (AppLiveRoom, error) {
@@ -1325,8 +1731,25 @@ func (q *Queries) SessionRoom(ctx context.Context, sessionID string) (AppLiveRoo
 		&i.Seats,
 		&i.CreatedAt,
 		&i.ClosedAt,
+		&i.Visibility,
+		&i.Announcement,
+		&i.SeatsLocked,
 	)
 	return i, err
+}
+
+const setLiveBan = `-- name: SetLiveBan :exec
+INSERT INTO app.live_global_bans(account_id,active) VALUES($1,$2) ON CONFLICT(account_id) DO UPDATE SET active=EXCLUDED.active,updated_at=clock_timestamp()
+`
+
+type SetLiveBanParams struct {
+	AccountID string
+	Active    bool
+}
+
+func (q *Queries) SetLiveBan(ctx context.Context, arg SetLiveBanParams) error {
+	_, err := q.db.Exec(ctx, setLiveBan, arg.AccountID, arg.Active)
+	return err
 }
 
 const startPresence = `-- name: StartPresence :exec
@@ -1379,7 +1802,7 @@ func (q *Queries) UpdateAgency(ctx context.Context, arg UpdateAgencyParams) (App
 }
 
 const updateMember = `-- name: UpdateMember :one
-UPDATE app.live_members SET role=$3,state=$4,muted=$5,seat=NULLIF($6::integer,0),invited_seat=NULLIF($7::integer,0),updated_at=clock_timestamp() WHERE room_id=$1 AND account_id=$2 RETURNING room_id,account_id,role,state,muted,seat,invited_seat,updated_at
+UPDATE app.live_members SET role=$3,state=$4,muted=$5,seat=NULLIF($6::integer,0),invited_seat=NULLIF($7::integer,0),updated_at=clock_timestamp() WHERE room_id=$1 AND account_id=$2 RETURNING room_id,account_id,role,state,muted,seat,invited_seat,updated_at,hidden,self_seated,private_entry
 `
 
 type UpdateMemberParams struct {
@@ -1412,6 +1835,9 @@ func (q *Queries) UpdateMember(ctx context.Context, arg UpdateMemberParams) (App
 		&i.Seat,
 		&i.InvitedSeat,
 		&i.UpdatedAt,
+		&i.Hidden,
+		&i.SelfSeated,
+		&i.PrivateEntry,
 	)
 	return i, err
 }

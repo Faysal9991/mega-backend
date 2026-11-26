@@ -108,13 +108,9 @@ func (r *Repository) Within(ctx context.Context, c access.Credentials, permissio
 		if e != nil {
 			return e
 		}
-		permissions, e := q.Permissions(ctx, actual.Account.ID)
+		effective, e := resolveWithOwners(ctx, tx, actual.Account.ID, "", owners)
 		if e != nil {
 			return e
-		}
-		effective := access.Effective{Permissions: permissions, Owner: slices.Contains(owners, actual.Account.ID)}
-		if effective.Owner {
-			effective.Permissions = access.Catalog()
 		}
 		if owner && !effective.Owner || permission != "" && !slices.Contains(effective.Permissions, permission) {
 			return access.Failure(apperror.Forbidden)

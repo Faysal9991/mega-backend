@@ -125,11 +125,15 @@ func step9RedisFixture(t *testing.T, extra ...string) (access.Credentials, strin
 	roleID = r.ID
 	assign := func(enabled bool) {
 		t.Helper()
+		// Callers exercise HTTP outside the setup context, potentially across
+		// several scenarios. Bound each later authority change independently.
+		assignment, done := context.WithTimeout(t.Context(), 30*time.Second)
+		defer done()
 		roles := []string{}
 		if enabled {
 			roles = append(roles, roleID)
 		}
-		if e := service.Assign(ctx, oc, staff, roles, "fixture revocation", "redis-assignment"); e != nil {
+		if e := service.Assign(assignment, oc, staff, roles, "fixture revocation", "redis-assignment"); e != nil {
 			t.Fatal(e)
 		}
 	}

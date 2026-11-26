@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/Faysal9991/mega-backend/internal/modules/access"
@@ -65,7 +66,7 @@ func safe(e error) error {
 	if errors.As(e, &p) && (p.Code == "23505" || p.Code == "23503") {
 		return live.Fail(apperror.Conflict)
 	}
-	return live.Fail(apperror.ServiceUnavailable)
+	return apperror.New(apperror.ServiceUnavailable, e)
 }
 func ts(t time.Time) pgtype.Timestamptz { return pgtype.Timestamptz{Time: t.UTC(), Valid: true} }
 func optional(t pgtype.Timestamptz) *time.Time {
@@ -76,10 +77,10 @@ func optional(t pgtype.Timestamptz) *time.Time {
 	return &v
 }
 func room(v livesql.AppLiveRoom) live.Room {
-	return live.Room{ID: v.ID, SessionID: v.SessionID, OwnerID: v.OwnerID, Kind: v.Kind, Title: v.Title, State: v.State, Capacity: v.Capacity, Seats: v.Seats, CreatedAt: v.CreatedAt.Time.UTC(), ClosedAt: optional(v.ClosedAt)}
+	return live.Room{ID: v.ID, SessionID: v.SessionID, OwnerID: v.OwnerID, Kind: v.Kind, Title: v.Title, State: v.State, Capacity: v.Capacity, Seats: v.Seats, CreatedAt: v.CreatedAt.Time.UTC(), ClosedAt: optional(v.ClosedAt), Visibility: v.Visibility, Announcement: v.Announcement, SeatsLocked: v.SeatsLocked}
 }
 func member(v livesql.AppLiveMember) live.Member {
-	return live.Member{AccountID: v.AccountID, Role: v.Role, State: v.State, Muted: v.Muted, Seat: v.Seat.Int32, InvitedSeat: v.InvitedSeat.Int32}
+	return live.Member{AccountID: v.AccountID, Role: v.Role, State: v.State, Muted: v.Muted, Seat: v.Seat.Int32, InvitedSeat: v.InvitedSeat.Int32, Hidden: v.Hidden, SelfSeated: v.SelfSeated, PrivateEntry: v.PrivateEntry}
 }
 func ag(v livesql.AppAgency) live.Agency {
 	return live.Agency{ID: v.ID, Name: v.Name, Status: v.Status, CreatedAt: v.CreatedAt.Time.UTC()}
@@ -145,6 +146,8 @@ func (r *Repository) Execute(ctx context.Context, c access.Credentials, in live.
 	permission := ""
 	target := in.Target
 	switch in.Kind {
+	case "live.ban":
+		permission = "live.participant.global_ban"
 	case "policy.publish":
 		permission = live.PolicyManage
 	case "agency.update":
@@ -172,6 +175,17 @@ func (r *Repository) Execute(ctx context.Context, c access.Credentials, in live.
 		}
 		prior, e := q.Existing(ctx, livesql.ExistingParams{ActorID: u.Actor(), Kind: in.Kind, Key: in.Key})
 		if e == nil {
+			if strings.HasPrefix(in.Kind, "room.") && in.Kind != "room.create" || strings.HasPrefix(in.Kind, "seat.") || strings.HasPrefix(in.Kind, "member.") {
+				effective, e := accesspg.Resolve(ctx, tx, u.Actor(), in.ID)
+				if e != nil {
+					return e
+				}
+				for _, action := range requiredRoomActions(in) {
+					if !effective.Allows(action) {
+						return live.Fail(apperror.Forbidden)
+					}
+				}
+			}
 			if prior.Fingerprint != fingerprint {
 				return live.Fail(apperror.Conflict)
 			}
@@ -180,7 +194,9 @@ func (r *Repository) Execute(ctx context.Context, c access.Credentials, in live.
 		if !errors.Is(e, pgx.ErrNoRows) {
 			return e
 		}
-		if len(in.Kind) > 5 && in.Kind[:5] == "room." || len(in.Kind) > 5 && in.Kind[:5] == "seat." || len(in.Kind) > 7 && in.Kind[:7] == "member." {
+		if in.Kind == "live.ban" {
+			out, e = r.globalBan(ctx, tx, q, u, in)
+		} else if len(in.Kind) > 5 && in.Kind[:5] == "room." || len(in.Kind) > 5 && in.Kind[:5] == "seat." || len(in.Kind) > 7 && in.Kind[:7] == "member." {
 			out, e = r.roomCommand(ctx, tx, q, u, in)
 		} else {
 			out, e = r.agencyCommand(ctx, tx, q, u, in)
@@ -205,6 +221,13 @@ func (r *Repository) Execute(ctx context.Context, c access.Credentials, in live.
 			auditTarget = v.ID
 		}
 		fields := []string{"command:" + fingerprint}
+		if in.Kind == "live.ban" {
+			if in.Muted {
+				fields = append(fields, "global_live_banned:true")
+			} else {
+				fields = append(fields, "global_live_banned:false")
+			}
+		}
 		if in.Target != "" {
 			fields = append(fields, "account:"+in.Target)
 		}

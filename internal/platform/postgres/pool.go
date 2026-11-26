@@ -94,12 +94,13 @@ func Open(ctx context.Context, cfg config.DatabaseConfig) (*pgxpool.Pool, error)
 	}
 	startup, cancel := context.WithTimeout(ctx, cfg.ConnectTimeout)
 	defer cancel()
-	if err := pool.Ping(startup); err != nil {
-		pool.Close()
-		return nil, errors.New("postgres: connection initialization failed")
-	}
+	// The identity query establishes connectivity and readiness in one round trip.
 	identity, err := dbsql.New(pool).ConnectionIdentity(startup)
-	if err != nil || identity.DatabaseName != cfg.Name || identity.RoleName != cfg.User || !identity.SchemaReady {
+	if err != nil {
+		pool.Close()
+		return nil, safeFailure("connection identity query", err)
+	}
+	if identity.DatabaseName != cfg.Name || identity.RoleName != cfg.User || !identity.SchemaReady {
 		pool.Close()
 		return nil, errors.New("postgres: connection identity verification failed")
 	}

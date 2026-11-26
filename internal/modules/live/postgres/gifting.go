@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	accesspg "github.com/Faysal9991/mega-backend/internal/modules/access/postgres"
 	"github.com/Faysal9991/mega-backend/internal/modules/live"
 	"github.com/Faysal9991/mega-backend/internal/modules/live/postgres/livesql"
 	"github.com/Faysal9991/mega-backend/internal/platform/apperror"
@@ -25,6 +26,13 @@ func (r *Repository) ValidateGift(ctx context.Context, tx pgx.Tx, roomID, sessio
 		return safe(e)
 	}
 	for _, id := range []string{sender, recipient} {
+		effective, e := accesspg.Resolve(ctx, tx, id, roomID)
+		if e != nil {
+			return safe(e)
+		}
+		if !effective.Allows("room.enter") {
+			return live.Fail(apperror.Forbidden)
+		}
 		m, e := q.DesiredParticipant(ctx, livesql.DesiredParticipantParams{RoomID: roomID, AccountID: id})
 		if e != nil {
 			return safe(e)
@@ -32,8 +40,11 @@ func (r *Repository) ValidateGift(ctx context.Context, tx pgx.Tx, roomID, sessio
 		if m.State != "active" || !m.AccountActive {
 			return live.Fail(apperror.Forbidden)
 		}
+		if m.SelfSeated && !effective.Allows("room.seat.self_join") {
+			return live.Fail(apperror.Forbidden)
+		}
 		if id == recipient {
-			member := live.Member{AccountID: m.AccountID, Role: m.Role, State: m.State, Muted: m.Muted, Seat: m.Seat.Int32}
+			member := live.Member{AccountID: m.AccountID, Role: m.Role, State: m.State, Muted: m.Muted, Seat: m.Seat.Int32, Hidden: m.Hidden, SelfSeated: m.SelfSeated}
 			if !live.CanPublish(room(v), member) || !m.AgencyActive || !limits.Compatibility.Allows(m.Classification, v.Kind) {
 				return live.Fail(apperror.Forbidden)
 			}

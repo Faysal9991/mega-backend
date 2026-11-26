@@ -24,8 +24,34 @@ type AppAccessAudit struct {
 	OccurredAt  pgtype.Timestamptz
 }
 
+type AppAccessCapability struct {
+	Action      string
+	PackageSafe bool
+}
+
+type AppAccessOverride struct {
+	AccountID string
+	RoomID    string
+	Action    string
+	Allowed   bool
+	ExpiresAt pgtype.Timestamptz
+}
+
 type AppAccessOwner struct {
 	AccountID string
+}
+
+type AppAccessPolicyHead struct {
+	Singleton bool
+	PolicyID  string
+	Revision  int64
+}
+
+type AppAccessPolicyVersion struct {
+	ID         string
+	PreviousID pgtype.Text
+	Roles      []byte
+	CreatedAt  pgtype.Timestamptz
 }
 
 type AppAccessRole struct {
@@ -273,6 +299,11 @@ type AppLiveCommand struct {
 	Result      []byte
 }
 
+type AppLiveDiscoveryHead struct {
+	Singleton bool
+	Revision  int64
+}
+
 type AppLiveEvent struct {
 	ID             string
 	Fingerprint    string
@@ -283,15 +314,31 @@ type AppLiveEvent struct {
 	ReceivedAt     pgtype.Timestamptz
 }
 
+type AppLiveGlobalBan struct {
+	AccountID string
+	Active    bool
+	UpdatedAt pgtype.Timestamptz
+}
+
+type AppLiveListSnapshot struct {
+	ID        string
+	ActorID   string
+	Revision  int64
+	ExpiresAt pgtype.Timestamptz
+}
+
 type AppLiveMember struct {
-	RoomID      string
-	AccountID   string
-	Role        string
-	State       string
-	Muted       bool
-	Seat        pgtype.Int4
-	InvitedSeat pgtype.Int4
-	UpdatedAt   pgtype.Timestamptz
+	RoomID       string
+	AccountID    string
+	Role         string
+	State        string
+	Muted        bool
+	Seat         pgtype.Int4
+	InvitedSeat  pgtype.Int4
+	UpdatedAt    pgtype.Timestamptz
+	Hidden       bool
+	SelfSeated   bool
+	PrivateEntry bool
 }
 
 type AppLiveOperation struct {
@@ -304,6 +351,7 @@ type AppLiveOperation struct {
 	LeaseUntil pgtype.Timestamptz
 	Attempts   int32
 	CreatedAt  pgtype.Timestamptz
+	LeaseToken string
 }
 
 type AppLivePolicy struct {
@@ -328,17 +376,20 @@ type AppLivePresence struct {
 }
 
 type AppLiveRoom struct {
-	ID          string
-	SessionID   string
-	ProviderSid string
-	OwnerID     string
-	Kind        string
-	Title       string
-	State       string
-	Capacity    int32
-	Seats       int32
-	CreatedAt   pgtype.Timestamptz
-	ClosedAt    pgtype.Timestamptz
+	ID           string
+	SessionID    string
+	ProviderSid  string
+	OwnerID      string
+	Kind         string
+	Title        string
+	State        string
+	Capacity     int32
+	Seats        int32
+	CreatedAt    pgtype.Timestamptz
+	ClosedAt     pgtype.Timestamptz
+	Visibility   string
+	Announcement string
+	SeatsLocked  bool
 }
 
 type AppNotification struct {
@@ -356,6 +407,75 @@ type AppNotificationPreference struct {
 	AccountEvent      bool
 	RoomInvitation    bool
 	AdminAnnouncement bool
+}
+
+type AppPackageCatalog struct {
+	ID             string
+	Code           string
+	CurrentVersion pgtype.Text
+	CreatedAt      pgtype.Timestamptz
+}
+
+type AppPackageCommand struct {
+	ActorID     string
+	Kind        string
+	Key         string
+	Fingerprint string
+	Result      []byte
+}
+
+type AppPackageEntitlement struct {
+	ID        string
+	AccountID string
+	PackageID string
+	StartsAt  pgtype.Timestamptz
+	ExpiresAt pgtype.Timestamptz
+	Source    string
+	CreatedAt pgtype.Timestamptz
+}
+
+type AppPackageFinancialPolicy struct {
+	ID        string
+	Mode      string
+	CreatedAt pgtype.Timestamptz
+}
+
+type AppPackageProfit struct {
+	OperationID string
+	Diamonds    int64
+	PolicyID    string
+	CreatedAt   pgtype.Timestamptz
+}
+
+type AppPackagePurchase struct {
+	OperationID   string
+	AccountID     string
+	PackageID     string
+	VersionID     string
+	EntitlementID string
+	Price         int64
+	CreatedAt     pgtype.Timestamptz
+}
+
+type AppPackageRevocation struct {
+	EntitlementID string
+	ActorID       string
+	CreatedAt     pgtype.Timestamptz
+}
+
+type AppPackageVersion struct {
+	ID              string
+	PackageID       string
+	Name            string
+	Description     string
+	Price           int64
+	DurationSeconds int64
+	Powers          []string
+	BadgeAssetID    pgtype.Text
+	EntranceAssetID pgtype.Text
+	ListingPriority int32
+	Active          bool
+	CreatedAt       pgtype.Timestamptz
 }
 
 type AppProfile struct {

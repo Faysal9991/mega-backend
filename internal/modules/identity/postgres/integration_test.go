@@ -60,7 +60,7 @@ func TestIntegrationIdentitySecurity(t *testing.T) {
 	if err := migrator.Up(ctx); err != nil {
 		t.Fatal(err)
 	}
-	if v, err := migrator.Version(ctx); err != nil || v != 9 {
+	if v, err := migrator.Version(ctx); err != nil || v != 11 {
 		t.Fatal("identity migration version")
 	}
 	pool, err := platform.Open(ctx, app)

@@ -4,9 +4,15 @@ package main
 import (
 	"context"
 	"fmt"
+	livedomain "github.com/Faysal9991/mega-backend/internal/modules/live"
+	livepg "github.com/Faysal9991/mega-backend/internal/modules/live/postgres"
+	liveprovider "github.com/Faysal9991/mega-backend/internal/modules/live/provider"
+	"math/rand/v2"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
+	"time"
 
 	"github.com/Faysal9991/mega-backend/internal/modules/delivery"
 	deliverypg "github.com/Faysal9991/mega-backend/internal/modules/delivery/postgres"
@@ -81,5 +87,53 @@ func run(ctx context.Context, lookup config.LookupEnv) error {
 		defer client.Close()
 		d.Push = client
 	}
-	return d.Run(ctx)
+
+	workerCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	var wg sync.WaitGroup
+	if live.Enabled {
+		rooms, e := livepg.New(pool, livedomain.Limits{DatabaseTimeout: live.Limits.DatabaseTimeout, Capacity: live.Limits.Capacity, Seats: live.Limits.Seats, TokenTTL: live.Limits.TokenTTL, ProviderTimeout: live.Limits.ProviderTimeout, EventAge: live.Limits.EventAge, Compatibility: livedomain.Compatibility(live.Limits.Compatibility)})
+		if e != nil {
+			return e
+		}
+		provider := liveprovider.New(live.URL, live.Key, live.Secret)
+		wg.Go(func() {
+			ticker := time.NewTicker(time.Second)
+			defer ticker.Stop()
+			room, account := "", ""
+			delay := time.Second
+			var retryAt time.Time
+			for {
+				select {
+				case <-workerCtx.Done():
+					return
+				case <-ticker.C:
+					call, done := context.WithTimeout(workerCtx, 30*time.Second)
+					attempt := !time.Now().Before(retryAt)
+					var remote livedomain.Provider
+					if attempt {
+						remote = provider
+					}
+					nr, na, e := rooms.RecoverCapabilities(call, room, account, remote)
+					done()
+					room, account = nr, na
+					if e != nil {
+						logger.Warn("live.capability_recovery_failed", "failure_code", "LIVE_RECOVERY_UNAVAILABLE")
+						if attempt {
+							retryAt = time.Now().Add(delay + time.Duration(rand.Int64N(int64(delay/4+1))))
+							delay = min(30*time.Second, delay*2)
+						}
+					} else if attempt {
+						delay = time.Second
+						retryAt = time.Time{}
+					}
+
+				}
+			}
+		})
+	}
+	e = d.Run(workerCtx)
+	cancel()
+	wg.Wait()
+	return e
 }

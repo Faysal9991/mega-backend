@@ -25,23 +25,23 @@ SELECT id,account_id,agency_id,classification,effective_from,effective_until FRO
 -- name: History :many
 SELECT id,account_id,agency_id,classification,effective_from,effective_until FROM app.agency_host_associations WHERE account_id=$1 AND id>$2 ORDER BY id LIMIT $3;
 -- name: Room :one
-SELECT id,session_id,provider_sid,owner_id,kind,title,state,capacity,seats,created_at,closed_at FROM app.live_rooms WHERE id=$1;
+SELECT id,session_id,provider_sid,owner_id,kind,title,state,capacity,seats,created_at,closed_at,visibility,announcement,seats_locked FROM app.live_rooms WHERE id=$1;
 -- name: SessionRoom :one
-SELECT id,session_id,provider_sid,owner_id,kind,title,state,capacity,seats,created_at,closed_at FROM app.live_rooms WHERE session_id=$1;
+SELECT id,session_id,provider_sid,owner_id,kind,title,state,capacity,seats,created_at,closed_at,visibility,announcement,seats_locked FROM app.live_rooms WHERE session_id=$1;
 -- name: Rooms :many
-SELECT id,session_id,provider_sid,owner_id,kind,title,state,capacity,seats,created_at,closed_at FROM app.live_rooms WHERE id>$1 AND (sqlc.arg(admin)::boolean OR state='open') ORDER BY id LIMIT sqlc.arg(page_limit);
+SELECT id,session_id,provider_sid,owner_id,kind,title,state,capacity,seats,created_at,closed_at,visibility,announcement,seats_locked FROM app.live_rooms WHERE id>$1 AND (sqlc.arg(admin)::boolean OR state='open') ORDER BY id LIMIT sqlc.arg(page_limit);
 -- name: CreateRoom :one
-INSERT INTO app.live_rooms(id,session_id,owner_id,kind,title,state,capacity,seats) VALUES($1,$2,$3,$4,$5,'opening',$6,$7) RETURNING id,session_id,provider_sid,owner_id,kind,title,state,capacity,seats,created_at,closed_at;
+INSERT INTO app.live_rooms(id,session_id,owner_id,kind,title,state,capacity,seats) VALUES($1,$2,$3,$4,$5,'opening',$6,$7) RETURNING id,session_id,provider_sid,owner_id,kind,title,state,capacity,seats,created_at,closed_at,visibility,announcement,seats_locked;
 -- name: RoomState :exec
 UPDATE app.live_rooms SET state=$2,closed_at=CASE WHEN $2='closed' THEN clock_timestamp() ELSE closed_at END WHERE id=$1;
 -- name: Member :one
-SELECT room_id,account_id,role,state,muted,seat,invited_seat,updated_at FROM app.live_members WHERE room_id=$1 AND account_id=$2;
+SELECT room_id,account_id,role,state,muted,seat,invited_seat,updated_at,hidden,self_seated,private_entry FROM app.live_members WHERE room_id=$1 AND account_id=$2;
 -- name: Members :many
-SELECT room_id,account_id,role,state,muted,seat,invited_seat,updated_at FROM app.live_members WHERE room_id=$1 AND state='active' ORDER BY account_id LIMIT 501;
+SELECT room_id,account_id,role,state,muted,seat,invited_seat,updated_at,hidden,self_seated,private_entry FROM app.live_members WHERE room_id=$1 AND state='active' ORDER BY account_id LIMIT 501;
 -- name: JoinMember :one
-INSERT INTO app.live_members(room_id,account_id,role,state) VALUES($1,$2,$3,'active') ON CONFLICT(room_id,account_id) DO UPDATE SET state='active',role=EXCLUDED.role,seat=NULL,invited_seat=NULL,muted=false,updated_at=clock_timestamp() WHERE app.live_members.state='left' RETURNING room_id,account_id,role,state,muted,seat,invited_seat,updated_at;
+INSERT INTO app.live_members(room_id,account_id,role,state) VALUES($1,$2,$3,'active') ON CONFLICT(room_id,account_id) DO UPDATE SET state='active',role=EXCLUDED.role,seat=NULL,invited_seat=NULL,muted=false,updated_at=clock_timestamp() WHERE app.live_members.state='left' RETURNING room_id,account_id,role,state,muted,seat,invited_seat,updated_at,hidden,self_seated,private_entry;
 -- name: UpdateMember :one
-UPDATE app.live_members SET role=$3,state=$4,muted=$5,seat=NULLIF(sqlc.arg(seat)::integer,0),invited_seat=NULLIF(sqlc.arg(invited_seat)::integer,0),updated_at=clock_timestamp() WHERE room_id=$1 AND account_id=$2 RETURNING room_id,account_id,role,state,muted,seat,invited_seat,updated_at;
+UPDATE app.live_members SET role=$3,state=$4,muted=$5,seat=NULLIF(sqlc.arg(seat)::integer,0),invited_seat=NULLIF(sqlc.arg(invited_seat)::integer,0),updated_at=clock_timestamp() WHERE room_id=$1 AND account_id=$2 RETURNING room_id,account_id,role,state,muted,seat,invited_seat,updated_at,hidden,self_seated,private_entry;
 -- name: CloseMembers :exec
 UPDATE app.live_members SET state='left',seat=NULL,invited_seat=NULL,updated_at=clock_timestamp() WHERE room_id=$1 AND state='active';
 -- name: Enqueue :exec
@@ -49,11 +49,11 @@ INSERT INTO app.live_operations(id,room_id,kind,target) VALUES($1,$2,$3,$4);
 -- name: Pending :one
 SELECT EXISTS(SELECT 1 FROM app.live_operations WHERE room_id=$1 AND state<>'done');
 -- name: Claim :one
-UPDATE app.live_operations SET state='running',lease_until=clock_timestamp()+interval '30 seconds',attempts=attempts+1 WHERE id=(SELECT id FROM app.live_operations WHERE app.live_operations.room_id=$1 AND state<>'done' ORDER BY sequence LIMIT 1) AND (state='pending' OR lease_until<clock_timestamp()) AND attempts<100 RETURNING id,room_id,kind,target;
--- name: Complete :exec
-UPDATE app.live_operations SET state='done',lease_until=NULL WHERE id=$1 AND state='running';
+UPDATE app.live_operations SET state='running',lease_until=clock_timestamp()+interval '30 seconds',lease_token=sqlc.arg(lease_token),attempts=attempts+1 WHERE id=(SELECT id FROM app.live_operations WHERE app.live_operations.room_id=$1 AND state<>'done' ORDER BY sequence LIMIT 1) AND (state='pending' OR lease_until<clock_timestamp()) AND attempts<100 RETURNING id,room_id,kind,target,lease_token;
+-- name: Complete :one
+UPDATE app.live_operations SET state='done',lease_until=NULL WHERE id=$1 AND lease_token=$2 AND state='running' RETURNING id;
 -- name: Retry :exec
-UPDATE app.live_operations SET state='pending',lease_until=NULL WHERE id=$1 AND state='running';
+UPDATE app.live_operations SET state='pending',lease_until=NULL WHERE id=$1 AND lease_token=$2 AND state='running';
 -- name: Existing :one
 SELECT fingerprint,result FROM app.live_commands WHERE actor_id=$1 AND kind=$2 AND key=$3;
 -- name: Save :exec
@@ -119,7 +119,7 @@ SELECT id,account_id,agency_id,classification,effective_from,effective_until FRO
 -- name: OperationPreview :many
 SELECT id,kind,target,state,attempts,lease_until FROM app.live_operations WHERE room_id=$1 AND state<>'done' ORDER BY sequence LIMIT 51;
 -- name: ResetExhausted :exec
-UPDATE app.live_operations SET attempts=0,state='pending',lease_until=NULL WHERE id=(SELECT id FROM app.live_operations WHERE app.live_operations.room_id=$1 AND attempts>=100 AND (state='pending' OR lease_until<clock_timestamp()) ORDER BY sequence LIMIT 1);
+UPDATE app.live_operations SET attempts=0,state='pending',lease_until=NULL,lease_token='' WHERE id=(SELECT id FROM app.live_operations WHERE app.live_operations.room_id=$1 AND attempts>=100 AND (state='pending' OR lease_until<clock_timestamp()) ORDER BY sequence LIMIT 1);
 -- name: RecordRestriction :exec
 INSERT INTO app.live_account_restrictions(id,account_id) VALUES($1,$2);
 -- name: LeaveRestrictedRooms :exec
@@ -131,7 +131,7 @@ SELECT id,restricted_at FROM app.live_account_restrictions WHERE account_id=$1 O
 UPDATE app.live_presence SET ended_at=started_at WHERE participant_sid=ANY($1::text[]) AND ended_at IS NULL;
 
 -- name: DesiredParticipant :one
-SELECT m.room_id,m.account_id,m.role,m.state,m.muted,m.seat,m.invited_seat,m.updated_at,
+SELECT m.room_id,m.account_id,m.role,m.state,m.muted,m.seat,m.invited_seat,m.updated_at,m.hidden,m.self_seated,m.private_entry,
  COALESCE(a.classification,'')::text AS classification,
  COALESCE(g.status='active',false)::boolean AS agency_active,
  (i.status='active')::boolean AS account_active
@@ -142,3 +142,49 @@ WHERE m.room_id=$1 AND m.account_id=$2;
 
 -- name: GiftPresence :many
 SELECT DISTINCT p.account_id FROM app.live_presence p WHERE p.room_id=$1 AND p.started_at IS NOT NULL AND p.ended_at IS NULL AND p.valid_until IS NULL AND (p.account_id=sqlc.arg(sender)::text OR p.account_id=sqlc.arg(recipient)::text AND p.qualifying AND p.association_id=(SELECT id FROM app.agency_host_associations WHERE account_id=sqlc.arg(recipient)::text AND effective_until IS NULL AND effective_from<=clock_timestamp())) LIMIT 2;
+
+-- name: LiveRestricted :one
+SELECT EXISTS(SELECT 1 FROM app.live_global_bans WHERE account_id=$1 AND active);
+-- name: SetLiveBan :exec
+INSERT INTO app.live_global_bans(account_id,active) VALUES($1,$2) ON CONFLICT(account_id) DO UPDATE SET active=EXCLUDED.active,updated_at=clock_timestamp();
+-- name: MemberFlags :exec
+UPDATE app.live_members SET hidden=$3,self_seated=$4,private_entry=$5 WHERE room_id=$1 AND account_id=$2;
+-- name: RoomSettings :exec
+UPDATE app.live_rooms SET title=$2,announcement=$3,visibility=$4,seats_locked=$5 WHERE id=$1;
+-- name: DiscoveryClock :one
+SELECT clock_timestamp()::timestamptz AS now,h.revision,LEAST(clock_timestamp()+interval '30 seconds',
+ COALESCE((SELECT min(e.expires_at) FROM app.package_entitlements e WHERE e.expires_at>clock_timestamp() AND e.expires_at<=clock_timestamp()+interval '30 seconds' AND EXISTS(SELECT 1 FROM app.live_rooms r WHERE r.owner_id=e.account_id AND r.state='open' AND r.visibility='public')),'infinity'::timestamptz),
+ COALESCE((SELECT min(e.starts_at) FROM app.package_entitlements e WHERE e.starts_at>clock_timestamp() AND e.starts_at<=clock_timestamp()+interval '30 seconds' AND EXISTS(SELECT 1 FROM app.live_rooms r WHERE r.owner_id=e.account_id AND r.state='open' AND r.visibility='public')),'infinity'::timestamptz),
+ COALESCE((SELECT min(o.expires_at) FROM app.access_overrides o WHERE o.account_id=sqlc.arg(actor)::text AND o.action='room.enter' AND o.expires_at>clock_timestamp()),'infinity'::timestamptz))::timestamptz AS expires_at FROM app.live_discovery_head h WHERE singleton;
+-- name: CreateListSnapshot :exec
+INSERT INTO app.live_list_snapshots(id,actor_id,revision,expires_at) VALUES($1,$2,$3,$4);
+-- name: ListSnapshot :one
+SELECT id,actor_id,revision,expires_at FROM app.live_list_snapshots WHERE id=$1 AND actor_id=$2 AND expires_at>clock_timestamp();
+-- name: PruneListSnapshots :exec
+DELETE FROM app.live_list_snapshots WHERE id IN(SELECT id FROM app.live_list_snapshots WHERE expires_at<=clock_timestamp() ORDER BY expires_at,id LIMIT 100);
+-- name: ActorListSnapshots :one
+SELECT count(*) FROM (SELECT id FROM app.live_list_snapshots WHERE actor_id=$1 AND expires_at>clock_timestamp() LIMIT 6) bounded;
+-- name: Discovery :many
+WITH eligible AS (
+ SELECT r.id,r.session_id,r.owner_id,r.kind,r.title,r.state,r.capacity,r.seats,r.created_at,r.closed_at,r.visibility,r.announcement,r.seats_locked,COALESCE(max(v.listing_priority),0)::integer AS listing_priority
+ FROM app.live_rooms r JOIN app.identity_accounts a ON a.id=r.owner_id AND a.status='active'
+ LEFT JOIN app.package_entitlements e ON e.account_id=r.owner_id AND e.starts_at<=sqlc.arg(as_of)::timestamptz AND e.expires_at>sqlc.arg(as_of)::timestamptz AND NOT EXISTS(SELECT 1 FROM app.package_revocations x WHERE x.entitlement_id=e.id)
+ LEFT JOIN app.package_catalog p ON p.id=e.package_id LEFT JOIN app.package_versions v ON v.id=p.current_version AND v.active
+ WHERE r.state='open' AND r.visibility='public' AND EXISTS(SELECT 1 FROM app.live_members host WHERE host.room_id=r.id AND host.account_id=r.owner_id AND host.role='host' AND host.state='active')
+ AND NOT EXISTS(SELECT 1 FROM app.live_global_bans b WHERE b.active AND b.account_id IN (r.owner_id,sqlc.arg(actor)::text))
+ AND NOT EXISTS(SELECT 1 FROM app.live_members m WHERE m.room_id=r.id AND m.account_id=sqlc.arg(actor)::text AND m.state IN ('banned','kicked'))
+ AND NOT EXISTS(SELECT 1 FROM app.access_overrides o WHERE o.account_id=sqlc.arg(actor)::text AND o.room_id IN ('',r.id) AND o.action='room.enter' AND NOT o.allowed AND o.expires_at>sqlc.arg(as_of)::timestamptz)
+ GROUP BY r.id
+)
+SELECT * FROM eligible WHERE sqlc.arg(first_page)::boolean OR listing_priority<sqlc.arg(priority)::integer OR listing_priority=sqlc.arg(priority)::integer AND id>sqlc.arg(cursor)::text ORDER BY listing_priority DESC,id LIMIT sqlc.arg(page_limit);
+-- name: PendingRoomIDs :many
+WITH candidates AS(SELECT o.room_id,o.sequence FROM app.live_operations o WHERE o.state<>'done' AND o.attempts<100 AND NOT EXISTS(SELECT 1 FROM app.live_operations x WHERE x.room_id=o.room_id AND x.state<>'done' AND x.attempts>=100) ORDER BY o.sequence LIMIT 100) SELECT room_id FROM candidates GROUP BY room_id ORDER BY min(sequence),room_id LIMIT 10;
+-- name: CapabilityMembers :many
+SELECT room_id,account_id,hidden,self_seated,private_entry FROM app.live_members WHERE state='active' AND (hidden OR self_seated OR private_entry) AND (room_id,account_id)>(sqlc.arg(room_id)::text,sqlc.arg(account_id)::text) ORDER BY room_id,account_id LIMIT 10;
+-- name: RoomHistory :many
+SELECT id,actor,action,reason,occurred_at FROM app.access_audit WHERE target=$1 AND id>$2 ORDER BY id LIMIT sqlc.arg(page_limit);
+
+-- name: DiscoveryStillValid :one
+SELECT revision=$1 AND clock_timestamp()<$2::timestamptz AS valid FROM app.live_discovery_head WHERE singleton;
+-- name: InvalidateScopedParticipation :exec
+UPDATE app.live_presence SET valid_until=LEAST(COALESCE(valid_until,clock_timestamp()),clock_timestamp()) WHERE account_id=$1 AND room_id=ANY($2::text[]) AND ended_at IS NULL;

@@ -1,5 +1,5 @@
 -- name: Ready :one
-SELECT to_regclass('app.delivery_outbox') IS NOT NULL AND to_regclass('app.room_gifts') IS NOT NULL AND to_regclass('app.push_devices') IS NOT NULL;
+SELECT to_regclass('app.delivery_outbox') IS NOT NULL AND to_regclass('app.room_gifts') IS NOT NULL AND to_regclass('app.push_devices') IS NOT NULL AND to_regclass('app.package_versions') IS NOT NULL AND to_regclass('app.access_policy_head') IS NOT NULL AND EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='app' AND table_name='live_members' AND column_name='private_entry') AND EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='app' AND table_name='live_operations' AND column_name='lease_token');
 -- name: Clock :one
 SELECT clock_timestamp()::timestamptz AS now;
 -- name: Command :one
@@ -59,7 +59,7 @@ SELECT asset_id FROM app.delivery_asset_links WHERE target_id=$1 AND purpose=$2;
 -- name: LinkAsset :exec
 INSERT INTO app.delivery_asset_links(target_id,purpose,asset_id) VALUES($1,$2,$3) ON CONFLICT(target_id,purpose) DO UPDATE SET asset_id=EXCLUDED.asset_id;
 -- name: AssetReferenced :one
-SELECT EXISTS(SELECT 1 FROM app.delivery_asset_links WHERE asset_id=$1) OR EXISTS(SELECT 1 FROM app.gift_versions WHERE thumbnail_asset_id=$1) AS referenced;
+SELECT EXISTS(SELECT 1 FROM app.delivery_asset_links WHERE asset_id=$1) OR EXISTS(SELECT 1 FROM app.gift_versions WHERE thumbnail_asset_id=$1) OR EXISTS(SELECT 1 FROM app.package_versions WHERE badge_asset_id=$1 OR entrance_asset_id=$1) AS referenced;
 -- name: RetireAsset :exec
 UPDATE app.delivery_assets SET state='retiring',updated_at=clock_timestamp() WHERE id=$1 AND state<>'deleted';
 -- name: DeleteAsset :exec

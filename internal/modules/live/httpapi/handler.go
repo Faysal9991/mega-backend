@@ -33,6 +33,7 @@ type Handler struct {
 	verify    Verifier
 	responses *response.Writer
 	decoder   *validation.Decoder
+	strict    *validation.Decoder
 }
 
 func New(s Service, v Verifier, l *slog.Logger) (*Handler, error) {
@@ -47,7 +48,11 @@ func New(s Service, v Verifier, l *slog.Logger) (*Handler, error) {
 	if e != nil {
 		return nil, e
 	}
-	return &Handler{s, v, w, d}, nil
+	strict, e := validation.NewNonNullSnakeCaseDecoder(4096)
+	if e != nil {
+		return nil, e
+	}
+	return &Handler{s, v, w, d, strict}, nil
 }
 func credentials(r *http.Request) access.Credentials {
 	a, i := r.Header.Values("Authorization"), r.Header.Values("X-Installation-ID")
@@ -158,8 +163,15 @@ func (h *Handler) Mount(r chi.Router) {
 	r.Patch("/admin/hosts/{target}/classification", h.command("host.classify"))
 	r.Get("/rooms", h.read("rooms", true))
 	r.Post("/rooms", h.command("room.create"))
+	r.Get("/rooms/{id}/moderation-history", h.read("room.history", true))
 	r.Get("/rooms/{id}", h.read("room", false))
 	r.Post("/rooms/{id}/close", h.command("room.close"))
+	r.Get("/admin/live-participants/{id}/ban", h.read("global.ban", false))
+	r.Put("/live-participants/{target}/ban", h.command("live.ban"))
+	r.Patch("/rooms/{id}/settings", h.command("room.settings"))
+	r.Post("/rooms/{id}/seats/self", h.command("seat.self_join"))
+	r.Post("/rooms/{id}/seats/lock", h.command("seat.lock"))
+	r.Post("/rooms/{id}/seats/unlock", h.command("seat.unlock"))
 	r.Post("/rooms/{id}/join", h.command("room.join"))
 	r.Post("/rooms/{id}/leave", h.command("room.leave"))
 	r.Post("/rooms/{id}/token", h.token)
@@ -189,10 +201,61 @@ func (h *Handler) command(kind string, admin ...bool) http.HandlerFunc {
 		if r.URL.RawQuery != "" {
 			e = live.Fail(apperror.ValidationFailed)
 		} else {
+			decoder := h.decoder
+			if kind == "room.join" || kind == "live.ban" || kind == "room.settings" || kind == "seat.self_join" || kind == "seat.lock" || kind == "seat.unlock" {
+				decoder = h.strict
+			}
 			switch kind {
+			case "live.ban":
+				var b struct {
+					Banned *bool  `json:"banned"`
+					Reason string `json:"reason"`
+				}
+				e = decoder.Decode(r, &b)
+				if b.Banned == nil && e == nil {
+					e = live.Fail(apperror.ValidationFailed)
+				}
+				if b.Banned != nil {
+					in.Muted = *b.Banned
+				}
+				in.Reason = b.Reason
+			case "room.join":
+				var b struct {
+					Hidden bool `json:"hidden"`
+				}
+				e = decoder.Decode(r, &b)
+				in.Hidden = b.Hidden
+			case "room.settings":
+				var b struct {
+					Title        *string `json:"title"`
+					Announcement *string `json:"announcement"`
+					Visibility   *string `json:"visibility"`
+					Reason       string  `json:"reason"`
+				}
+				e = decoder.Decode(r, &b)
+				if b.Title != nil {
+					in.TitleSet = true
+					in.Name = *b.Title
+				}
+				if b.Announcement != nil {
+					in.AnnouncementSet = true
+					in.Announcement = *b.Announcement
+				}
+				if b.Visibility != nil {
+					in.VisibilitySet = true
+					in.Visibility = *b.Visibility
+				}
+				in.Reason = b.Reason
+			case "seat.self_join":
+				var b struct {
+					Seat int32 `json:"seat"`
+				}
+				e = decoder.Decode(r, &b)
+				in.Seat = b.Seat
+
 			case "policy.publish":
 				var b policyPublish
-				e = h.decoder.Decode(r, &b)
+				e = decoder.Decode(r, &b)
 				in.Reason = b.Reason
 				if (!b.Compatibility.valid() || b.PreviousID == nil) && e == nil {
 					e = live.Fail(apperror.ValidationFailed)
@@ -202,31 +265,31 @@ func (h *Handler) command(kind string, admin ...bool) http.HandlerFunc {
 				}
 			case "agency.create":
 				var b agencyCreate
-				e = h.decoder.Decode(r, &b)
+				e = decoder.Decode(r, &b)
 				in.Name = b.Name
 			case "agency.update":
 				var b agencyUpdate
-				e = h.decoder.Decode(r, &b)
+				e = decoder.Decode(r, &b)
 				in.Name = b.Name
 				in.Status = b.Status
 				in.Reason = b.Reason
 			case "host.apply":
 				var b hostApply
-				e = h.decoder.Decode(r, &b)
+				e = decoder.Decode(r, &b)
 				in.Classification = b.Classification
 			case "host.decide":
 				var b hostDecision
-				e = h.decoder.Decode(r, &b)
+				e = decoder.Decode(r, &b)
 				in.Status = b.State
 				in.Reason = b.Reason
 			case "host.classify":
 				var b hostClassify
-				e = h.decoder.Decode(r, &b)
+				e = decoder.Decode(r, &b)
 				in.Classification = b.Classification
 				in.Reason = b.Reason
 			case "room.create":
 				var b roomCreate
-				e = h.decoder.Decode(r, &b)
+				e = decoder.Decode(r, &b)
 				in.Name = b.Title
 				in.Status = b.Type
 				in.Capacity = b.Capacity
@@ -239,16 +302,16 @@ func (h *Handler) command(kind string, admin ...bool) http.HandlerFunc {
 				}
 			case "seat.invite":
 				var b seatInvite
-				e = h.decoder.Decode(r, &b)
+				e = decoder.Decode(r, &b)
 				in.Seat = b.Seat
 			case "member.role":
 				var b memberRole
-				e = h.decoder.Decode(r, &b)
+				e = decoder.Decode(r, &b)
 				in.Role = b.Role
 				in.Reason = b.Reason
 			case "member.mute":
 				var b memberMute
-				e = h.decoder.Decode(r, &b)
+				e = decoder.Decode(r, &b)
 				in.Reason = b.Reason
 				if e == nil && b.Muted == nil {
 					e = live.Fail(apperror.ValidationFailed)
@@ -258,11 +321,11 @@ func (h *Handler) command(kind string, admin ...bool) http.HandlerFunc {
 				}
 			case "member.kick", "member.ban", "member.unban", "seat.remove", "manager.add", "manager.remove":
 				var b reason
-				e = h.decoder.Decode(r, &b)
+				e = decoder.Decode(r, &b)
 				in.Reason = b.Reason
 			default:
 				var b empty
-				e = h.decoder.Decode(r, &b)
+				e = decoder.Decode(r, &b)
 			}
 		}
 		var out live.Result

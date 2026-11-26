@@ -23,7 +23,7 @@ const (
 )
 
 func Catalog() []string {
-	return []string{UsersRead, PrivateRead, ProfileUpdate, Restrict, "economy.policies.read", "economy.policies.write", "wallet.operations.read", "wallet.adjust", "withdrawals.review", "agency.hosts.manage", "agencies.manage", "live.rooms.moderate", "live.activity.read", "live.policies.manage", "gifts.manage", "media.manage", "notifications.announce", "deliveries.read", "deliveries.retry"}
+	return []string{UsersRead, PrivateRead, ProfileUpdate, Restrict, "economy.policies.read", "economy.policies.write", "wallet.operations.read", "wallet.adjust", "withdrawals.review", "agency.hosts.manage", "agencies.manage", "live.rooms.moderate", "live.activity.read", "live.policies.manage", "gifts.manage", "media.manage", "notifications.announce", "deliveries.read", "deliveries.retry", "capabilities.manage", "packages.manage", "packages.entitlements.manage", "packages.purchases.read", "room.enter", "room.enter.private", "room.join.hidden", "room.close", "room.participant.kick", "room.participant.mute", "room.participant.seat_remove", "room.participant.ban", "live.participant.global_ban", "room.seat.lock", "room.seat.unlock", "room.seat.self_join", "room.seat.self_leave", "room.title.update", "room.announcement.update", "room.admin.assign", "room.moderator.assign", "room.settings.update", "room.moderation_history.read", "benefit.badge", "benefit.entrance", "packages.purchase"}
 }
 func ID() string {
 	var b [16]byte
@@ -52,13 +52,15 @@ func Safe(err error) error {
 	if errors.As(err, &a) {
 		return a
 	}
-	return Failure(apperror.ServiceUnavailable)
+	return apperror.New(apperror.ServiceUnavailable, err)
 }
 
 type Credentials struct{ Access, Installation string }
 type Effective struct {
-	Permissions []string `json:"permissions"`
-	Owner       bool     `json:"protected_owner"`
+	Permissions   []string `json:"permissions"`
+	Owner         bool     `json:"protected_owner"`
+	PolicyVersion string   `json:"policy_version,omitempty"`
+	Denied        []string `json:"denied,omitempty"`
 }
 type User struct {
 	profiles.Profile
@@ -129,8 +131,17 @@ func (s *Service) Profile(ctx context.Context, c Credentials, id string) (out pr
 	})
 	return
 }
+
+// Permissions preserves the established staff projection; Powers exposes the
+// complete effective capabilities, including implicit public actions.
 func (s *Service) Permissions(ctx context.Context, c Credentials) (out Effective, err error) {
-	err = s.within(ctx, c, "", false, "", func(u Unit) error { out = u.Effective(); return nil })
+	err = s.within(ctx, c, "", false, "", func(u Unit) error {
+		out = u.Effective()
+		if !out.Owner {
+			out.Permissions = slices.DeleteFunc(slices.Clone(out.Permissions), func(p string) bool { return p == "room.enter" || p == "packages.purchase" })
+		}
+		return nil
+	})
 	return
 }
 func (s *Service) User(ctx context.Context, c Credentials, id string) (out User, err error) {

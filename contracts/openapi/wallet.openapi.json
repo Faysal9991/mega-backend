@@ -6915,7 +6915,8 @@
               "gift",
               "adjustment",
               "withdrawal_reserve",
-              "withdrawal_release"
+              "withdrawal_release",
+              "package_purchase"
             ]
           },
           "actor_id": {

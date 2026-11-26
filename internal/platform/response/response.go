@@ -109,7 +109,7 @@ func Status(code apperror.Code) int {
 		return 404
 	case apperror.MethodNotAllowed:
 		return 405
-	case apperror.Conflict, apperror.FinancialConfigurationRequired, apperror.InsufficientDiamonds:
+	case apperror.Conflict, apperror.LiveListRestartRequired, apperror.FinancialConfigurationRequired, apperror.InsufficientDiamonds:
 		return 409
 	case apperror.PayloadTooLarge:
 		return 413
